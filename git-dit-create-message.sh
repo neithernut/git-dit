@@ -42,15 +42,15 @@ commit_exists_or_abort() {
 PARENT="$1"
 TREE_INIT_HASH="$2"
 
-empty_tree=$(git hash-object -t tree /dev/null)
-[[ ! $? ]] && abort "Failed to get hash of empty tree"
-
 create_new_head() {
     git update-ref refs/dit/$1/head $1
     [[ ! $? ]] && abort "Failed to update reference: $1"
 }
 
 if [[ -z "$PARENT" ]]; then
+    empty_tree=$(git hash-object -t tree /dev/null)
+    [[ ! $? ]] && abort "Failed to get hash of empty tree"
+
     # Create new detached issue thread
     new_commit_hash=$(git commit-tree "$empty_tree")
     [[ ! $? ]] && abort "Failed to commit tree with message"
@@ -61,7 +61,7 @@ else
     # Check whether $PARENT exists
     commit_exists_or_abort "$PARENT"
 
-    new_commit_hash=$(git commit-tree -p "$PARENT" "$empty_tree")
+    new_commit_hash=$(git commit-tree -p "$PARENT" "$PARENT:")
     [[ ! $? ]] && abort "Failed to commit tree with message"
 
     if [[ -z "$TREE_INIT_HASH" ]];
