@@ -1,0 +1,96 @@
+#!/usr/bin/env bash
+#
+#   git-dit - the distributed issue tracker for git
+#   Copyright (C) 2016 Matthias Beyer <mail@beyermatthias.de>
+#   Copyright (C) 2016 Julian Ganz <neither@nut.email>
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License version 2 as
+#   published by the Free Software Foundation.
+#
+# -----
+#
+# The following script can be used to create a new bug report
+#
+#
+
+abort() {
+    echo "$*" >&2
+    exit 1
+}
+
+usage() {
+    cat <<EOS
+    Usage :  $(basename $0) [options] [--]
+
+    Options:
+        -h          Display this message
+        -m <msg>    Use this as issue message
+        -s          Add a 'Signed-off-by' line
+        -S          Sign the issue with GPG (unimplemented)
+
+    Issue messages will be piped through 'git stripspace'.
+
+    (C) 2016 Matthias Beyer, Julian Ganz
+    Released under the terms of the GNU GPLv2
+EOS
+}
+
+SIGNOFF=0
+GPGSIGN=0
+MESSAGE=""
+
+while getopts "hm:sS" opt
+do
+  case $opt in
+
+    h)
+        usage
+        exit 0
+        ;;
+
+    m)
+        MESSAGE="$OPTARG"
+        ;;
+
+    s)
+        SIGNOFF=1
+        ;;
+
+    S)
+        GPGSIGN=1
+        ;;
+
+    *)
+        echo -e "\n  Option does not exist : $OPTARG\n"
+        usage
+        exit 1
+        ;;
+
+  esac
+done
+shift $(($OPTIND-1))
+
+TMPFILE=$(mktemp)
+if [[ -z "$MESSAGE" ]]; then
+    $EDITOR $TMPFILE
+else
+    echo "$MESSAGE" >> $TMPFILE
+fi
+
+signoff_line() {
+    echo "Signed-off-by: $(git config user.name) <$(git config user.email)>"
+}
+
+if [[ $SIGNOFF -eq 1 ]]; then
+    cat >> $TMPFILE <<EOF
+
+
+$(signoff_line)
+EOF
+fi
+
+cat "$TMPFILE" | git stripspace | git dit create-message
+
+rm "$TMPFILE"
+
