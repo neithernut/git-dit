@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+#
+#   git-dit - the distributed issue tracker for git
+#   Copyright (C) 2016 Matthias Beyer <mail@beyermatthias.de>
+#   Copyright (C) 2016 Julian Ganz <neither@nut.email>
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License version 2 as
+#   published by the Free Software Foundation.
+#
+# -----
+#
+# $(basename $0) <hash from tree>
+# Arguments:
+#  $1 - parent hash
+#
+# This command prints the init hash of the issue a commit belongs to.
+#
+# (c) 2016 Matthias Beyer, Julian Ganz
+
+abort() {
+    echo "$*" >&2
+    exit 1
+}
+
+commit_exists_or_abort() {
+    git rev-parse --quiet --verify $1^{commit} 2>/dev/null >/dev/null || \
+        abort "Not a commit: $1"
+}
+
+commit_exists_or_abort "$1"
+
+git rev-list --first-parent "$1" | \
+    while read hash; do
+        if git show-ref -s "dit/$hash/head" >> /dev/null; then
+            echo $hash
+            break
+        fi
+    done
+
