@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+#
+#   git-dit - the distributed issue tracker for git
+#   Copyright (C) 2016 Matthias Beyer <mail@beyermatthias.de>
+#   Copyright (C) 2016 Julian Ganz <neither@nut.email>
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License version 2 as
+#   published by the Free Software Foundation.
+#
+# -----
+#
+# $(basename $0) [options]
+#
+# (c) 2016 Matthias Beyer, Julian Ganz
+
+abort() {
+    echo "$*" >&2
+    exit 1
+}
+
+SUBDIRECTORY_OK=1
+USAGE="[options]"
+LONG_USAGE="    Options:
+        -h          Display this message
+
+List issues."
+
+. "$(git --exec-path)/git-sh-setup"
+
+while getopts "h" OPTARG
+do
+  case $opt in
+
+    h)
+        usage
+        exit 0
+        ;;
+
+    *)
+        echo -e "\n  Option does not exist : $OPTARG\n"
+        usage
+        exit 1
+        ;;
+
+  esac
+done
+shift $(($OPTIND-1))
+
+git dit get-issue-tree-init-hashes | while read hash; do
+    git --no-pager show --format='format:%H %s%n' "$hash"
+done
+
