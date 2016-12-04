@@ -23,18 +23,26 @@ SUBDIRECTORY_OK=1
 USAGE="[options]"
 LONG_USAGE="    Options:
         -h          Display this message
+        -a          Abbreviate issue hash
 
 List issues."
 
 . "$(git --exec-path)/git-sh-setup"
 
-while getopts "h" OPTARG
+
+ABBREV=0
+
+while getopts "ha" opt
 do
   case $opt in
 
     h)
         usage
         exit 0
+        ;;
+
+    a)
+        ABBREV=1
         ;;
 
     *)
@@ -47,7 +55,11 @@ do
 done
 shift $(($OPTIND-1))
 
+[[ $ABBREV -eq 1 ]] && FORMAT="%h" || FORMAT="%H"
+
+FORMAT+=" %s"
+
 git dit get-issue-tree-init-hashes | while read hash; do
-    git --no-pager show --format='format:%H %s%n' "$hash"
+    git --no-pager show --format="$FORMAT" "$hash"
 done
 
