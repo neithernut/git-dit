@@ -28,7 +28,7 @@ List issues."
 
 . "$(git --exec-path)/git-sh-setup"
 
-while getopts "h" OPTARG
+while getopts "ha" opt
 do
   case $opt in
 
