@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+#
+#   git-dit - the distributed issue tracker for git
+#   Copyright (C) 2016 Matthias Beyer <mail@beyermatthias.de>
+#   Copyright (C) 2016 Julian Ganz <neither@nut.email>
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License version 2 as
+#   published by the Free Software Foundation.
+#
+# -----
+#
+
+SUBDIRECTORY_OK=1
+USAGE="[options] <parent>"
+LONG_USAGE="    Options:
+        -h          Display this message
+        -m <msg>    Use this as message
+        -s          Add a 'Signed-off-by' line
+        -S          Sign the issue with GPG (unimplemented)
+        -Q          Quote parent
+
+Reply to a specific message in an issue."
+
+. "$(git --exec-path)/git-sh-setup"
+
+
+MESSAGE=""
+SIGNOFF=0
+GPGSIGN=0
+QUOTE=0
+PARENT=""
+
+while getopts "hm:sSQ" OPT
+do
+  case $OPT in
+
+    h)
+        usage
+        exit 0
+        ;;
+
+    m)
+        MESSAGE="$OPTARG"
+        ;;
+
+    s)
+        SIGNOFF=1
+        ;;
+
+    S)
+        GPGSIGN=1
+        ;;
+
+    Q)
+        QUOTE=1
+        ;;
+
+    *)
+        die "Option does not exist: $OPT" #TODO: fix
+        ;;
+
+  esac
+done
+shift $(($OPTIND-1))
+
+PARENT="$1"
+INIT_HASH="$(git dit find-tree-init-hash "$PARENT")"
+
+[[ -z "$PARENT" ]] && die "No parent"
+
+TMPFILE=$(mktemp)
+
+git rev-list --format="Re: %s%n" -n 1 "$INIT_HASH" | tail -n+2 > $TMPFILE
+
+if [[ $QUOTE -eq 1 ]]; then
+    git rev-list --format="%b" -n 1 | tail -n+2 | git stripspace -c >> $TMPFILE
+fi
+
+if [[ -z "$MESSAGE" ]]; then
+    $EDITOR $TMPFILE
+else
+    echo "$MESSAGE" >> $TMPFILE
+fi
+
+if [[ $SIGNOFF -eq 1 ]]; then
+    git interpret-trailers --in-place --trailer "Signed-off-by=$(git config user.name) <$(git config user.email)>" $TMPFILE
+fi
+
+cat $TMPFILE | git dit create-message "$PARENT" "$INIT_HASH" >> /dev/null
+
+rm $TMPFILE
+
