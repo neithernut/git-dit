@@ -1,0 +1,15 @@
+git-dit - the distributed issue tracker for git
+
+This repository contains the "git-dit" project, a distributed issue tracking 
+system using git.
+
+Documentation will be there. Releases will be there.
+
+Fancy shiny things will happen in this repository.
+
+---
+
+Licensed under the terms of GNU GPLv2.
+For more information, see the LICENSE file.
+
+(c) Julian Ganz, Matthias Beyer
