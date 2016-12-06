@@ -55,11 +55,12 @@ do
 done
 shift $(($OPTIND-1))
 
-[[ $ABBREV -eq 1 ]] && FORMAT="%h" || FORMAT="%H"
+FORMAT="%ct "
+[[ $ABBREV -eq 1 ]] && FORMAT+="%h" || FORMAT+="%H"
 
-FORMAT+=" %s"
+FORMAT+=" (%ar) %s"
 
 git dit get-issue-tree-init-hashes | while read hash; do
     git --no-pager show --format="$FORMAT" "$hash"
-done
+done | sort -n --reverse | uniq | cut -d " " -f 2-
 
