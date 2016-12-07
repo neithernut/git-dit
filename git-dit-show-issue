@@ -26,8 +26,10 @@ usage() {
 
     Options:
         -h          Display this message
+        -a          Abbreviate commit hashes
         -I          Only list the initial message
         -g          List messages as a tree (unimplemented)
+        -t          Show message tree (only subjects, turns of -V, -d, -g, -I)
         -V          Verify GPG signatures (if any, unimplemented)
         -d          Decorate (show references)
         -F <fmt>    Alternative format (see git-log(1))
@@ -39,17 +41,14 @@ usage() {
 EOS
 }
 
+ABBREV=0
 INITONLY=0
 LISTTREE=0
+MSGTREE=0
 GPGVERIF=0
 DECORATE=0
 
-FORMAT="%Cgreen%H%Creset%n"
-FORMAT+="%C(yellow)Author:    %an <%ae> (%ai)%Creset%n"
-FORMAT+="%C(yellow)Committed: %cn <%ce> (%ci)%Creset%n"
-FORMAT+="%n%s%n%n%b%n"
-
-while getopts "hIgVF:d" opt
+while getopts "haIgVF:dt" opt
 do
   case $opt in
 
@@ -58,12 +57,20 @@ do
         exit 0
         ;;
 
+    a)
+        ABBREV=1
+        ;;
+
     I)
         INITONLY=1
         ;;
 
     g)
         LISTTREE=1
+        ;;
+
+    t)
+        MSGTREE=1
         ;;
 
     V)
@@ -79,7 +86,7 @@ do
         ;;
 
     *)
-        echo -e "\n  Option does not exist : $OPTARG\n"
+        echo -e "\n  Option does not exist : $opt\n"
         usage
         exit 1
         ;;
@@ -88,19 +95,47 @@ do
 done
 shift $(($OPTIND-1))
 
-if [[ $INITONLY -eq 1 ]]; then
-    hash=$(git dit find-tree-init-hash "$1")
-    git show "$hash"
-else
+hashfmt="%H"
+[[ $ABBREV -eq 1 ]] && hashfmt="%h"
+FORMAT="%Cgreen$hashfmt%Creset%n"
+FORMAT+="%C(yellow)Author:    %an <%ae> (%ai)%Creset%n"
+FORMAT+="%C(yellow)Committed: %cn <%ce> (%ci)%Creset%n"
+FORMAT+="%n%s%n%n%b%n"
+
+if [[ $MSGTREE -eq 1 ]]; then
     HASHES=""
     for hash in $(git for-each-ref --contains "$1" | cut -d " " -f 1); do
         HASHES="$HASHES $hash"
     done
 
-    args=""
-    [[ $LISTTREE -eq 1 ]] && args="$args --graph "
-    [[ $GPGVERIF -eq 1 ]] && args="$args --show-signature "
-    [[ $DECORATE -eq 1 ]] && args="$args --decorate "
+    hashfmt="%H"
+    [[ $ABBREV   -eq 1 ]] && hashfmt="%h"
 
-    git log $args --topo-order --first-parent --format=format:"$FORMAT" $HASHES
+    git log \
+        --graph \
+        --topo-order \
+        --first-parent \
+        --format=format:"%Cgreen$hashfmt%Creset %C(yellow)%an <%ae>%Creset: %s%n" \
+        $HASHES \
+        | tac | grep -v "|"
+else
+
+    if [[ $INITONLY -eq 1 ]]; then
+        hash=$(git dit find-tree-init-hash "$1")
+        [[ $ABBREV -eq 1 ]] && abbrev="--abbrev-commit"
+        git show $abbrev "$hash"
+    else
+        HASHES=""
+        for hash in $(git for-each-ref --contains "$1" | cut -d " " -f 1); do
+            HASHES="$HASHES $hash"
+        done
+
+        args=""
+        [[ $ABBREV   -eq 1 ]] && args="$args --abbrev-commit"
+        [[ $LISTTREE -eq 1 ]] && args="$args --graph "
+        [[ $GPGVERIF -eq 1 ]] && args="$args --show-signature "
+        [[ $DECORATE -eq 1 ]] && args="$args --decorate "
+
+        git log $args --topo-order --first-parent --format=format:"$FORMAT" $HASHES
+    fi
 fi
