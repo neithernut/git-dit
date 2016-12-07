@@ -75,7 +75,7 @@ git rev-list --format="Re: %s%n" -n 1 "$INIT_HASH" | tail -n+2 > $TMPFILE
 
 if [[ $QUOTE -eq 1 ]]; then
     git rev-list --format="%b" -n 1 "$PARENT" | tail -n+2 | \
-        git stripspace -c >> $TMPFILE
+        sed +'s,^,> ,;s, *$,,' >> $TMPFILE
 fi
 
 if [[ -z "$MESSAGE" ]]; then
