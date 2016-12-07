@@ -25,6 +25,7 @@ usage() {
 
     Options:
         -h          Display this message
+        -q          Be quiet
         -m <msg>    Use this as issue message
         -s          Add a 'Signed-off-by' line
         -S          Sign the issue with GPG (unimplemented)
@@ -36,6 +37,7 @@ usage() {
 EOS
 }
 
+QUIET=0
 SIGNOFF=0
 GPGSIGN=0
 MESSAGE=""
@@ -47,6 +49,10 @@ do
     h)
         usage
         exit 0
+        ;;
+
+    q)
+        QUIET=1
         ;;
 
     m)
@@ -90,7 +96,9 @@ $(signoff_line)
 EOF
 fi
 
-cat "$TMPFILE" | git stripspace | git dit create-message
+new_hash=$(cat "$TMPFILE" | git stripspace | git dit create-message)
+
+[[ $QUIET -eq 0 ]] && echo "[dit][new-issue]: $new_hash"
 
 rm "$TMPFILE"
 
