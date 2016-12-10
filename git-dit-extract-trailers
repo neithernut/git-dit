@@ -1,0 +1,78 @@
+#!/usr/bin/awk -f
+#
+#   git-dit - the distributed issue tracker for git
+#   Copyright (C) 2016 Matthias Beyer <mail@beyermatthias.de>
+#   Copyright (C) 2016 Julian Ganz <neither@nut.email>
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License version 2 as
+#   published by the Free Software Foundation.
+#
+# -----
+#
+# Extract trailers from stdin and write them to stdout.
+#
+# This tool detects blocks of trailers and writes all trailers detected to
+# stdout, in the order they were discovered. A block of trailers is a series of
+# non-blank lines of text, with each single line being a trailer.
+#
+# (c) 2016 Matthias Beyer, Julian Ganz
+
+# helper to get the length of an array (posix compatibility)
+function arraylen(array) {
+    retval = 0
+    for (i in array) ++retval;
+    return retval;
+}
+
+BEGIN {
+    current = -1; # index of the current trailer
+    last_blankline = -1; # index we had at the last blank line
+    is_trailer = 0; # state: 1 indicates trailer, -1 indicates paragraph
+}
+
+# reset state, savepoint
+/^[[:space:]]*$/ {
+    last_blankline = current;
+    is_trailer = 0;
+}
+/^[^[:space:]]/ {
+    if (is_trailer > 0) {
+        is_trailer = 0;
+    }
+}
+
+# detect and process trailers
+/^[[:alnum:]-]+:[:space:]*.*$/ {
+    if (is_trailer >= 0) {
+        current = arraylen(trailers);
+        trailers[current] = $0;
+        is_trailer = 1;
+    }
+}
+/^[[:space:]]/ {
+    if (is_trailer > 0) {
+        sub(/[[:space:]]+/, "");
+        trailers[current] = trailers[current] " " $0
+    }
+}
+
+# paragraph detection/
+/^[^[:space:]]/ {
+    if (is_trailer <= 0) {
+        # we are in a paragraph
+        is_trailer = -1;
+
+        #remove all "trailers" which are actually part of a paragraph
+        while (current > last_blankline) {
+            delete trailers[current];
+            --current;
+        }
+    }
+}
+
+# print all the trailers found
+END {
+    for (key in trailers)
+        print trailers[key];
+}
