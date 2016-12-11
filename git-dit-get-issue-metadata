@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+#
+#   git-dit - the distributed issue tracker for git
+#   Copyright (C) 2016 Matthias Beyer <mail@beyermatthias.de>
+#   Copyright (C) 2016 Julian Ganz <neither@nut.email>
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License version 2 as
+#   published by the Free Software Foundation.
+#
+# -----
+#
+# (c) 2016 Matthias Beyer, Julian Ganz
+
+SUBDIRECTORY_OK=1
+USAGE="<issue-head>"
+LONG_USAGE="  <issue-head>    The head for which to collect the metadata
+
+Prints a log of commit tags, from the supplied issue head to the initial issue
+message."
+
+. "$(git --exec-path)/git-sh-setup"
+
+
+commit_exists_or_abort() {
+    git rev-parse --quiet --verify $1^{commit} 2>/dev/null >/dev/null || \
+        die "Not a commit: $1"
+}
+
+
+ISSUE_HEAD="$1"
+[[ -z "$ISSUE_HEAD" ]] && die "No issue head supplied"
+commit_exists_or_abort "$ISSUE_HEAD"
+
+ISSUE_HASH="$(git dit find-tree-init-hash "$ISSUE_HEAD")"
+
+(
+    # get all the relevant hashes
+    git rev-list "$INIT_HASH..$ISSUE_HEAD"
+    echo "$INIT_HASH"
+) | while read hash; do
+    [[ -z "$hash" ]] && continue
+    # extract the messages
+    git rev-list --format="%b" -n 1 "$hash" | tail -n+2
+    echo
+done | git dit extract-trailers
+
+
