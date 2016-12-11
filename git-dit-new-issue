@@ -29,6 +29,7 @@ usage() {
         -m <msg>    Use this as issue message
         -s          Add a 'Signed-off-by' line
         -S          Sign the issue with GPG (unimplemented)
+        -t          Use a temporary file instead of .git/COMMIT_EDITMSG
 
     Issue messages will be piped through 'git stripspace'.
 
@@ -40,9 +41,10 @@ EOS
 QUIET=0
 SIGNOFF=0
 GPGSIGN=0
+USE_TEMPFILE=0
 MESSAGE=""
 
-while getopts "hm:sS" opt
+while getopts "hm:sSt" opt
 do
   case $opt in
 
@@ -67,6 +69,10 @@ do
         GPGSIGN=1
         ;;
 
+    t)
+        USE_TEMPFILE=1
+        ;;
+
     *)
         echo -e "\n  Option does not exist : $OPTARG\n"
         usage
@@ -77,7 +83,11 @@ do
 done
 shift $(($OPTIND-1))
 
-TMPFILE=$(mktemp)
+TMPFILE="$GIT_DIR/COMMIT_EDITMSG"
+if [[ $USE_TEMPFILE -eq 1 ]]; then
+    TMPFILE="$(mktemp)"
+fi
+
 if [[ -z "$MESSAGE" ]]; then
     $EDITOR $TMPFILE
 else
