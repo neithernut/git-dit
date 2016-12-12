@@ -18,6 +18,7 @@ LONG_USAGE="    Options:
         -m <msg>    Use this as message
         -s          Add a 'Signed-off-by' line
         -S          Sign the issue with GPG (unimplemented)
+        -t          Use a temporary file instead of .git/COMMIT_EDITMSG
         -Q          Quote parent
 
 Reply to a specific message in an issue."
@@ -28,10 +29,11 @@ Reply to a specific message in an issue."
 MESSAGE=""
 SIGNOFF=0
 GPGSIGN=0
+USE_TEMPFILE=0
 QUOTE=0
 PARENT=""
 
-while getopts "hm:sSQ" OPT
+while getopts "hm:sStQ" OPT
 do
   case $OPT in
 
@@ -52,6 +54,10 @@ do
         GPGSIGN=1
         ;;
 
+    t)
+        USE_TEMPFILE=1
+        ;;
+
     Q)
         QUOTE=1
         ;;
@@ -69,7 +75,10 @@ INIT_HASH="$(git dit find-tree-init-hash "$PARENT")"
 
 [[ -z "$PARENT" ]] && die "No parent"
 
-TMPFILE=$(mktemp)
+TMPFILE="$GIT_DIR/COMMIT_EDITMSG"
+if [[ $USE_TEMPFILE -eq 1 ]]; then
+    TMPFILE="$(mktemp)"
+fi
 
 git rev-list --format="Re: %s%n" -n 1 "$INIT_HASH" | tail -n+2 > $TMPFILE
 
