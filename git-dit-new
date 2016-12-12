@@ -98,7 +98,7 @@ fi
 
 new_hash=$(cat "$TMPFILE" | git stripspace | git dit create-message)
 
-[[ $QUIET -eq 0 ]] && echo "[dit][new-issue]: $new_hash"
+[[ $QUIET -eq 0 ]] && echo "[dit][new]: $new_hash"
 
 rm "$TMPFILE"
 
