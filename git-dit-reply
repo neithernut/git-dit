@@ -88,7 +88,11 @@ if [[ $SIGNOFF -eq 1 ]]; then
     git interpret-trailers --in-place --trailer "Signed-off-by=$(git config user.name) <$(git config user.email)>" $TMPFILE
 fi
 
-cat $TMPFILE | git dit create-message "$PARENT" "$INIT_HASH" >> /dev/null
+cat "$TMPFILE" | git dit check-message || \
+    die "The format of the provided message is faulty"
+
+cat $TMPFILE | git stripspace -u | \
+    git dit create-message "$PARENT" "$INIT_HASH" >> /dev/null
 
 rm $TMPFILE
 

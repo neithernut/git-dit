@@ -96,7 +96,10 @@ $(signoff_line)
 EOF
 fi
 
-new_hash=$(cat "$TMPFILE" | git stripspace | git dit create-message)
+cat "$TMPFILE" | git dit check-message || \
+    die "The format of the provided message is faulty"
+
+new_hash=$(cat "$TMPFILE" | git stripspace -u | git dit create-message)
 
 [[ $QUIET -eq 0 ]] && echo "[dit][new]: $new_hash"
 
