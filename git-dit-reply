@@ -100,7 +100,7 @@ fi
 cat "$TMPFILE" | git dit check-message || \
     die "The format of the provided message is faulty"
 
-cat $TMPFILE | git stripspace -u | \
+cat $TMPFILE | git stripspace -s | \
     git dit create-message "$PARENT" "$INIT_HASH" >> /dev/null
 
 rm $TMPFILE
