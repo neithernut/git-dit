@@ -14,6 +14,8 @@
 #
 #
 
+. "$(git --exec-path)/git-sh-setup"
+
 abort() {
     echo "$*" >&2
     exit 1
