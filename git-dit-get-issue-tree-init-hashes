@@ -16,5 +16,6 @@
 #
 
 git for-each-ref "refs/remotes/*/dit/*/head" "refs/dit/*/head" | \
-    sed -r 's,.*refs/remotes/.*/(.*)/head,\1,; s/\ commit.*//'
+    sed -r 's,.*refs/remotes/.*/(.*)/head,\1,; s/\ commit.*//' | \
+    sort -u
 
