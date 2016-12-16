@@ -14,18 +14,13 @@
 #
 #
 
-. "$(git --exec-path)/git-sh-setup"
-
 abort() {
     echo "$*" >&2
     exit 1
 }
 
-usage() {
-    cat <<EOS
-    Usage :  $(basename $0) [options] [--]
-
-    Options:
+USAGE="[options]"
+LONG_USAGE="    Options:
         -h          Display this message
         -q          Be quiet
         -m <msg>    Use this as issue message
@@ -47,9 +42,10 @@ usage() {
     Issue messages will be piped through 'git stripspace'.
 
     (C) 2016 Matthias Beyer, Julian Ganz
-    Released under the terms of the GNU GPLv2
-EOS
-}
+    Released under the terms of the GNU GPLv2"
+
+
+. "$(git --exec-path)/git-sh-setup"
 
 QUIET=0
 SIGNOFF=0
