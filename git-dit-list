@@ -77,7 +77,11 @@ git dit get-issue-tree-init-hashes | while read hash; do
     git --no-pager show --format="$FORMAT" "$hash"
 done | sort -n --reverse | uniq | cut -d " " -f 2- | \
     if [[ $LONG -eq 1 ]]; then
-        cat | cut -d " " -f 1 | while read hash; do git dit show -I "$hash"; done
+        cut -d " " -f 1 | \
+            while read hash; do
+                git --no-pager dit show -I "$hash"; echo;
+            done | \
+            $(git var GIT_PAGER)
     else
         cat
     fi
