@@ -91,6 +91,7 @@ done
 shift $(($OPTIND-1))
 
 ISSUE="$1"
+[[ -z "$ISSUE" ]] && die "No issue provided"
 commit_exists_or_abort "$ISSUE"
 
 hashfmt="%H"
