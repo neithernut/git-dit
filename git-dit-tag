@@ -20,18 +20,21 @@ LONG_USAGE="    Options:
         -l          List tags
                     Lists all tags which were introduced in the discussion
                     thread of the issue.
-        -a <tag>    Add tag
-        -r <tag>    Remove tag
+        -s <tag>    Set a status tag. Key-value pair expected (see below)
+
+A tag is a key-value pair of form: '<key>=<value>', where the <value> part can
+be in quotes to permit spaces.
+
+Multiple -s are permitted, later specified values will override former.
 
 Alter tags of an issue."
 
 . "$(git --exec-path)/git-sh-setup"
 
-ADD=""
-RM=""
+SET=()
 LIST=0
 
-while getopts "hla:r:" opt
+while getopts "hls:" opt
 do
   case $opt in
 
@@ -40,12 +43,8 @@ do
         exit 0
         ;;
 
-    a)
-        ADD+="$OPTARG"
-        ;;
-
-    r)
-        RM+="$OPTARG"
+    s)
+        SET+=("$OPTARG")
         ;;
 
     l)
@@ -101,6 +100,20 @@ if [[ $LIST -eq 1 ]]; then
     done
     echo "$data" | grep_other_trailer | accu_default
 else
-    echo "NOT IMPLEMENTED"
+    INIT_HASH="$(git dit find-tree-init-hash "$HASH")"
+    TMPFILE="$GIT_DIR/COMMIT_EDITMSG"
+    git rev-list --format="Re: %s%n" -n 1 "$INIT_HASH" | tail -n+2 > $TMPFILE
+
+    args=()
+    for i in "${SET[@]}"; do
+        args+=("--trailer" "Dit-$i")
+    done
+    git interpret-trailers --in-place "${args[@]}" $TMPFILE
+
+    cat "$TMPFILE" | git dit check-message || \
+        die "The format of the provided message is faulty"
+
+    cat $TMPFILE | git stripspace -s | \
+        git dit create-message "$HASH" "$INIT_HASH" >> /dev/null
 fi
 
