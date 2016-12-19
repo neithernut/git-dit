@@ -90,6 +90,9 @@ accu_sever()        { accu_latest_entry; }
 accu_type()         { accu_latest_entry; }
 accu_tags()         { accu_latest_entry; }
 
+[[ ${#SET[@]} -eq 0 && $LIST -eq 0 ]] && die "No command given"
+[[ ${#SET[@]} -ne 0 && $LIST -ne 0 ]] && die "Specify either -l or -s"
+[[ -z "$HASH" ]]                      && die "No parent"
 commit_exists_or_abort "$HASH"
 
 if [[ $LIST -eq 1 ]]; then
