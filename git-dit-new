@@ -98,6 +98,8 @@ done
 shift $(($OPTIND-1))
 
 TMPFILE="$GIT_DIR/COMMIT_EDITMSG"
+[[ -f "$TMPFILE" ]] || touch $TMPFILE
+
 if [[ $USE_TEMPFILE -eq 1 ]]; then
     TMPFILE="$(mktemp)"
 fi
