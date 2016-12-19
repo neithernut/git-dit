@@ -69,18 +69,18 @@ commit_exists_or_abort() {
         die "Not a commit: $1"
 }
 
-grep_dit()      { cat | grep --ignore-case "^dit-$1\:"; }
+grep_dit()      { grep --ignore-case "^dit-$1\:"; }
 grep_status()   { grep_dit "status";  }
 grep_assignee() { grep_dit "assignee"; }
 grep_prio()     { grep_dit "priority"; }
 grep_sever()    { grep_dit "severity"; }
 
 grep_other_trailer() {
-    cat | grep -v --ignore-case '^Dit' | grep -E '^[A-Z][a-z-]*\:\ ?(.*)$'
+    grep -v --ignore-case '^Dit' | grep -E '^[A-Z][a-z-]*\:\ ?(.*)$'
 }
 
-accu_last_entry()   { cat | tail -n 1; }
-accu_default()      { cat | sort -u;   }
+accu_last_entry()   { tail -n 1; }
+accu_default()      { sort -u;   }
 
 accu_status()       { accu_last_entry; }
 accu_assignee()     { accu_last_entry; }
