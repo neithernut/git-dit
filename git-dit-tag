@@ -79,13 +79,13 @@ grep_other_trailer() {
     grep -v --ignore-case '^Dit' | grep -E '^[A-Z][a-z-]*\:\ ?(.*)$'
 }
 
-accu_last_entry()   { tail -n 1; }
+accu_latest_entry()   { head -n 1; }
 accu_default()      { sort -u;   }
 
-accu_status()       { accu_last_entry; }
-accu_assignee()     { accu_last_entry; }
-accu_prio()         { accu_last_entry; }
-accu_sever()        { accu_last_entry; }
+accu_status()       { accu_latest_entry; }
+accu_assignee()     { accu_latest_entry; }
+accu_prio()         { accu_latest_entry; }
+accu_sever()        { accu_latest_entry; }
 
 commit_exists_or_abort "$HASH"
 
