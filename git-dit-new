@@ -117,11 +117,12 @@ signoff() {
 }
 
 if [[ -z "$MESSAGE" ]]; then
+    echo > "$TMPFILE"
     signoff "$SIGNOFF" "$TMPFILE"
     DIT_PREPARE_META_INPLACE="$TMPFILE" git dit prepare-metadata "${METADATA[@]}"
     $EDITOR $TMPFILE
 else
-    echo "$MESSAGE" | git dit prepare-metadata "${METADATA[@]}" >> $TMPFILE
+    echo "$MESSAGE" | git dit prepare-metadata "${METADATA[@]}" > $TMPFILE
     signoff "$SIGNOFF" "$TMPFILE"
 fi
 
