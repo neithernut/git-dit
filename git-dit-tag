@@ -1,0 +1,122 @@
+#!/usr/bin/env bash
+#
+#   git-dit - the distributed issue tracker for git
+#   Copyright (C) 2016 Matthias Beyer <mail@beyermatthias.de>
+#   Copyright (C) 2016 Julian Ganz <neither@nut.email>
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License version 2 as
+#   published by the Free Software Foundation.
+#
+# -----
+#
+# $(basename $0) [options]
+#
+# (c) 2016 Matthias Beyer, Julian Ganz
+
+USAGE="[options] <issue hash>"
+LONG_USAGE="    Options:
+        -h          Display this message
+        -l          List tags
+                    Lists all tags which were introduced in the discussion
+                    thread of the issue.
+        -s <tag>    Set a status tag. Key-value pair expected (see below)
+
+A tag is a key-value pair of form: '<key>=<value>', where the <value> part can
+be in quotes to permit spaces.
+
+Multiple -s are permitted, later specified values will override former.
+
+Alter tags of an issue."
+
+. "$(git --exec-path)/git-sh-setup"
+
+SET=()
+LIST=0
+
+while getopts "hls:" opt
+do
+  case $opt in
+
+    h)
+        usage
+        exit 0
+        ;;
+
+    s)
+        SET+=("$OPTARG")
+        ;;
+
+    l)
+        LIST=1
+        ;;
+
+    *)
+        echo -e "\n  Option does not exist : $OPTARG\n"
+        usage
+        exit 1
+        ;;
+
+  esac
+done
+shift $(($OPTIND-1))
+
+HASH="$1"
+
+commit_exists_or_abort() {
+    git rev-parse --quiet --verify $1^{commit} 2>/dev/null >/dev/null || \
+        die "Not a commit: $1"
+}
+
+grep_dit()      { grep --ignore-case "^dit-$1\:"; }
+grep_status()   { grep_dit "status";  }
+grep_assignee() { grep_dit "assignee"; }
+grep_prio()     { grep_dit "priority"; }
+grep_sever()    { grep_dit "severity"; }
+grep_type()     { grep_dit "type"; }
+grep_tags()     { grep_dit "tags"; }
+
+grep_other_trailer() {
+    grep -v --ignore-case '^Dit' | grep -E '^[A-Z][a-z-]*\:\ ?(.*)$'
+}
+
+accu_latest_entry()   { head -n 1; }
+accu_default()      { sort -u;   }
+
+accu_status()       { accu_latest_entry; }
+accu_assignee()     { accu_latest_entry; }
+accu_prio()         { accu_latest_entry; }
+accu_sever()        { accu_latest_entry; }
+accu_type()         { accu_latest_entry; }
+accu_tags()         { accu_latest_entry; }
+
+[[ ${#SET[@]} -eq 0 && $LIST -eq 0 ]] && die "No command given"
+[[ ${#SET[@]} -ne 0 && $LIST -ne 0 ]] && die "Specify either -l or -s"
+[[ -z "$HASH" ]]                      && die "No parent"
+commit_exists_or_abort "$HASH"
+
+if [[ $LIST -eq 1 ]]; then
+    data=$(git dit get-issue-metadata "$HASH")
+
+    for fn in status assignee prio sever type tags; do
+        echo "$data" | grep_$fn | accu_$fn
+    done
+    echo "$data" | grep_other_trailer | accu_default
+else
+    INIT_HASH="$(git dit find-tree-init-hash "$HASH")"
+    TMPFILE="$GIT_DIR/COMMIT_EDITMSG"
+    git rev-list --format="Re: %s%n" -n 1 "$INIT_HASH" | tail -n+2 > $TMPFILE
+
+    args=()
+    for i in "${SET[@]}"; do
+        args+=("--trailer" "Dit-$i")
+    done
+    git interpret-trailers --in-place "${args[@]}" $TMPFILE
+
+    cat "$TMPFILE" | git dit check-message || \
+        die "The format of the provided message is faulty"
+
+    cat $TMPFILE | git stripspace -s | \
+        git dit create-message "$HASH" "$INIT_HASH" >> /dev/null
+fi
+
