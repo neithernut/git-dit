@@ -75,6 +75,7 @@ grep_assignee() { grep_dit "assignee"; }
 grep_prio()     { grep_dit "priority"; }
 grep_sever()    { grep_dit "severity"; }
 grep_type()     { grep_dit "type"; }
+grep_tags()     { grep_dit "tags"; }
 
 grep_other_trailer() {
     grep -v --ignore-case '^Dit' | grep -E '^[A-Z][a-z-]*\:\ ?(.*)$'
@@ -88,13 +89,14 @@ accu_assignee()     { accu_latest_entry; }
 accu_prio()         { accu_latest_entry; }
 accu_sever()        { accu_latest_entry; }
 accu_type()         { accu_latest_entry; }
+accu_tags()         { accu_latest_entry; }
 
 commit_exists_or_abort "$HASH"
 
 if [[ $LIST -eq 1 ]]; then
     data=$(git dit get-issue-metadata "$HASH")
 
-    for fn in status assignee prio sever type; do
+    for fn in status assignee prio sever type tags; do
         echo "$data" | grep_$fn | accu_$fn
     done
     echo "$data" | grep_other_trailer | accu_default
