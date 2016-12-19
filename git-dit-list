@@ -26,6 +26,7 @@ LONG_USAGE="    Options:
         -a          Abbreviate issue hash
         -l          List long (not one line per issue, executes 'git dit show'
                     on each issue)
+        -n <n>      List only <n> issues
 
 List issues.
 
@@ -40,8 +41,9 @@ More functionality may come and the output format may change."
 
 ABBREV=0
 LONG=0
+__N=
 
-while getopts "hal" opt
+while getopts "haln:" opt
 do
   case $opt in
 
@@ -56,6 +58,10 @@ do
 
     l)
         LONG=1
+        ;;
+
+    n)
+        __N=$OPTARG
         ;;
 
     *)
@@ -76,6 +82,11 @@ FORMAT+=" (%ar) %s"
 git dit get-issue-tree-init-hashes | while read hash; do
     git --no-pager show --format="$FORMAT" "$hash"
 done | sort -n --reverse | uniq | cut -d " " -f 2- | \
+    if [[ -z "$__N" ]]; then
+        cat
+    else
+        head -n $__N
+    fi |\
     if [[ $LONG -eq 1 ]]; then
         cut -d " " -f 1 | \
             while read hash; do
