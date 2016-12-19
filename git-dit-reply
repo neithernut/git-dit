@@ -87,14 +87,22 @@ if [[ $QUOTE -eq 1 ]]; then
         sed +'s,^,> ,;s, *$,,' >> $TMPFILE
 fi
 
+# Executes git-interpret-trailer on $2 if $1 is -eq 1
+signoff() {
+    [[ $1 -eq 1 ]] && \
+        git interpret-trailers \
+            --in-place \
+            --trailer \
+            "Signed-off-by=$(git config user.name) <$(git config user.email)>" \
+            $2
+}
+
 if [[ -z "$MESSAGE" ]]; then
+    signoff "$SIGNOFF" "$TMPFILE"
     $EDITOR $TMPFILE
 else
     echo "$MESSAGE" >> $TMPFILE
-fi
-
-if [[ $SIGNOFF -eq 1 ]]; then
-    git interpret-trailers --in-place --trailer "Signed-off-by=$(git config user.name) <$(git config user.email)>" $TMPFILE
+    signoff "$SIGNOFF" "$TMPFILE"
 fi
 
 cat "$TMPFILE" | git dit check-message || \
