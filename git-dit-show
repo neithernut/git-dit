@@ -90,6 +90,9 @@ do
 done
 shift $(($OPTIND-1))
 
+ISSUE="$1"
+commit_exists_or_abort "$ISSUE"
+
 hashfmt="%H"
 [[ $ABBREV -eq 1 ]] && hashfmt="%h"
 FORMAT="%Cgreen$hashfmt%Creset%n"
@@ -99,7 +102,7 @@ FORMAT+="%n%s%n%n%b%n"
 
 if [[ $MSGTREE -eq 1 ]]; then
     HASHES=""
-    for hash in $(git for-each-ref --contains "$1" | cut -d " " -f 1); do
+    for hash in $(git for-each-ref --contains "$ISSUE" | cut -d " " -f 1); do
         HASHES="$HASHES $hash"
     done
 
@@ -116,12 +119,12 @@ if [[ $MSGTREE -eq 1 ]]; then
 else
 
     if [[ $INITONLY -eq 1 ]]; then
-        hash=$(git dit find-tree-init-hash "$1")
+        hash=$(git dit find-tree-init-hash "$ISSUE")
         [[ $ABBREV -eq 1 ]] && abbrev="--abbrev-commit"
         git show $abbrev "$hash"
     else
         HASHES=""
-        for hash in $(git for-each-ref --contains "$1" | cut -d " " -f 1); do
+        for hash in $(git for-each-ref --contains "$ISSUE" | cut -d " " -f 1); do
             HASHES="$HASHES $hash"
         done
 
