@@ -52,7 +52,7 @@ SIGNOFF=0
 GPGSIGN=0
 USE_TEMPFILE=0
 MESSAGE=""
-METADATA=""
+METADATA=()
 
 while getopts "hm:sStM:" opt
 do
@@ -84,7 +84,7 @@ do
         ;;
 
     M)
-        METADATA+=" $OPTARG"
+        METADATA+=("$OPTARG")
         ;;
 
     *)
@@ -118,10 +118,10 @@ signoff() {
 
 if [[ -z "$MESSAGE" ]]; then
     signoff "$SIGNOFF" "$TMPFILE"
-    DIT_PREPARE_META_INPLACE="$TMPFILE" git dit prepare-metadata $METADATA
+    DIT_PREPARE_META_INPLACE="$TMPFILE" git dit prepare-metadata "${METADATA[@]}"
     $EDITOR $TMPFILE
 else
-    echo "$MESSAGE" | git dit prepare-metadata $METADATA >> $TMPFILE
+    echo "$MESSAGE" | git dit prepare-metadata "${METADATA[@]}" >> $TMPFILE
     signoff "$SIGNOFF" "$TMPFILE"
 fi
 

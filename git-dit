@@ -47,10 +47,10 @@ main() {
         *)
 			# Naive...
             local cmd=$1; shift
-            exec git-dit-${cmd} $*
+            exec git-dit-${cmd} "$@"
         ;;
     esac
 }
 
-main $*
+main "$@"
 
