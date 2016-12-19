@@ -25,7 +25,13 @@ LONG_USAGE="    Options:
         -h          Display this message
         -a          Abbreviate issue hash
 
-List issues."
+List issues.
+
+Issues are listed in the following form:
+
+    <hash> (<date when the issue was added, human readable>) <header line>
+
+More functionality may come and the output format may change."
 
 . "$(git --exec-path)/git-sh-setup"
 
