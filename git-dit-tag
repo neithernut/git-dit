@@ -1,0 +1,100 @@
+#!/usr/bin/env bash
+#
+#   git-dit - the distributed issue tracker for git
+#   Copyright (C) 2016 Matthias Beyer <mail@beyermatthias.de>
+#   Copyright (C) 2016 Julian Ganz <neither@nut.email>
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License version 2 as
+#   published by the Free Software Foundation.
+#
+# -----
+#
+# $(basename $0) [options]
+#
+# (c) 2016 Matthias Beyer, Julian Ganz
+
+abort() {
+    echo "$*" >&2
+    exit 1
+}
+
+USAGE="[options] <issue hash>"
+LONG_USAGE="    Options:
+        -h          Display this message
+        -l          List tags
+                    Lists all tags which were introduced in the discussion
+                    thread of the issue.
+        -a <tag>    Add tag
+        -r <tag>    Remove tag
+
+Alter tags of an issue."
+
+. "$(git --exec-path)/git-sh-setup"
+
+ADD=""
+RM=""
+LIST=0
+
+while getopts "hla:r:" opt
+do
+  case $opt in
+
+    h)
+        usage
+        exit 0
+        ;;
+
+    a)
+        ADD+="$OPTARG"
+        ;;
+
+    r)
+        RM+="$OPTARG"
+        ;;
+
+    l)
+        LIST=1
+        ;;
+
+    *)
+        echo -e "\n  Option does not exist : $OPTARG\n"
+        usage
+        exit 1
+        ;;
+
+  esac
+done
+shift $(($OPTIND-1))
+
+HASH="$1"
+
+commit_exists_or_abort() {
+    git rev-parse --quiet --verify $1^{commit} 2>/dev/null >/dev/null || \
+        die "Not a commit: $1"
+}
+
+hashes_from_to() {
+    arg="$(git dit find-tree-init-hash "$1")..$1"
+    git log --format=format:"%H" $arg 2>/dev/null
+}
+
+grep_trailers() {
+    local hdr=0
+    while read line; do
+        [[ -z "$line" ]] && hdr=$((hdr + 1))
+        [[ $hdr -gt 2 ]] && echo "$line"
+    done | grep -E "^[A-Z][a-z-]*\:\ ?(.*)$"
+}
+
+commit_exists_or_abort "$HASH"
+
+if [[ $LIST -eq 1 ]]; then
+    hashes=$(hashes_from_to "$HASH")
+    git cat-file commit $HASH | grep_trailers
+    for h in $hashes; do
+        git cat-file commit $h | grep_trailers
+    done | sort -u
+else
+    echo "NOT IMPLEMENTED"
+fi
