@@ -87,14 +87,43 @@ grep_trailers() {
     done | grep -E "^[A-Z][a-z-]*\:\ ?(.*)$"
 }
 
+grep_dit()      { cat | grep --ignore-case "^dit-$1\:"; }
+grep_status()   { grep_dit "status";  }
+grep_assignee() { grep_dit "assignee"; }
+grep_prio()     { grep_dit "priority"; }
+grep_sever()    { grep_dit "severity"; }
+
+grep_other_trailer() {
+    cat | grep -v --ignore-case '^Dit' | grep -E '^[A-Z][a-z-]*\:\ ?(.*)$'
+}
+
+accu_last_entry()   { cat | tail -n 1; }
+accu_default()      { cat | sort -u;   }
+
+accu_status()       { accu_last_entry; }
+accu_assignee()     { accu_last_entry; }
+accu_prio()         { accu_last_entry; }
+accu_sever()        { accu_last_entry; }
+
 commit_exists_or_abort "$HASH"
+
+get_data() {
+    local HASH=$1; shift
+    git cat-file commit $HASH | grep_trailers
+    for h in $*; do
+        git cat-file commit $h | grep_trailers
+    done | sort -u
+}
 
 if [[ $LIST -eq 1 ]]; then
     hashes=$(hashes_from_to "$HASH")
-    git cat-file commit $HASH | grep_trailers
-    for h in $hashes; do
-        git cat-file commit $h | grep_trailers
-    done | sort -u
+    data=$(get_data "$HASH" $hashes)
+
+    for fn in status assignee prio sever; do
+        echo "$data" | grep_$fn | accu_$fn
+    done
+    echo "$data" | grep_other_trailer | accu_default
 else
     echo "NOT IMPLEMENTED"
 fi
+
