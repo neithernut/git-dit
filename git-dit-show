@@ -15,30 +15,25 @@
 #
 # (c) 2016 Matthias Beyer, Julian Ganz
 
-abort() {
-    echo "$*" >&2
-    exit 1
-}
+SUBDIRECTORY_OK=1
+USAGE="<parent-hash> <tree-init-hash>"
+LONG_USAGE="    Options:
+    -h          Display this message
+    -a          Abbreviate commit hashes
+    -I          Only list the initial message
+    -g          List messages as a tree (unimplemented)
+    -t          Show message tree (only subjects, turns of -V, -d, -g, -I)
+    -V          Verify GPG signatures (if any, unimplemented)
+    -d          Decorate (show references)
+    -F <fmt>    Alternative format (see git-log(1))
 
-usage() {
-    cat <<EOS
-    Usage :  $(basename $0) [options] [--] [issue hash]
+This uses 'git log' to print the issues."
 
-    Options:
-        -h          Display this message
-        -a          Abbreviate commit hashes
-        -I          Only list the initial message
-        -g          List messages as a tree (unimplemented)
-        -t          Show message tree (only subjects, turns of -V, -d, -g, -I)
-        -V          Verify GPG signatures (if any, unimplemented)
-        -d          Decorate (show references)
-        -F <fmt>    Alternative format (see git-log(1))
+. "$(git --exec-path)/git-sh-setup"
 
-    This uses 'git log' to print the issues
-
-    (C) 2016 Matthias Beyer, Julian Ganz
-    Released under the terms of the GNU GPLv2
-EOS
+commit_exists_or_abort() {
+    git rev-parse --quiet --verify $1^{commit} 2>/dev/null >/dev/null || \
+        die "Not a commit: $1"
 }
 
 ABBREV=0
