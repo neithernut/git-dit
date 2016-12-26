@@ -53,6 +53,7 @@ do
 
     p)
         FETCH_ARGS+=("-p")
+        ;;
 
     *)
         echo -e "\n  Option does not exist : $OPTARG\n"
