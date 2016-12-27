@@ -117,6 +117,6 @@ else
         die "The format of the provided message is faulty"
 
     cat $TMPFILE | git stripspace -s | \
-        git dit create-message "$HASH" "$INIT_HASH" >> /dev/null
+        git dit create-message -i "$INIT_HASH" "$HASH" >> /dev/null
 fi
 
