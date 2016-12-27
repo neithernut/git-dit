@@ -30,15 +30,17 @@
 # (c) 2016 Matthias Beyer, Julian Ganz
 
 SUBDIRECTORY_OK=1
-USAGE="[options] [parent]"
-LONG_USAGE="  <parent>       Create a comment on this comment
+USAGE="[options] [parent...]"
+LONG_USAGE="  [parents...]   Parents of the newly created message
     Options:
         -h          Display this message
         -i <issue>  Tree init hash under which to register the new message
 
-Create a new message. The parent provided will be the parent of the new message.
-If no issue hash is supplied, the new message will be the initial message of a
-new issue. Otherwise, the message will be associated with the issue hash.
+Create a new message. The parents provided will be the parents of the new
+message. If no issue hash is supplied, the new message will be th initial
+message of a new issue. Otherwise, the message will be associated with the
+issue hash.
+For the new message, the tree from the first parent supplied will be used.
 An appropriate reference will be created for the new message.
 
 Supplying an issue hash but no parent is considered an error.
@@ -72,7 +74,7 @@ do
 done
 shift $(($OPTIND-1))
 
-PARENT="$1"
+PARENT=("$@")
 
 commit_exists_or_abort() {
     git rev-parse --quiet --verify $1^{commit} 2>/dev/null >/dev/null || \
@@ -84,7 +86,7 @@ create_new_head() {
     [[ ! $? ]] && die "Failed to update reference: $1"
 }
 
-if [[ -z "$PARENT" ]]; then
+if [[ "${#PARENT[@]}" -eq 0 ]]; then
     [[ -n "$TREE_INIT_HASH" ]] && \
         die "Parent required when an issue hash is supplied"
 
@@ -98,10 +100,14 @@ if [[ -z "$PARENT" ]]; then
     create_new_head "$new_commit_hash"
 
 else
-    # Check whether $PARENT exists
-    commit_exists_or_abort "$PARENT"
+    # Check whether each parent exists, construct argument list
+    args=()
+    for parent in "${PARENT[@]}"; do
+        commit_exists_or_abort "$parent"
+        args+=('-p' "$parent")
+    done
 
-    new_commit_hash=$(git commit-tree -p "$PARENT" "$PARENT:")
+    new_commit_hash=$(git commit-tree "${args[@]}" "${PARENT[0]}:")
     [[ ! $? ]] && die "Failed to commit tree with message"
 
     if [[ -z "$TREE_INIT_HASH" ]];
