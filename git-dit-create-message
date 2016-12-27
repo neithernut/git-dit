@@ -30,31 +30,54 @@
 # (c) 2016 Matthias Beyer, Julian Ganz
 
 SUBDIRECTORY_OK=1
-USAGE="<parent-hash> <tree-init-hash>"
-LONG_USAGE="  <parent-hash>       Create a comment on this comment
-  <tree-init-hash>    The hash of the initial commit in this issue tree
+USAGE="[options] [parent]"
+LONG_USAGE="  <parent>       Create a comment on this comment
+    Options:
+        -h          Display this message
+        -i <issue>  Tree init hash under which to register the new message
 
-If <parent-hash> and <tree-init-hash> are not provided, we create a new issue.
+Create a new message. The parent provided will be the parent of the new message.
+If no issue hash is supplied, the new message will be the initial message of a
+new issue. Otherwise, the message will be associated with the issue hash.
+An appropriate reference will be created for the new message.
 
-If <parent-hash> is provided and <tree-init-hash> is not, we create a new
-issue which is attached to an existing commit. That can be used (for example)
-to attach a bug report to a commit.
-
-If both are provided, we create a reply to an existing issue discussion.
-
-Additional arguments are ignored
+Supplying an issue hash but no parent is considered an error.
 
 Returns (prints) the hash of the new commit"
 
 . "$(git --exec-path)/git-sh-setup"
 
+TREE_INIT_HASH=""
+
+while getopts "hi:" opt
+do
+  case $opt in
+
+    h)
+        usage
+        exit 0
+        ;;
+
+    i)
+        TREE_INIT_HASH="$OPTARG"
+        ;;
+
+    *)
+        echo -e "\n  Option does not exist : $OPTARG\n"
+        usage
+        exit 1
+        ;;
+
+  esac
+done
+shift $(($OPTIND-1))
+
+PARENT="$1"
+
 commit_exists_or_abort() {
     git rev-parse --quiet --verify $1^{commit} 2>/dev/null >/dev/null || \
         die "Not a commit: $1"
 }
-
-PARENT="$1"
-TREE_INIT_HASH="$2"
 
 create_new_head() {
     git update-ref refs/dit/$1/head $1
@@ -62,6 +85,9 @@ create_new_head() {
 }
 
 if [[ -z "$PARENT" ]]; then
+    [[ -n "$TREE_INIT_HASH" ]] && \
+        die "Parent required when an issue hash is supplied"
+
     empty_tree=$(git hash-object -t tree /dev/null)
     [[ ! $? ]] && die "Failed to get hash of empty tree"
 
