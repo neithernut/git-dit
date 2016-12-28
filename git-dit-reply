@@ -20,6 +20,7 @@ LONG_USAGE="    Options:
         -S          Sign the issue with GPG (unimplemented)
         -t          Use a temporary file instead of .git/COMMIT_EDITMSG
         -Q          Quote parent
+        -r <commit> Reference the commit or message supplied
 
 Reply to a specific message in an issue."
 
@@ -32,8 +33,9 @@ GPGSIGN=0
 USE_TEMPFILE=0
 QUOTE=0
 PARENT=""
+ADDITIONAL_PARENTS=()
 
-while getopts "hm:sStQ" OPT
+while getopts "hm:sStQr:" OPT
 do
   case $OPT in
 
@@ -60,6 +62,10 @@ do
 
     Q)
         QUOTE=1
+        ;;
+
+    r)
+        ADDITIONAL_PARENTS+=("$OPTARG")
         ;;
 
     *)
@@ -109,7 +115,11 @@ cat "$TMPFILE" | git dit check-message || \
     die "The format of the provided message is faulty"
 
 cat $TMPFILE | git stripspace -s | \
-    git dit create-message "$PARENT" "$INIT_HASH" >> /dev/null
+    git dit create-message \
+        -i "$INIT_HASH" \
+        "$PARENT" \
+        "${ADDITIONAL_PARENTS[@]}" \
+        >> /dev/null
 
 rm $TMPFILE
 
