@@ -37,7 +37,7 @@ LONG_USAGE="  [parents...]   Parents of the newly created message
         -i <issue>  Tree init hash under which to register the new message
 
 Create a new message. The parents provided will be the parents of the new
-message. If no issue hash is supplied, the new message will be th initial
+message. If no issue hash is supplied, the new message will be the initial
 message of a new issue. Otherwise, the message will be associated with the
 issue hash.
 For the new message, the tree from the first parent supplied will be used.
