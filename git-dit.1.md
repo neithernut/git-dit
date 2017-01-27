@@ -87,7 +87,19 @@ and low level ("plumbing") commands.
 
 # DISCUSSION
 
-TODO: intro
+Git-dit is modeled after classical mailing lists.
+Issue messages, which are stored as commits in the repository, correspond to
+Emails.
+Each issue can be thought of as a discussion thread on a mailing list, whether
+it be a bug-report, a feature request or a patch-set to be merged into some
+branch.
+
+The command `git-dit-new` creates a new issue, or discussion thread.
+It can be either based on an existing commit, or as a new initial commit.
+The latter one is most appropriate for feature requests and bug-reports, while
+the former one is especially useful for patch-sets.
+Discussion messages will be created using `git-dit-reply` as empty commits,
+preserving the parent commit's tree.
 
 
 # SEE ALSO
