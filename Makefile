@@ -1,4 +1,4 @@
-PANDOC=$(which pandoc)
+PANDOC=$(shell which pandoc)
 
 all: man
 
