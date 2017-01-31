@@ -30,7 +30,7 @@ LONG_USAGE="    Options:
 Fetch issues.
 
 Fetches the issues supplied on the command line. If none is supplied, fetches
-all issues, unless the -l option is supplied."
+all issues."
 
 . "$(git --exec-path)/git-sh-setup"
 
