@@ -79,21 +79,27 @@ FORMAT="%ct "
 
 FORMAT+=" (%ar) %s"
 
+#
+# Get all issue-tree-init hashes, and for each of them call the `git show`
+# command to show them, with a format which is a one-line format.
+# Afterwards sort them by date, and filter them accordingly to the user flags:
+#
 git dit get-issue-tree-init-hashes | while read hash; do
     git --no-pager show --format="$FORMAT" "$hash"
 done | sort -n --reverse | uniq | cut -d " " -f 2- | \
     if [[ -z "$__N" ]]; then
-        cat
+        cat # simply print everything
     else
-        head -n $__N
+        head -n $__N # Only print N lines
     fi |\
-    if [[ $LONG -eq 1 ]]; then
+    if [[ $LONG -eq 1 ]]; then # if the user wants all the things shown
         cut -d " " -f 1 | \
-            while read hash; do
+            while read hash; do # fetch the hash again from the listing
+                # and call fancy `show`
                 git --no-pager dit show -I "$hash"; echo;
             done | \
-            $(git var GIT_PAGER)
+            $(git var GIT_PAGER) # eventually with the git pager
     else
-        cat
+        cat # if the user does not want all the things, cat
     fi
 
