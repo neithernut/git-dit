@@ -23,6 +23,11 @@ abort() {
     exit 1
 }
 
+#
+# IN: commit hash or symbolic ref
+# OUT: nothing
+# ERR: Kills running program if hash does not exist
+#
 commit_exists_or_abort() {
     git rev-parse --quiet --verify $1^{commit} 2>/dev/null >/dev/null || \
         abort "Not a commit: $1"
