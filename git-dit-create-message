@@ -76,17 +76,27 @@ shift $(($OPTIND-1))
 
 PARENT=("$@")
 
+#
+# IN: commit hash or symbolic ref
+# OUT: nothing
+# ERR: Kills running program if hash does not exist
+#
 commit_exists_or_abort() {
     git rev-parse --quiet --verify $1^{commit} 2>/dev/null >/dev/null || \
         die "Not a commit: $1"
 }
 
+#
+# Update the HEAD of the issue to $1 or die if it failes
+#
 create_new_head() {
     git update-ref refs/dit/$1/head $1
     [[ ! $? ]] && die "Failed to update reference: $1"
 }
 
+# If there are no parents
 if [[ "${#PARENT[@]}" -eq 0 ]]; then
+    # If there is no TREE_INIT_HASH, die
     [[ -n "$TREE_INIT_HASH" ]] && \
         die "Parent required when an issue hash is supplied"
 
