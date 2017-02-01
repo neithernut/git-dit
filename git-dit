@@ -49,7 +49,7 @@ main() {
             ;;
 
         *)
-			# We extract the command name from the first parameter
+            # We extract the command name from the first parameter
             local cmd=$1; shift
             exec git-dit-${cmd} "$@"
         ;;
