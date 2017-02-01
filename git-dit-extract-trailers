@@ -28,25 +28,47 @@ function arraylen(array) {
     return retval;
 }
 
+# This script maintains an array `trailers` which is printed at the end of
+# execution. In this array, trailers are accumulated. We use two indices
+# `last_blankline` and `current` to mark an area of "accepted" trailers and an
+# area of "staged" trailers.
+# Trailers are first "staged" and "accepted" at the end of a block of trailers.
+#
+
 BEGIN {
     current = -1; # index of the current trailer
     last_blankline = -1; # index we had at the last blank line
-    is_trailer = 0; # state: 1 indicates trailer, -1 indicates paragraph
+    # state:
+    #    1 indicates trailer
+    #   -1 indicates paragraph
+    #    0 indicates blank line
+    is_trailer = 0;
 }
 
 # reset state, savepoint
+#
+# If we reached the end of either a paragraph or a block of trailers, we accept
+# all trailers we collected up until now.
+#
 /^[[:space:]]*$/ {
     last_blankline = current;
     is_trailer = 0;
 }
+
+# detect and process trailers
+#
+# A trailer is a word identifying the trailer, followed by a colon, followed by
+# the trailer's value. The value may span several lines. Each new line has,
+# however, start with at least one space.
+#
 /^[^[:space:]]/ {
+    # We either hid a new trailer or a regular line of text
     if (is_trailer > 0) {
         is_trailer = 0;
     }
 }
-
-# detect and process trailers
 /^[[:alnum:]-]+:[:space:]*.*$/ {
+    # We supposedly hid the start of a trailer
     if (is_trailer >= 0) {
         current = arraylen(trailers);
         trailers[current] = $0;
@@ -54,13 +76,18 @@ BEGIN {
     }
 }
 /^[[:space:]]/ {
+    # Looks like a trailer continuation
     if (is_trailer > 0) {
         sub(/[[:space:]]+/, "");
         trailers[current] = trailers[current] " " $0
     }
 }
 
-# paragraph detection/
+# paragraph detection
+#
+# If we see regular lines of text, we have to discard any staged trailers and
+# Stop collecting new ones.
+#
 /^[^[:space:]]/ {
     if (is_trailer <= 0) {
         # we are in a paragraph

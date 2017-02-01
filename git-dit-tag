@@ -69,11 +69,17 @@ shift $(($OPTIND-1))
 
 HASH="$1"
 
+#
+# IN: commit hash or symbolic ref
+# OUT: nothing
+# ERR: Kills running program if hash does not exist
+#
 commit_exists_or_abort() {
     git rev-parse --quiet --verify $1^{commit} 2>/dev/null >/dev/null || \
         die "Not a commit: $1"
 }
 
+# Grep for (specific) trailers
 grep_dit()      { grep --ignore-case "^dit-$1\:"; }
 grep_status()   { grep_dit "status";  }
 grep_assignee() { grep_dit "assignee"; }
@@ -82,6 +88,7 @@ grep_sever()    { grep_dit "severity"; }
 grep_type()     { grep_dit "type"; }
 grep_tags()     { grep_dit "tags"; }
 
+# Grep custom trailers, which we did not hard-code here
 grep_other_trailer() {
     grep -v --ignore-case '^Dit' | grep -E '^[A-Z][a-z-]*\:\ ?(.*)$'
 }
@@ -89,6 +96,8 @@ grep_other_trailer() {
 accu_latest_entry()   { head -n 1; }
 accu_default()      { sort -u;   }
 
+# Fancy filter functions, which _could_ be different, but are only calls to
+# accu_latest_entry()
 accu_status()       { accu_latest_entry; }
 accu_assignee()     { accu_latest_entry; }
 accu_prio()         { accu_latest_entry; }
@@ -102,8 +111,10 @@ accu_tags()         { accu_latest_entry; }
 commit_exists_or_abort "$HASH"
 
 if [[ $LIST -eq 1 ]]; then
+    # List tags of an issue
     data=$(git dit get-issue-metadata "$HASH")
 
+    # Grep through the issue data multiple times to print all the nice things.
     for fn in status assignee prio sever type tags; do
         echo "$data" | grep_$fn | accu_$fn
     done
@@ -113,6 +124,7 @@ else
     TMPFILE="$GIT_DIR/COMMIT_EDITMSG"
     git rev-list --format="Re: %s%n" -n 1 "$INIT_HASH" | tail -n+2 > $TMPFILE
 
+    # Build argument list for `git interpret-trailers`
     args=()
     for i in "${SET[@]}"; do
         args+=("--trailer" "Dit-$i")
@@ -122,6 +134,7 @@ else
     cat "$TMPFILE" | git dit check-message || \
         die "The format of the provided message is faulty"
 
+    # Create the new commit
     cat $TMPFILE | git stripspace -s | \
         git dit create-message \
             -i "$INIT_HASH" \
