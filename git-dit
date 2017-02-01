@@ -10,6 +10,10 @@
 #
 # -----
 #
+# git-dit is a suite consisting of several sub-commands.
+# This little helper makes them availible via "git dit <command>" by forwarding
+# the arguments to sub-commands.
+#
 # $(basename $0)
 #
 # (c) 2016 Matthias Beyer, Julian Ganz
@@ -45,7 +49,7 @@ main() {
             ;;
 
         *)
-			# Naive...
+			# We extract the command name from the first parameter
             local cmd=$1; shift
             exec git-dit-${cmd} "$@"
         ;;
