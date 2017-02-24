@@ -1,11 +1,17 @@
 git-dit - the distributed issue tracker for git
 
-This repository contains the "git-dit" project, a distributed issue tracking 
+This repository contains the "git-dit" project, a distributed issue tracking
 system using git.
 
-Documentation will be there. Releases will be there.
+---
 
-Fancy shiny things will happen in this repository.
+**WARNING: This is a proof of concept. This shows how we think distributed issue
+tracking in git should work. Expect bugs and incompatibilities!**
+
+---
+
+We developed this set of tools using the latest git version on Gentoo and NixOS,
+which is, as of 2017-02-24, git version `2.11.1`.
 
 ---
 
