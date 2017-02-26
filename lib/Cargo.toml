@@ -7,3 +7,5 @@ authors = ["Matthias Beyer <mail@beyermatthias.de>",
 workspace = "./.."
 
 [dependencies]
+log = "0.3"
+git2 = "0.6"
