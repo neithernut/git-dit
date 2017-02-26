@@ -10,6 +10,13 @@ members = [
 ]
 
 [dependencies]
+log = "0.3"
+git2 = "0.6"
+
+[dependencies.clap]
+version = "2.20"
+default-features = false
+features = [ "suggestions", "color", "yaml" ]
 
 [dependencies.libgitdit]
 path = "./lib/"
