@@ -32,3 +32,13 @@ single one) has access to. This repository may serve as an exchange point for
 issues. Developers can use those locally, combining the issues from various
 sources.
 
+
+## Patch sets
+
+The type of an issue can be changed arbitrarily by the maintainer. Also,
+messages from other issues may be referenced in new issues. Hence, when
+submitting a patch set resolving an issue, the relevant messages from the
+original change request or bug report can be referenced in the patch set. This
+way, the reasons for a change are automatically documented via the commit
+history, even after issue references are removed by a maintainer.
+
