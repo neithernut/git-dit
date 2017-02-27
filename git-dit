@@ -11,7 +11,7 @@
 # -----
 #
 # git-dit is a suite consisting of several sub-commands.
-# This little helper makes them availible via "git dit <command>" by forwarding
+# This little helper makes them available via "git dit <command>" by forwarding
 # the arguments to sub-commands.
 #
 # $(basename $0)
