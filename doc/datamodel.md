@@ -40,3 +40,20 @@ observed. A patch set, on the other hand, clearly should be rooted in the
 project's history. Git-dit tools shall hence never assume that an issue's
 initial message has no parents.
 
+
+## Message structure
+
+As messages are stored as commit messages, the message has to adhere to the
+usual rules for commit messages: it must consist of at least a subject line and
+the second line of a message shall be empty. Issues should always have a message
+body providing some details.
+
+A message may contain metadata in the form of git-tags. The following tags are
+currently used:
+
+ * Dit-status
+ * Dit-type
+
+Additional tags, as well as a more elaborate explanation of the tags, may be
+provided in the future.
+
