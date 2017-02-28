@@ -36,7 +36,9 @@ which is, as of 2017-02-24, git version `2.11.1`.
 
 ---
 
-Licensed under the terms of GNU GPLv2.
-For more information, see the LICENSE file.
+We are rewriting this application.
+The [library module](./lib) is licensed under terms of [MPL-2.0](./lib/LICENSE).
+The binary module (this directory) uses the library and provides a commandline
+interface for it and is licensed under terms of [GNU GPLv2](./LICENSE).
 
 (c) Julian Ganz, Matthias Beyer
