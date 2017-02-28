@@ -7,8 +7,9 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
 
-#[macro_use] extern crate log;
-extern crate git2;
+pub trait RepositoryExt {
+}
 
-pub mod repository;
+impl RepositoryExt for git2::Repository {
+}
 

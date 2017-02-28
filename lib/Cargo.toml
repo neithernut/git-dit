@@ -6,6 +6,10 @@ authors = ["Matthias Beyer <mail@beyermatthias.de>",
 
 workspace = "./.."
 
+repository    = "https://github.com/neithernut/git-dit/tree/master/lib"
+readme        = "./README.md"
+license       = "MPL-2.0"
+
 [dependencies]
 log = "0.3"
 git2 = "0.6"
