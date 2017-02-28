@@ -1,0 +1,378 @@
+name: git-dit
+version: 0.1.0
+authors:
+    - Julian Ganz <neither@nut.email>
+    - Matthias Beyer <mail@beyermatthias>
+about: Distributed issue tracker for git
+args:
+    - verbose:
+        short: v
+        long: verbose
+        multiple: false
+        help: Verbose output
+    - debug:
+        short: d
+        long: debug
+        multiple: false
+        help: Print debug output
+    - trace:
+        long: trace
+        multiple: false
+        help: Print trace output (very verbose debug logging)
+subcommands:
+    - check-message:
+        about: This command checks the message in file for validity
+        version: 0.1.0
+        authors:
+            - Matthias Beyer <mail@beyermatthias.de>
+            - Julian Ganz <neither@nut.email>
+        args:
+            - filename:
+                help: Path to file to check
+                index: 1
+                takes_value: true
+                multiple: false
+
+    - create-message:
+        about: >
+                 Create a new message. The parents provided will be the parents of the new
+                 message. If no issue hash is supplied, the new message will be the initial
+                 message of a new issue. Otherwise, the message will be associated with the
+                 issue hash.
+                 For the new message, the tree from the first parent supplied will be used.
+                 An appropriate reference will be created for the new message.
+                 Supplying an issue hash but no parent is considered an error.
+                 Returns (prints) the hash of the new commit.
+
+        version: 0.1.0
+        authors:
+            - Matthias Beyer <mail@beyermatthias.de>
+            - Julian Ganz <neither@nut.email>
+        args:
+            - parent-hash:
+                help: Hash of parent
+                index: 1
+                multiple: false
+            - tree-init-hash:
+                help: The hash of the initial commit in this issue tree
+                index: 2
+                multiple: false
+
+    - extract-trailers:
+        about: >
+                 Extract trailers from stdin and write them to stdout.
+                 This tool detects blocks of trailers and writes all trailers
+                 detected to stdout, in the order they were discovered. A block
+                 of trailers is a series of non-blank lines of text, with each
+                 single line being a trailer.
+        version: 0.1.0
+        authors:
+            - Matthias Beyer <mail@beyermatthias.de>
+            - Julian Ganz <neither@nut.email>
+        args:
+
+    - fetch:
+        about: Fetch issues
+        version: 0.1.0
+        authors:
+            - Matthias Beyer <mail@beyermatthias.de>
+            - Julian Ganz <neither@nut.email>
+        args:
+            - known:
+                help: also fetch known issues (those which visible through git dit list)
+                takes_value: false
+                multiple: false
+            - prune:
+                help: Prune (as with git fetch)
+                takes_value: false
+                multiple: false
+            - remote:
+                help: Remote to fetch from
+                index: 3
+                multiple: false
+            - issue:
+                help: Issue to fetch
+                index: 4
+                multiple: true
+
+    - find-tree-init-hash:
+        about: This command prints the init hash of the issue commit belongs to.
+        version: 0.1.0
+        authors:
+            - Matthias Beyer <mail@beyermatthias.de>
+            - Julian Ganz <neither@nut.email>
+        args:
+            - commit:
+                help: commit hash
+                index: 1
+                multiple: false
+
+    - get-issue-metadata:
+        about: >
+                 Prints a log of commit tags, from the supplied issue head to
+                 the initial issue message.
+        version: 0.1.0
+        authors:
+            - Matthias Beyer <mail@beyermatthias.de>
+            - Julian Ganz <neither@nut.email>
+        args:
+            - head:
+                help: The head for which to collect the metadata
+                index: 1
+                multiple: false
+
+    - get-issue-tree-init-hashes:
+        about: Lists all SHA1 hashes of all issues (introducing commit)
+        version: 0.1.0
+        authors:
+            - Matthias Beyer <mail@beyermatthias.de>
+            - Julian Ganz <neither@nut.email>
+        args:
+
+    - list:
+        about: >
+                 List issues.
+                 Issues are listed in the following form:
+                     <hash> (<date when the issue was added, human readable>) <header line>
+                 More functionality may come and the output format may change.
+
+        version: 0.1.0
+        authors:
+            - Matthias Beyer <mail@beyermatthias.de>
+            - Julian Ganz <neither@nut.email>
+        args:
+            - n:
+                help: List only <n> issues
+                multiple: false
+                takes_value: true
+            - long:
+                short: l
+                long: long
+                help: List long (not one line per issue, executes 'git dit show' on each issue
+                multiple: false
+                takes_value: false
+            - abbrev:
+                short: a
+                long: abbrev
+                help: Abbreviate issue hash
+                multiple: false
+                takes_value: false
+
+    - new:
+        about: Create a new bug report
+        version: 0.1.0
+        authors:
+            - Matthias Beyer <mail@beyermatthias.de>
+            - Julian Ganz <neither@nut.email>
+        args:
+            - message:
+                short: m
+                long: message
+                help: Use this as issue message
+                multiple: false
+                takes_value: true
+            - signoff:
+                short: s
+                long: signoff
+                help: Add a 'Signed-off-by' line, with user and email from gitconfig
+                multiple: false
+                takes_value: false
+            - gpgsign:
+                short: S
+                long: gpg-sign
+                help: Add a GPG signature
+                multiple: false
+                takes_value: false
+            - tempfile:
+                long: tempfile
+                help: Use a temporary file at <path> instead of .git/COMMIT_EDITMSG
+                multiple: false
+                takes_value: true
+                value_names:
+                    - path
+            - metadata:
+                short: M
+                long: metadata
+                help: >
+                        Add metadata. Can be passed multiple times.
+                        Metadata is added and removed via key-value pairs.
+                        Available Keys are:
+                            status=<value>
+                            priority=<value>
+                            severity=<value>
+                            assignee=<value>
+                        where <value> is the desired new value to set.
+                        Passing an empty value leaves the metadata empty.
+                multiple: true
+                takes_value: true
+                value_names:
+                    - data
+
+    - push:
+        about: >
+                 Push all refs associated with issues.
+                 If no issue were supplied, all issues will be pushed.
+        version: 0.1.0
+        authors:
+            - Matthias Beyer <mail@beyermatthias.de>
+            - Julian Ganz <neither@nut.email>
+        args:
+            - remote:
+                help: Push to this remote
+                index: 1
+                multiple: false
+            - issuehash:
+                help: Push this issue
+                index: 2
+                multiple: true
+
+    - reply:
+        about: Reply to a specific message in an issue.
+        version: 0.1.0
+        authors:
+            - Matthias Beyer <mail@beyermatthias.de>
+            - Julian Ganz <neither@nut.email>
+        args:
+            - message:
+                short: m
+                long: message
+                help: Use this as issue message
+                multiple: false
+                takes_value: true
+            - signoff:
+                short: s
+                long: signoff
+                help: Add a 'Signed-off-by' line, with user and email from gitconfig
+                multiple: false
+                takes_value: false
+            - gpgsign:
+                short: S
+                long: gpg-sign
+                help: Add a GPG signature
+                multiple: false
+                takes_value: false
+            - tempfile:
+                long: tempfile
+                help: Use a temporary file at <path> instead of .git/COMMIT_EDITMSG
+                multiple: false
+                takes_value: true
+                value_names:
+                    - path
+            - quote:
+                short: q
+                long: quote
+                help: Quote parent
+                multiple: false
+                takes_value: false
+            - reference:
+                short: r
+                long: reference
+                help: Reference a commit or message in the new message
+                multiple: true
+                takes_value: true
+                value_names:
+                    - commithash
+
+    - show:
+        about: This uses 'git log' to print the issues.
+        version: 0.1.0
+        authors:
+            - Matthias Beyer <mail@beyermatthias.de>
+            - Julian Ganz <neither@nut.email>
+        args:
+            - parent:
+                help: Parent
+                index: 1
+                multiple: false
+            - tree-init-hash:
+                help: Tree init hash
+                index: 2
+                multiple: false
+            - abbrev:
+                short: a
+                long: abbrev
+                help: Abbreviate issue hash
+                multiple: false
+                takes_value: false
+            - initial:
+                short: I
+                long: initial
+                help: Only list initial message
+                multiple: false
+                takes_value: false
+            - tree:
+                short: g
+                long: tree
+                help: List messages as a tree
+                multiple: false
+                takes_value: false
+            - msgtree:
+                short: t
+                long: message-tree
+                help: Show message tree (only subjects)
+                multiple: false
+                takes_value: false
+                conflicts_with:
+                    - verify
+                    - decorate
+                    - tree
+                    - initial
+            - verify-gpg:
+                short: V
+                long: verify-gpg
+                help: Verify gpg signatures
+                multiple: false
+                takes_value: false
+            - decorate:
+                short: d
+                long: decorate
+                help: Decorate (show references)
+                multiple: false
+                takes_value: false
+            - format:
+                short: F
+                long: format
+                help: Alternative format (see git-log(1))
+                multiple: false
+                takes_value: true
+                value_names:
+                    - format
+
+    - tag:
+        about: >
+                 A tag is a key-value pair of form: '<key>=<value>', where the
+                 <value> part can be in quotes to permit spaces.
+                 Multiple -s are permitted, later specified values will override
+                 former. Alter tags of an issue.
+        version: 0.1.0
+        authors:
+            - Matthias Beyer <mail@beyermatthias.de>
+            - Julian Ganz <neither@nut.email>
+        args:
+            - issue-hash:
+                help: Issue hash
+                index: 1
+                multiple: false
+            - list:
+                short: l
+                long: list
+                help: List Tags. Lists all tags which were introduced in the discussion thread of the issue
+                multiple: false
+                takes_value: false
+                conflicts_with:
+                    - set-status
+            - set-status:
+                short: s
+                long: status
+                help: Set a 'Git-status' tag. Key-value pair expected.
+                multiple: false
+                takes_value: false
+            - reference:
+                short: r
+                long: reference
+                help: Reference a commit or message in the new message
+                multiple: true
+                takes_value: true
+                value_names:
+                    - commithash
+
