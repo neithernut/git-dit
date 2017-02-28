@@ -1,7 +1,9 @@
 git-dit - the distributed issue tracker for git
 
 This repository contains the "git-dit" project, a distributed issue tracking
-system using git.
+system using git. For a system overview and conceptual information, refer to the
+[documentation](doc/README.md). For a more practical documentation, refer to the
+[man page](git-dit.1.md).
 
 ---
 
