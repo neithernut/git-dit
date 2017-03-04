@@ -8,6 +8,7 @@
 //
 
 #[macro_use] extern crate log;
+#[macro_use] extern crate error_chain;
 extern crate git2;
 
 pub mod repository;
