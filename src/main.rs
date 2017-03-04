@@ -78,7 +78,9 @@ fn main() {
 
     std::process::exit(match matches.subcommand() {
         ("find-tree-init-hash", Some(sub_matches))  => find_tree_init_hash(&repo, sub_matches),
-        (name, _) => {error!("Command not implmented: {}", name); 1},
-        // TODO: find and exec 3rd party executable
+        (name, sub_matches) => {
+            let default = clap::ArgMatches::default();
+            handle_unknown_subcommand(name, sub_matches.unwrap_or(&default))
+        },
     })
 }
