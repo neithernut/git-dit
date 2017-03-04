@@ -50,5 +50,15 @@ fn find_tree_init_hash(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
 fn main() {
     let yaml    = load_yaml!("cli.yaml");
     let matches = App::from_yaml(yaml).get_matches();
-    println!("Hello, world!");
+
+    let repo = match open_dit_repo() {
+        Ok(r) => r,
+        Err(e) => {error!("{}", e); std::process::exit(1)}
+    };
+
+    std::process::exit(match matches.subcommand() {
+        ("find-tree-init-hash", Some(sub_matches))  => find_tree_init_hash(&repo, sub_matches),
+        (name, _) => {error!("Command not implmented: {}", name); 1},
+        // TODO: find and exec 3rd party executable
+    })
 }
