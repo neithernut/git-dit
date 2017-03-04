@@ -18,6 +18,7 @@ mod error;
 use clap::App;
 use git2::Repository;
 use libgitdit::repository::RepositoryExt;
+use std::process::Command;
 
 use error::ErrorKind as EK;
 use error::*;
@@ -44,6 +45,25 @@ fn find_tree_init_hash(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
         .and_then(|commit| repo.find_tree_init(commit).chain_err(|| EK::WrappedGitDitError))
         .map(|commit| {println!("{}", commit.id()); 0})
         .unwrap_or_else(|err| {error!("{}", err); 1})
+}
+
+
+/// Handle unknown subcommands
+///
+/// Try to invoke an executable matching the name of the subcommand.
+///
+fn handle_unknown_subcommand(name: &str, matches: &clap::ArgMatches) -> i32 {
+    // prepare the command to be invoked
+    let mut command = Command::new(format!("git-dit-{}", name));
+    if let Some(values) = matches.values_of("") {
+         values.fold(&mut command, |c, arg| c.arg(arg));
+    }
+
+    // run the command
+    command.spawn()
+           .and_then(|mut child| child.wait())
+           .map(|result| result.code().unwrap_or(1))
+           .unwrap_or_else(|err| {error!("{}", err); 1})
 }
 
 
