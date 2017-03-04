@@ -13,3 +13,4 @@ license       = "MPL-2.0"
 [dependencies]
 log = "0.3"
 git2 = "0.6"
+error-chain = "0.10"
