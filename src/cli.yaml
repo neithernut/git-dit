@@ -376,4 +376,6 @@ subcommands:
                 takes_value: true
                 value_names:
                     - commithash
+settings:
+    AllowExternalSubcommands
 
