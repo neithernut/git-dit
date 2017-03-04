@@ -106,6 +106,7 @@ subcommands:
                 help: commit hash
                 index: 1
                 multiple: false
+                required: true
 
     - get-issue-metadata:
         about: >
