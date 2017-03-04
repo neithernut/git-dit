@@ -11,6 +11,7 @@
 #[macro_use] extern crate error_chain;
 extern crate git2;
 
+pub mod error;
 pub mod repository;
 
 mod first_parent_iter;
