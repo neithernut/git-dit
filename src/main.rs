@@ -9,7 +9,11 @@
 
 #[macro_use] extern crate log;
 #[macro_use] extern crate clap;
+#[macro_use] extern crate error_chain;
 extern crate git2;
+extern crate libgitdit;
+
+mod error;
 
 use clap::App;
 
