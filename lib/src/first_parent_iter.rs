@@ -25,13 +25,7 @@ impl<'repo> Iterator for FirstParentIter<'repo> {
     type Item = Commit<'repo>;
 
     fn next(&mut self) -> Option<Commit<'repo>> {
-        match self.current.take() {
-            Some(commit) => {
-                self.current = commit.parent(0).ok();
-                Some(commit)
-            },
-            _ => None
-        }
+        self.current.take().map(|c| { self.current = c.parent(0).ok(); c })
     }
 }
 
