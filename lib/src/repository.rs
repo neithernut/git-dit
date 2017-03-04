@@ -7,6 +7,7 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
 use git2::{Commit, Error, Oid, References, Repository};
+use first_parent_iter::FirstParentIter;
 
 
 pub trait RepositoryExt {
@@ -31,25 +32,15 @@ impl RepositoryExt for Repository {
     }
 
     fn find_tree_init<'a>(&'a self, commit: Commit<'a>) -> Result<Commit, Error> {
-        // we start with the commit passed itself
-        let mut current: Result<Commit, Error> = Ok(commit);
-
-        // We try to get the issue head for the current commit.
-        while let Some(heads) = current.iter()
-                     .map(|commit| commit.id())
-                     .map(|id| self.get_issue_heads(id))
-                     .next() {
-            if try!(heads).count() > 0 {
-                // The current commit's id appears to be an issue id,
-                // as there are heads for it.
-                break;
+        // follow the chain of first parents towards an initial message for
+        // which a head exists
+        for c in FirstParentIter::new(commit) {
+            if try!(self.get_issue_heads(c.id())).count() > 0 {
+                return Ok(c);
             }
-
-            // No lock, try the next one.
-            current = current.unwrap().parent(0)
         }
 
-        current
+        Err(Error::from_str("No issue head found"))
     }
 }
 
