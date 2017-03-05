@@ -9,12 +9,56 @@
 
 #[macro_use] extern crate log;
 #[macro_use] extern crate clap;
+#[macro_use] extern crate error_chain;
 extern crate git2;
+extern crate libgitdit;
+
+mod error;
 
 use clap::App;
+use git2::Repository;
+use libgitdit::repository::RepositoryExt;
+
+use error::ErrorKind as EK;
+use error::*;
+
+
+/// Open the DIT repo
+///
+/// Opens the DIT repo corresponding to the current one honouring the user
+/// configuration.
+///
+fn open_dit_repo() -> Result<Repository> {
+    // TODO: access the config and maybe return another repo instead
+    Repository::open_from_env().chain_err(|| EK::WrappedGitError)
+}
+
+
+/// find-tree-init-hash subcommand implementation
+///
+fn find_tree_init_hash(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
+    // note: commit is always present since it is a required parameter
+    repo.revparse_single(matches.value_of("commit").unwrap())
+        .and_then(|obj| repo.find_commit(obj.id()))
+        .chain_err(|| EK::WrappedGitError)
+        .and_then(|commit| repo.find_tree_init(commit).chain_err(|| EK::WrappedGitDitError))
+        .map(|commit| {println!("{}", commit.id()); 0})
+        .unwrap_or_else(|err| {error!("{}", err); 1})
+}
+
 
 fn main() {
     let yaml    = load_yaml!("cli.yaml");
     let matches = App::from_yaml(yaml).get_matches();
-    println!("Hello, world!");
+
+    let repo = match open_dit_repo() {
+        Ok(r) => r,
+        Err(e) => {error!("{}", e); std::process::exit(1)}
+    };
+
+    std::process::exit(match matches.subcommand() {
+        ("find-tree-init-hash", Some(sub_matches))  => find_tree_init_hash(&repo, sub_matches),
+        (name, _) => {error!("Command not implmented: {}", name); 1},
+        // TODO: find and exec 3rd party executable
+    })
 }
