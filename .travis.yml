@@ -6,3 +6,10 @@ rust:
 matrix:
   allow_failures:
     - rust: nightly
+addons:
+  apt:
+    sources:
+      - george-edison55-precise-backports
+    packages:
+      - cmake
+      - cmake-data
