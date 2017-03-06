@@ -1,0 +1,11 @@
+ - Clone git-dit to /opt
+   # cd /opt; git clone git@github.com:neithernut/git-dit.git
+
+ - Make a link from /opt/git-dit/git-dit to /usr/lib/git-core/git-dit
+   # ln -s /opt/git-dit/git-dit /usr/lib/git-core/
+
+ - Patch /opt/git-dit/git-dit for your insalled path:
+
+   -            exec git-dit-${cmd} "$@"
+   +            exec /opt/git-dit/git-dit-${cmd} "$@"
+
