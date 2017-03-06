@@ -7,11 +7,14 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
 
-use error::ErrorKind as EK;
-use error::*;
-
 use git2::{Commit, Oid, References, Repository};
+
+use error::*;
+use error::ErrorKind as EK;
 use first_parent_iter::FirstParentIter;
+
+
+// TODO: delcaration of the OidIterator
 
 
 pub trait RepositoryExt {
@@ -28,6 +31,24 @@ pub trait RepositoryExt {
     ///
     fn find_tree_init<'a>(&'a self, commit: Commit<'a>) -> Result<Commit>;
 }
+
+
+/// Get issue hashes from head references
+///
+/// Retrieve the issue hashes from head references provided. References which
+/// are not head references are ignores. However, the function does not check
+/// whether the references are, in fact, references in a dit namespace.
+///
+fn head_refs_to_issues(refs: References) -> OidIterator {
+    let hashes = refs.names()
+                     .filter_map(|name| name.ok()) // TODO: propagate errors
+                     .filter(|name| name.ends_with("/head"))
+                     .filter_map(|name| name.rsplitn(3, "/")
+                                            .nth(1)
+                                            .and_then(|hash| Oid::from_str(hash).ok()));
+    HashIterator::new(hashes)
+}
+
 
 impl RepositoryExt for Repository {
     fn get_issue_heads(&self, issue: Oid) -> Result<References> {
