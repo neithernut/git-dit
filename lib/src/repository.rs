@@ -38,6 +38,12 @@ pub trait RepositoryExt {
     /// `<prefix>/dit/`). Provide "refs" as the prefix to get only local issues.
     ///
     fn get_issue_hashes(&self, prefix: &str) -> Result<OidIterator>;
+
+    /// Get all issue hashes
+    ///
+    /// This function returns all known issues known to the DIT repo.
+    ///
+    fn get_all_issue_hashes(&self) -> Result<OidIterator>;
 }
 
 
@@ -85,6 +91,10 @@ impl RepositoryExt for Repository {
     fn get_issue_hashes(&self, prefix: &str) -> Result<OidIterator> {
         let glob = format!("{}/dit/**/head", prefix);
         Ok(head_refs_to_issues(try!(self.references_glob(&glob))))
+    }
+
+    fn get_all_issue_hashes(&self) -> Result<OidIterator> {
+        Ok(head_refs_to_issues(try!(self.references_glob("**/dit/**/head"))))
     }
 }
 
