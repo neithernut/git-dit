@@ -87,7 +87,8 @@ fn main() {
     };
 
     std::process::exit(match matches.subcommand() {
-        ("find-tree-init-hash", Some(sub_matches))  => find_tree_init_hash(&repo, sub_matches),
+        ("find-tree-init-hash",         Some(sub_matches)) => find_tree_init_hash(&repo, sub_matches),
+        ("get-issue-tree-init-hashes",  Some(sub_matches)) => get_issue_tree_init_hashes(&repo, sub_matches),
         (name, sub_matches) => {
             let default = clap::ArgMatches::default();
             handle_unknown_subcommand(name, sub_matches.unwrap_or(&default))
