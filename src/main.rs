@@ -48,6 +48,16 @@ fn find_tree_init_hash(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
 }
 
 
+/// find-tree-init-hash subcommand implementation
+///
+fn get_issue_tree_init_hashes(repo: &Repository, _: &clap::ArgMatches) -> i32 {
+    match repo.get_all_issue_hashes() {
+        Ok(hashes)  => {for hash in hashes {println!("{}", hash)}; 0},
+        Err(err)    => {error!("{}", err); 1}
+    }
+}
+
+
 /// Handle unknown subcommands
 ///
 /// Try to invoke an executable matching the name of the subcommand.
