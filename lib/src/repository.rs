@@ -30,6 +30,14 @@ pub trait RepositoryExt {
     /// For a given message of an issue, find the initial message.
     ///
     fn find_tree_init<'a>(&'a self, commit: Commit<'a>) -> Result<Commit>;
+
+    /// Get issue hashes for a prefix
+    ///
+    /// This function returns all known issues known to the DIT repo under the
+    /// prefix provided (e.g. all issues for which refs exist under
+    /// `<prefix>/dit/`). Provide "refs" as the prefix to get only local issues.
+    ///
+    fn get_issue_hashes(&self, prefix: &str) -> Result<OidIterator>;
 }
 
 
@@ -72,6 +80,11 @@ impl RepositoryExt for Repository {
         }
 
         Err(Error::from_kind(EK::NoTreeInitFound(cid)))
+    }
+
+    fn get_issue_hashes(&self, prefix: &str) -> Result<OidIterator> {
+        let glob = format!("{}/dit/**/head", prefix);
+        Ok(head_refs_to_issues(try!(self.references_glob(&glob))))
     }
 }
 
