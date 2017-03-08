@@ -7,12 +7,12 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
 
-use error::ErrorKind as EK;
-use error::*;
-
 use git2::{Commit, Oid, References, Repository};
-use first_parent_iter::FirstParentIter;
 
+use error::*;
+use error::ErrorKind as EK;
+use first_parent_iter::FirstParentIter;
+use iter::HeadRefsToIssuesIter;
 
 pub trait RepositoryExt {
     /// Get possible heads of an issue by its oid
@@ -27,6 +27,20 @@ pub trait RepositoryExt {
     /// For a given message of an issue, find the initial message.
     ///
     fn find_tree_init<'a>(&'a self, commit: Commit<'a>) -> Result<Commit>;
+
+    /// Get issue hashes for a prefix
+    ///
+    /// This function returns all known issues known to the DIT repo under the
+    /// prefix provided (e.g. all issues for which refs exist under
+    /// `<prefix>/dit/`). Provide "refs" as the prefix to get only local issues.
+    ///
+    fn get_issue_hashes(&self, prefix: &str) -> Result<HeadRefsToIssuesIter>;
+
+    /// Get all issue hashes
+    ///
+    /// This function returns all known issues known to the DIT repo.
+    ///
+    fn get_all_issue_hashes(&self) -> Result<HeadRefsToIssuesIter>;
 }
 
 impl RepositoryExt for Repository {
@@ -51,6 +65,15 @@ impl RepositoryExt for Repository {
         }
 
         Err(Error::from_kind(EK::NoTreeInitFound(cid)))
+    }
+
+    fn get_issue_hashes(&self, prefix: &str) -> Result<HeadRefsToIssuesIter> {
+        let glob = format!("{}/dit/**/head", prefix);
+        Ok(HeadRefsToIssuesIter::from(try!(self.references_glob(&glob))))
+    }
+
+    fn get_all_issue_hashes(&self) -> Result<HeadRefsToIssuesIter> {
+        Ok(HeadRefsToIssuesIter::from(try!(self.references_glob("**/dit/**/head"))))
     }
 }
 

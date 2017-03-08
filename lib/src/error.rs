@@ -29,5 +29,15 @@ error_chain! {
             description("Cannot find any tree init")
             display("Cannot find any tree init for {}", id)
         }
+
+        OidFormatError(name: String) {
+            description("Malformed HEAD OID")
+            display("Malformed OID: {}", name)
+        }
+
+        MalFormedHeadReference(name: String) {
+            description("Found malformed HEAD reference")
+            display("Malformed head refernece: {}", name)
+        }
     }
 }
