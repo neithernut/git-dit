@@ -20,6 +20,16 @@ error_chain! {
             display("TODO: Wrapped error")
         }
 
+        ConfigError(configname: String) {
+            description("Could not find config")
+            display("Could not find config: {}", configname)
+        }
+
+        EditorError {
+            description("Could not find editor configuration or ENV variable")
+            display("Could not find editor configuration or ENV variable")
+        }
+
         CannotFindIssueHead(id: Oid) {
             description("Cannot find issue HEAD")
             display("Cannot find issue HEAD for {}", id)
