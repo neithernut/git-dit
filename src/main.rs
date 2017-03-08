@@ -52,7 +52,15 @@ fn find_tree_init_hash(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
 ///
 fn get_issue_tree_init_hashes(repo: &Repository, _: &clap::ArgMatches) -> i32 {
     match repo.get_all_issue_hashes() {
-        Ok(hashes)  => {for hash in hashes {println!("{}", hash)}; 0},
+        Ok(hashes)  => {
+            for hash in hashes {
+                match hash {
+                    Ok(hash) => println!("{}", hash),
+                    Err(e)   => error!("{:?}", e),
+                }
+            }
+            0
+        },
         Err(err)    => {error!("{}", err); 1}
     }
 }
