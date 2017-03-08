@@ -23,5 +23,15 @@ error_chain! {
             description("TODO: Wrapped error")
             display("TODO: Wrapped error")
         }
+
+        ConfigError(configname: String) {
+            description("Could not find config")
+            display("Could not find config: {}", configname)
+        }
+
+        EditorError {
+            description("Could not find editor configuration or ENV variable")
+            display("Could not find editor configuration or ENV variable")
+        }
     }
 }

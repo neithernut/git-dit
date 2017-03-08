@@ -14,6 +14,7 @@ extern crate git2;
 extern crate libgitdit;
 
 mod error;
+mod editor;
 
 use clap::App;
 use git2::Repository;
