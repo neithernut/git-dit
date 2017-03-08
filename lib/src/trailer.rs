@@ -40,6 +40,12 @@ pub struct Trailer {
     pub value: TrailerValue,
 }
 
+impl Into<(TrailerKey, TrailerValue)> for Trailer {
+    fn into(self) -> (TrailerKey, TrailerValue) {
+        (self.key, self.value)
+    }
+}
+
 pub struct Trailers<'a>(Lines<'a>);
 
 impl<'a> Trailers<'a> {
