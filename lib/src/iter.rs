@@ -46,3 +46,9 @@ impl<'r> From<References<'r>> for HeadRefsToIssuesIter<'r> {
     }
 }
 
+impl<'r> From<ReferenceNames<'r>> for HeadRefsToIssuesIter<'r> {
+    fn from(r: ReferenceNames<'r>) -> HeadRefsToIssuesIter<'r> {
+        HeadRefsToIssuesIter(r)
+    }
+}
+
