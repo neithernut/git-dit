@@ -12,10 +12,7 @@ use git2::{Commit, Oid, References, Repository};
 use error::*;
 use error::ErrorKind as EK;
 use first_parent_iter::FirstParentIter;
-
-
-// TODO: delcaration of the OidIterator
-
+use iter::HeadRefsToIssuesIter;
 
 pub trait RepositoryExt {
     /// Get possible heads of an issue by its oid
@@ -37,32 +34,14 @@ pub trait RepositoryExt {
     /// prefix provided (e.g. all issues for which refs exist under
     /// `<prefix>/dit/`). Provide "refs" as the prefix to get only local issues.
     ///
-    fn get_issue_hashes(&self, prefix: &str) -> Result<OidIterator>;
+    fn get_issue_hashes(&self, prefix: &str) -> Result<HeadRefsToIssuesIter>;
 
     /// Get all issue hashes
     ///
     /// This function returns all known issues known to the DIT repo.
     ///
-    fn get_all_issue_hashes(&self) -> Result<OidIterator>;
+    fn get_all_issue_hashes(&self) -> Result<HeadRefsToIssuesIter>;
 }
-
-
-/// Get issue hashes from head references
-///
-/// Retrieve the issue hashes from head references provided. References which
-/// are not head references are ignores. However, the function does not check
-/// whether the references are, in fact, references in a dit namespace.
-///
-fn head_refs_to_issues(refs: References) -> OidIterator {
-    let hashes = refs.names()
-                     .filter_map(|name| name.ok()) // TODO: propagate errors
-                     .filter(|name| name.ends_with("/head"))
-                     .filter_map(|name| name.rsplitn(3, "/")
-                                            .nth(1)
-                                            .and_then(|hash| Oid::from_str(hash).ok()));
-    HashIterator::new(hashes)
-}
-
 
 impl RepositoryExt for Repository {
     fn get_issue_heads(&self, issue: Oid) -> Result<References> {
@@ -88,13 +67,13 @@ impl RepositoryExt for Repository {
         Err(Error::from_kind(EK::NoTreeInitFound(cid)))
     }
 
-    fn get_issue_hashes(&self, prefix: &str) -> Result<OidIterator> {
+    fn get_issue_hashes(&self, prefix: &str) -> Result<HeadRefsToIssuesIter> {
         let glob = format!("{}/dit/**/head", prefix);
-        Ok(head_refs_to_issues(try!(self.references_glob(&glob))))
+        Ok(HeadRefsToIssuesIter::from(try!(self.references_glob(&glob))))
     }
 
-    fn get_all_issue_hashes(&self) -> Result<OidIterator> {
-        Ok(head_refs_to_issues(try!(self.references_glob("**/dit/**/head"))))
+    fn get_all_issue_hashes(&self) -> Result<HeadRefsToIssuesIter> {
+        Ok(HeadRefsToIssuesIter::from(try!(self.references_glob("**/dit/**/head"))))
     }
 }
 

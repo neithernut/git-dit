@@ -12,6 +12,7 @@
 extern crate git2;
 
 pub mod error;
+pub mod iter;
 pub mod repository;
 
 mod first_parent_iter;
