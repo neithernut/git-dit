@@ -25,6 +25,22 @@ use error::ErrorKind as EK;
 use error::*;
 
 
+/// Convenience macro for early returns in subcommands
+///
+/// This macro is similar to the `try!` macro. It evaluates the expression
+/// passed. If the result the expression yields is ok, it will be unwrapped.
+/// Else the error will be printed using the `error!` macro and abort the
+/// function, returning `1`.
+macro_rules! try_or_1 {
+    ($expr: expr) => {
+        match $expr {
+            Ok(v) => v,
+            Err(e)   => {error!("{:?}", e); return 1},
+        }
+    };
+}
+
+
 /// Open the DIT repo
 ///
 /// Opens the DIT repo corresponding to the current one honouring the user
