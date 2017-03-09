@@ -68,18 +68,10 @@ fn find_tree_init_hash(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
 /// find-tree-init-hash subcommand implementation
 ///
 fn get_issue_tree_init_hashes(repo: &Repository, _: &clap::ArgMatches) -> i32 {
-    match repo.get_all_issue_hashes() {
-        Ok(hashes)  => {
-            for hash in hashes {
-                match hash {
-                    Ok(hash) => println!("{}", hash),
-                    Err(e)   => {error!("{:?}", e); return 1},
-                }
-            }
-            0
-        },
-        Err(err)    => {error!("{}", err); 1}
+    for hash in try_or_1!(repo.get_all_issue_hashes()) {
+        println!("{}", try_or_1!(hash));
     }
+    0
 }
 
 
