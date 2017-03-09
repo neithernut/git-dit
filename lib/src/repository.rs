@@ -7,7 +7,7 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
 
-use git2::{Commit, Oid, References, Repository};
+use git2::{Commit, Oid, References, Repository, Tree};
 
 use error::*;
 use error::ErrorKind as EK;
@@ -48,6 +48,12 @@ pub trait RepositoryExt {
     /// This function returns all known issues known to the DIT repo.
     ///
     fn get_all_issue_hashes(&self) -> Result<HeadRefsToIssuesIter>;
+
+    /// Get an empty tree
+    ///
+    /// This function returns an empty tree.
+    ///
+    fn empty_tree(&self) -> Result<Tree>;
 }
 
 impl RepositoryExt for Repository {
@@ -87,6 +93,13 @@ impl RepositoryExt for Repository {
 
     fn get_all_issue_hashes(&self) -> Result<HeadRefsToIssuesIter> {
         Ok(HeadRefsToIssuesIter::from(try!(self.references_glob("**/dit/**/head"))))
+    }
+
+    fn empty_tree(&self) -> Result<Tree> {
+        self.treebuilder(None)
+            .and_then(|treebuilder| treebuilder.write())
+            .and_then(|oid| self.find_tree(oid))
+            .chain_err(|| EK::WrappedGitError)
     }
 }
 
