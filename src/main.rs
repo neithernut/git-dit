@@ -17,8 +17,9 @@ mod error;
 mod editor;
 
 use clap::{App, Values};
-use git2::{Commit, Repository};
+use git2::{Commit, Oid, Repository};
 use libgitdit::repository::RepositoryExt;
+use std::io::{self, Read};
 use std::process::Command;
 
 use error::ErrorKind as EK;
@@ -85,6 +86,39 @@ fn get_issue_tree_init_hashes(repo: &Repository, _: &clap::ArgMatches) -> i32 {
     for hash in try_or_1!(repo.get_all_issue_hashes()) {
         println!("{}", try_or_1!(hash));
     }
+    0
+}
+
+
+/// create-message subcommand implementation
+///
+fn create_message(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
+    let issue = match matches.value_of("issue") {
+        Some(i) => Some(try_or_1!(Oid::from_str(i))),
+        None    => None,
+    };
+    let sig = try_or_1!(repo.signature());
+
+    // Note: The list of parents must live long enough to back the references we
+    //       supply to `libgitdit::repository::RepositoryExt::create_message()`.
+    let parents = match matches.values_of("parents")
+                               .map(|p| values_to_hashes(repo, p)) {
+        Some(hashes) => try_or_1!(hashes),
+        _            => Vec::new(),
+    };
+    let parent_refs : Vec<&Commit> = parents.iter().map(|command| command).collect();
+
+    // use the first parent's tree if availible
+    let tree = match parents.first() {
+        Some(commit) => try_or_1!(commit.tree()),
+        _            => try_or_1!(repo.empty_tree()),
+    };
+
+    // read all from stdin
+    let mut message = String::new();
+    try_or_1!(io::stdin().read_to_string(&mut message));
+
+    println!("{}", try_or_1!(repo.create_message(issue.as_ref(), &sig, &sig, &message, &tree, &parent_refs)));
     0
 }
 
