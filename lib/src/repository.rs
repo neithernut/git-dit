@@ -7,7 +7,7 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
 
-use git2::{Commit, Oid, References, Repository, Tree};
+use git2::{Commit, Oid, References, Repository, Signature, Tree};
 
 use error::*;
 use error::ErrorKind as EK;
@@ -41,6 +41,23 @@ pub trait RepositoryExt {
     /// This function returns all known issues known to the DIT repo.
     ///
     fn get_all_issue_hashes(&self) -> Result<HeadRefsToIssuesIter>;
+
+    /// Create a new message
+    ///
+    /// This function creates a new issue message as well as an appropriate
+    /// reference. The oid of the new message will be returned.
+    /// The message will be part of the issue supplied by the caller. If no
+    /// issue is provided, a new issue will be initiated with the message.
+    /// In this case, the oid returned is also the oid of the new issue.
+    ///
+    fn create_message(&self,
+                      issue: Option<&Oid>,
+                      author: &Signature,
+                      committer: &Signature,
+                      message: &str,
+                      tree: &Tree,
+                      parents: &[&Commit]
+                     ) -> Result<Oid>;
 
     /// Get an empty tree
     ///
@@ -80,6 +97,28 @@ impl RepositoryExt for Repository {
 
     fn get_all_issue_hashes(&self) -> Result<HeadRefsToIssuesIter> {
         Ok(HeadRefsToIssuesIter::from(try!(self.references_glob("**/dit/**/head"))))
+    }
+
+    fn create_message(&self,
+                      issue: Option<&Oid>,
+                      author: &Signature,
+                      committer: &Signature,
+                      message: &str,
+                      tree: &Tree,
+                      parents: &[&Commit]
+                     ) -> Result<Oid> {
+        // commit message
+        let msg_id = try!(self.commit(None, author, committer, message, tree, parents));
+
+        // make an apropriate reference
+        let refname =  match issue {
+            Some(hash)  => format!("refs/dit/{}/leaves/{}", hash, msg_id),
+            _           => format!("refs/dit/{}/head", msg_id),
+        };
+        let logmsg = format!("new message: {}", msg_id);
+        try!(self.reference(&refname, msg_id, false, &logmsg));
+
+        Ok(msg_id)
     }
 
     fn empty_tree(&self) -> Result<Tree> {
