@@ -152,6 +152,7 @@ fn main() {
     };
 
     std::process::exit(match matches.subcommand() {
+        ("create-message",              Some(sub_matches)) => create_message(&repo, sub_matches),
         ("find-tree-init-hash",         Some(sub_matches)) => find_tree_init_hash(&repo, sub_matches),
         ("get-issue-tree-init-hashes",  Some(sub_matches)) => get_issue_tree_init_hashes(&repo, sub_matches),
         (name, sub_matches) => {
