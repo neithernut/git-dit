@@ -52,6 +52,23 @@ fn open_dit_repo() -> Result<Repository> {
 }
 
 
+/// Get a vector of commits from values
+///
+/// This function transforms values to a vector. If no values are supplied,
+/// an empty vector will be returned.
+///
+fn values_to_hashes<'repo>(repo: &'repo Repository, values: Option<Values>) -> Result<Vec<Commit<'repo>>> {
+    let mut retval = Vec::new();
+    if let Some(strings) = values {
+        for commit in strings.map(|string| repo.revparse_single(string))
+                             .map(|oid| repo.find_commit(try!(oid).id())) {
+            retval.push(try!(commit));
+        }
+    };
+    Ok(retval)
+}
+
+
 /// find-tree-init-hash subcommand implementation
 ///
 fn find_tree_init_hash(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
