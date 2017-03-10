@@ -16,8 +16,8 @@ extern crate libgitdit;
 mod error;
 mod editor;
 
-use clap::App;
-use git2::Repository;
+use clap::{App, Values};
+use git2::{Commit, Repository};
 use libgitdit::repository::RepositoryExt;
 use std::process::Command;
 
@@ -49,6 +49,20 @@ macro_rules! try_or_1 {
 fn open_dit_repo() -> Result<Repository> {
     // TODO: access the config and maybe return another repo instead
     Repository::open_from_env().chain_err(|| EK::WrappedGitError)
+}
+
+
+/// Get a vector of commits from values
+///
+/// This function transforms values to a vector.
+///
+fn values_to_hashes<'repo>(repo: &'repo Repository, values: Values) -> Result<Vec<Commit<'repo>>> {
+    let mut retval = Vec::new();
+    for commit in values.map(|string| repo.revparse_single(string))
+                        .map(|oid| repo.find_commit(try!(oid).id())) {
+        retval.push(try!(commit));
+    }
+    Ok(retval)
 }
 
 
