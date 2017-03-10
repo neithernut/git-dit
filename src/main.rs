@@ -96,11 +96,8 @@ fn get_issue_tree_init_hashes(repo: &Repository, _: &clap::ArgMatches) -> i32 {
 /// create-message subcommand implementation
 ///
 fn create_message(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
-    let issue = match matches.value_of("issue") {
-        Some(i) => Some(try_or_1!(Oid::from_str(i))),
-        None    => None,
-    };
-    let sig = try_or_1!(repo.signature());
+    let issue = matches.value_of("issue").map(Oid::from_str).map(|i| try_or_1!(i));
+    let sig   = try_or_1!(repo.signature());
 
     // Note: The list of parents must live long enough to back the references we
     //       supply to `libgitdit::repository::RepositoryExt::create_message()`.
@@ -108,10 +105,9 @@ fn create_message(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
     let parent_refs : Vec<&Commit> = parents.iter().map(|command| command).collect();
 
     // use the first parent's tree if availible
-    let tree = match parents.first() {
-        Some(commit) => try_or_1!(commit.tree()),
-        _            => try_or_1!(repo.empty_tree()),
-    };
+    let tree = match parents.first()
+        .map(|commit| try_or_1!(commit.tree()))
+        .unwrap_or_else(|| try_or_1!(repo.empty_tree()));
 
     // read all from stdin
     let mut message = String::new();
