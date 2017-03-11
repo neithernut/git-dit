@@ -22,6 +22,13 @@ pub trait RepositoryExt {
     ///
     fn get_issue_heads(&self, issue: Oid) -> Result<References>;
 
+    /// Get leaf references of an issue by its oid
+    ///
+    /// Returns leaf references from both the local repository and remotes for
+    /// the issue provided.
+    ///
+    fn get_issue_leaves(&self, issue: Oid) -> Result<References>;
+
     /// Find the initial message of an issue
     ///
     /// For a given message of an issue, find the initial message.
@@ -46,6 +53,12 @@ pub trait RepositoryExt {
 impl RepositoryExt for Repository {
     fn get_issue_heads(&self, issue: Oid) -> Result<References> {
         let glob = format!("**/dit/{}/head", issue);
+        self.references_glob(&glob)
+            .chain_err(|| EK::WrappedGitError)
+    }
+
+    fn get_issue_leaves(&self, issue: Oid) -> Result<References> {
+        let glob = format!("**/dit/{}/leaves/*", issue);
         self.references_glob(&glob)
             .chain_err(|| EK::WrappedGitError)
     }
