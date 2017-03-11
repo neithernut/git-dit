@@ -32,6 +32,10 @@ use error::*;
 /// passed. If the result the expression yields is ok, it will be unwrapped.
 /// Else the error will be printed using the `error!` macro and abort the
 /// function, returning `1`.
+///
+/// Note: using this macro in clauses usually doesn't make sense, since it
+///       aborts the function by returning a numeric value.
+///
 macro_rules! try_or_1 {
     ($expr: expr) => {
         match $expr {
