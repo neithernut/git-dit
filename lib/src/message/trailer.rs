@@ -39,6 +39,17 @@ impl TrailerValue {
         }
     }
 
+    /// Append a string to an existing trailer value
+    ///
+    /// This method may be used to construct multi line trailer values.
+    /// Note that the result will always be a string value.
+    ///
+    pub fn append(self, slice: &str) -> TrailerValue {
+        TrailerValue::String(match self {
+            TrailerValue::Int(i)    => i.to_string() + slice,
+            TrailerValue::String(s) => s + slice,
+        })
+    }
 }
 
 #[derive(Debug, Hash, Eq, PartialEq, Ord, PartialOrd, Clone)]
