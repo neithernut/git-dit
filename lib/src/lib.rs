@@ -17,7 +17,6 @@ pub mod error;
 pub mod iter;
 pub mod message;
 pub mod repository;
-pub mod trailer;
 
 mod first_parent_iter;
 
