@@ -13,6 +13,13 @@ use std::str::Lines;
 #[derive(Debug, Hash, Eq, PartialEq, Ord, PartialOrd, Clone)]
 pub struct TrailerKey(String);
 
+impl From<String> for TrailerKey {
+    fn from(string: String) -> Self {
+        TrailerKey(string)
+    }
+}
+
+
 #[derive(Debug, Hash, Eq, PartialEq, Ord, PartialOrd, Clone)]
 pub enum TrailerValue {
     Int(i64),
