@@ -7,8 +7,8 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
 
-use regex::Regex;
-use std::str::Lines;
+use message::line::{Line, Lines};
+use std::collections::VecDeque;
 
 #[derive(Debug, Hash, Eq, PartialEq, Ord, PartialOrd, Clone)]
 pub struct TrailerKey(String);
@@ -103,13 +103,19 @@ impl<'l> TrailerCollector<'l> {
 }
 
 
-pub struct Trailers<'a>(Lines<'a>);
+pub struct Trailers<'a> {
+    lines: Lines<'a>,
+    buf: VecDeque<Trailer>,
+}
 
 impl<'a> Trailers<'a> {
 
     /// Create a new Trailers iterator from a commit message
     pub fn new(text: &'a str) -> Trailers<'a> {
-        Trailers(text.lines())
+        Trailers {
+            lines: Lines::new(text),
+            buf: VecDeque::new(),
+        }
     }
 
     pub fn only_dit(self) -> DitTrailers<'a> {
@@ -122,32 +128,26 @@ impl<'a> Iterator for Trailers<'a> {
     type Item = Trailer;
 
     fn next(&mut self) -> Option<Self::Item> {
-        lazy_static! {
-            static ref RE: Regex = Regex::new(r"^(?P<key>(.*)):\ (?P<value>(.*))$").unwrap();
-        }
+        'outer: loop {
+            if let Some(trailer) = self.buf.pop_front() {
+                return Some(trailer);
+            }
 
-        loop {
-            match self.0.next() {
-                None => return None,
-                Some(line) => {
-                    match RE.captures(line) {
-                        None => continue,
-                        Some(capture) => {
-                            let key = capture.name("key").map(|m| {
-                                TrailerKey(String::from(m.as_str()))
-                            }).unwrap(); // TODO: fix unwrap()
+            // refill buffer from next block
+            let mut collector = TrailerCollector::new(&mut self.buf);
+            let mut at_end = true;
 
-                            let value = capture.name("value").map(|m| {
-                                TrailerValue::from_slice(m.as_str())
-                            }).unwrap(); // TODO: fix unwrap()
-
-                            return Some(Trailer {
-                                key  : key,
-                                value: value,
-                            });
-                        }
-                    }
+            'refill: for line in self.lines.next() {
+                at_end = false;
+                collector = match line {
+                    Line::Text(_) => collector.dumping(), // block of text
+                    Line::Trailer(t) => collector.push(t),
+                    Line::Blank => continue 'outer, // end of block
                 }
+            }
+
+            if at_end {
+                return None;
             }
         }
     }
