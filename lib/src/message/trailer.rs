@@ -64,6 +64,45 @@ impl Into<(TrailerKey, TrailerValue)> for Trailer {
     }
 }
 
+
+/// Helper type for colecting trailers in a linked list
+///
+enum TrailerCollector<'l> {
+    Collecting(&'l mut VecDeque<Trailer>),
+    Dumping,
+}
+
+impl<'l> TrailerCollector<'l> {
+    pub fn new(target: &'l mut VecDeque<Trailer>) -> Self {
+        TrailerCollector::Collecting(target)
+    }
+
+    /// Dump the current and all future trailers pushed to this collector
+    ///
+    pub fn dumping(self) -> Self {
+        if let TrailerCollector::Collecting(target) = self {
+            target.clear();
+        }
+        TrailerCollector::Dumping
+    }
+
+    /// Push a new trailer
+    ///
+    /// The trailer pushed will be either collected or dumped, based on the
+    /// current state.
+    ///
+    pub fn push(self, trailer: Trailer) -> Self {
+        match self {
+            TrailerCollector::Collecting(target) => {
+                target.push_back(trailer);
+                TrailerCollector::Collecting(target)
+            },
+            TrailerCollector::Dumping => self,
+        }
+    }
+}
+
+
 pub struct Trailers<'a>(Lines<'a>);
 
 impl<'a> Trailers<'a> {
