@@ -7,6 +7,42 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
 
+use error::*;
+use error::ErrorKind as EK;
+
 pub mod line;
 pub mod trailer;
+
+
+/// Special iterator extension for messages
+///
+/// This iterator extension provides some special functionality for issue and
+/// commit messages. It is intended for use on iterators over the lines of a
+/// message.
+///
+pub trait LineIteratorExt {
+    /// Check whether the formatting of a message is valid
+    ///
+    /// This function checks whether a message has a subject line and whether
+    /// that subject line is followed by an empty line. The message should
+    /// already be stripped of comments and trailing whitespace.
+    ///
+    fn check_message_format(self) -> Result<()>;
+}
+
+impl<L> LineIteratorExt for L
+    where L: Iterator<Item = String>
+{
+    fn check_message_format(mut self) -> Result<()> {
+        if try!(self.next().ok_or(Error::from_kind(EK::EmptyMessage))).is_empty() {
+            return Err(Error::from_kind(EK::EmptySubject))
+        }
+
+        if !self.next().map(|line| line.is_empty()).unwrap_or(true) {
+            return Err(Error::from_kind(EK::MalformedMessage));
+        }
+
+        Ok(())
+    }
+}
 
