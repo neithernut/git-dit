@@ -7,16 +7,6 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
 
-#[macro_use] extern crate log;
-#[macro_use] extern crate error_chain;
-#[macro_use] extern crate lazy_static;
-extern crate git2;
-extern crate regex;
-
-pub mod error;
-pub mod iter;
-pub mod message;
-pub mod repository;
-
-mod first_parent_iter;
+pub mod line;
+pub mod trailer;
 
