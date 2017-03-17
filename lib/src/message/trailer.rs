@@ -10,6 +10,14 @@
 use message::line::{Line, Lines};
 use std::collections::VecDeque;
 
+/// The Key of a Trailer:
+///
+/// ```ignore
+/// Signed-off-by: Hans Wurst <hans@wurstmail.tld>
+/// ^^^^^^^^^^^^^
+/// # This is the key
+/// ```
+///
 #[derive(Debug, Hash, Eq, PartialEq, Ord, PartialOrd, Clone)]
 pub struct TrailerKey(String);
 
@@ -20,6 +28,14 @@ impl From<String> for TrailerKey {
 }
 
 
+/// The Value of a Trailer:
+///
+/// ```ignore
+/// Signed-off-by: Hans Wurst <hans@wurstmail.tld>
+///                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+///                # This is the value
+/// ```
+///
 #[derive(Debug, Hash, Eq, PartialEq, Ord, PartialOrd, Clone)]
 pub enum TrailerValue {
     Int(i64),
@@ -52,6 +68,7 @@ impl TrailerValue {
     }
 }
 
+/// The combination of a TrailerKey and a TrailerValue
 #[derive(Debug, Hash, Eq, PartialEq, Ord, PartialOrd, Clone)]
 pub struct Trailer {
     pub key: TrailerKey,
