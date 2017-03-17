@@ -52,3 +52,36 @@ impl<'r> From<ReferenceNames<'r>> for HeadRefsToIssuesIter<'r> {
     }
 }
 
+
+/// A trait to strip whitespace from a thing that consists of several strings, for example the
+/// `std::str::Lines` iterator.
+pub trait StripWhiteSpace<I: Iterator<Item = String> + Sized> {
+    fn strip_whitespace(self) -> StripWhiteSpaceIter<I>;
+}
+
+/// Implement the StripWhiteSpace extension trait for all things where we can iterate over String
+/// objects.
+/// This implements StripWhiteSpace<String> for type String automatically, apparently.
+impl<I> StripWhiteSpace<I> for I
+    where I: Iterator<Item = String> + Sized
+{
+    fn strip_whitespace(self) -> StripWhiteSpaceIter<I> {
+        StripWhiteSpaceIter(self)
+    }
+}
+
+/// A Iterator type which iterates over String objects, used to strip whitespace from an iterator
+/// over String.
+pub struct StripWhiteSpaceIter<I>(I)
+    where I: Iterator<Item = String> + Sized;
+
+impl<I> Iterator for StripWhiteSpaceIter<I>
+    where I: Iterator<Item = String> + Sized
+{
+    type Item = String;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next().map(|s| String::from(s.trim_right()))
+    }
+}
+
