@@ -52,7 +52,6 @@ impl<'r> From<ReferenceNames<'r>> for HeadRefsToIssuesIter<'r> {
     }
 }
 
-
 /// A trait to strip whitespace from a thing that consists of several strings, for example the
 /// `std::str::Lines` iterator.
 pub trait StripWhiteSpace<I: Iterator<Item = String> + Sized> {
@@ -101,6 +100,43 @@ impl<I> Iterator for StripWhiteSpaceRightIter<I>
 
     fn next(&mut self) -> Option<Self::Item> {
         self.0.next().map(|s| String::from(s.trim_right()))
+    }
+}
+
+/// Extension trait for everything that iterates over Strings, to remove comment lines
+/// (Lines starting with "#")
+pub trait WithoutComments<I>
+    where I: Iterator<Item = String> + Sized
+{
+    fn without_comments(self) -> WithoutCommentsIter<I>;
+}
+
+/// Iterator type to be returned from WithoutComments::without_comments.
+pub struct WithoutCommentsIter<I>(I)
+    where I: Iterator<Item = String> + Sized;
+
+impl<I> WithoutComments<I> for I
+    where I: Iterator<Item = String> + Sized
+{
+    fn without_comments(self) -> WithoutCommentsIter<I> {
+        WithoutCommentsIter(self)
+    }
+}
+
+impl<I> Iterator for WithoutCommentsIter<I>
+    where I: Iterator<Item = String> + Sized
+{
+    type Item = String;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while let Some(next) = self.0.next() {
+            // we do not trim whitespace here, because of code blocks in the message which might
+            // have a "#" at the beginning
+            if !next.starts_with("#") {
+                return Some(next)
+            }
+        }
+        None
     }
 }
 
