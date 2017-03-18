@@ -39,5 +39,20 @@ error_chain! {
             description("Found malformed HEAD reference")
             display("Malformed head refernece: {}", name)
         }
+
+        EmptyMessage {
+            description("An empty message was supplied")
+            display("The message is empty")
+        }
+
+        EmptySubject {
+            description("The subject line of the message is empty")
+            display("Empty subject line")
+        }
+
+        MalformedMessage {
+            description("The message supplied is malformed")
+            display("The message supplied is malformed")
+        }
     }
 }

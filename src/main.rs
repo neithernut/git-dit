@@ -18,8 +18,10 @@ mod editor;
 
 use clap::{App, Values};
 use git2::{Commit, Oid, Repository};
+use libgitdit::message::LineIteratorExt;
 use libgitdit::repository::RepositoryExt;
-use std::io::{self, Read};
+use std::fs::File;
+use std::io::{self, BufRead, BufReader, Read};
 use std::process::Command;
 
 use error::ErrorKind as EK;
@@ -94,6 +96,27 @@ fn get_issue_tree_init_hashes(repo: &Repository, _: &clap::ArgMatches) -> i32 {
 }
 
 
+/// check-message subcommand implementation
+///
+fn check_message(matches: &clap::ArgMatches) -> i32 {
+    let reader: Box<Read> = match matches.value_of("filename") {
+        Some(filename)  => Box::from(try_or_1!(File::open(filename))),
+        None            => Box::from(io::stdin()),
+    };
+    BufReader::new(reader).lines()
+                          .map(|l| l.unwrap_or_else(|err| {
+                              // abort on IO errors
+                              error!("{:?}", err);
+                              std::process::exit(1);
+                          }))
+                          .skip_while(|l| l.is_empty())
+                          .stripped()
+                          .check_message_format()
+                          .map(|_| 0)
+                          .unwrap_or_else(|err| {error!("{:?}", err); 1})
+}
+
+
 /// create-message subcommand implementation
 ///
 fn create_message(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
@@ -156,6 +179,7 @@ fn main() {
     };
 
     std::process::exit(match matches.subcommand() {
+        ("check-message",               Some(sub_matches)) => check_message(sub_matches),
         ("create-message",              Some(sub_matches)) => create_message(&repo, sub_matches),
         ("find-tree-init-hash",         Some(sub_matches)) => find_tree_init_hash(&repo, sub_matches),
         ("get-issue-tree-init-hashes",  Some(sub_matches)) => get_issue_tree_init_hashes(&repo, sub_matches),
