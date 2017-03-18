@@ -9,6 +9,8 @@
 
 use error::*;
 use error::ErrorKind as EK;
+use iter::{StripWhiteSpace, StripWhiteSpaceRightIter};
+use iter::{WithoutComments, WithoutCommentsIter};
 
 pub mod line;
 pub mod trailer;
@@ -21,6 +23,8 @@ pub mod trailer;
 /// message.
 ///
 pub trait LineIteratorExt {
+    type Iter : Iterator<Item = String>;
+
     /// Check whether the formatting of a message is valid
     ///
     /// This function checks whether a message has a subject line and whether
@@ -28,11 +32,24 @@ pub trait LineIteratorExt {
     /// already be stripped of comments and trailing whitespace.
     ///
     fn check_message_format(self) -> Result<()>;
+
+    /// Create a whitespace and comment stripping iterator
+    ///
+    /// This function creates an iterator suitable for stripping parts of a
+    /// message which should not be stored, e.g. commetents and trailing
+    /// whitespace.
+    ///
+    /// Note that the iterator does not (yet) strip blank lines at the beginning
+    /// or end of a message.
+    ///
+    fn stripped(self) -> StripWhiteSpaceRightIter<WithoutCommentsIter<Self::Iter>>;
 }
 
 impl<L> LineIteratorExt for L
     where L: Iterator<Item = String>
 {
+    type Iter = L;
+
     fn check_message_format(mut self) -> Result<()> {
         if try!(self.next().ok_or(Error::from_kind(EK::EmptyMessage))).is_empty() {
             return Err(Error::from_kind(EK::EmptySubject))
@@ -43,6 +60,10 @@ impl<L> LineIteratorExt for L
         }
 
         Ok(())
+    }
+
+    fn stripped(self) -> StripWhiteSpaceRightIter<WithoutCommentsIter<Self::Iter>> {
+        self.without_comments().strip_whitespace_right()
     }
 }
 
