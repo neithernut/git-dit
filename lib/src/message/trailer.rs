@@ -122,7 +122,7 @@ impl<'l> TrailerCollector<'l> {
 
 
 pub struct Trailers<'a> {
-    lines: Lines<'a>,
+    lines: Lines<'a, str::Lines<'a>>,
     buf: VecDeque<Trailer>,
 }
 

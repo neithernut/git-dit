@@ -48,15 +48,20 @@ impl<'a> From<&'a str> for Line {
 
 
 #[derive(Debug)]
-pub struct Lines<'a>(Peekable<str::Lines<'a>>);
+pub struct Lines<'a, I>(Peekable<I>)
+    where I: Iterator<Item = &'a str>;
 
-impl<'a> From<str::Lines<'a>> for Lines<'a> {
-    fn from(lines: str::Lines<'a>) -> Self {
+impl<'a, I> From<I> for Lines<'a, I>
+    where I: Iterator<Item = &'a str>
+{
+    fn from(lines: I) -> Self {
         Lines(lines.peekable())
     }
 }
 
-impl<'a> Iterator for Lines<'a> {
+impl<'a, I> Iterator for Lines<'a, I>
+    where I: Iterator<Item = &'a str>
+{
     type Item = Line;
 
     fn next(&mut self) -> Option<Self::Item> {
