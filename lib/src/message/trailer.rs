@@ -9,6 +9,7 @@
 
 use message::line::{Line, Lines};
 use std::collections::VecDeque;
+use std::str;
 
 /// The Key of a Trailer:
 ///
@@ -130,7 +131,7 @@ impl<'a> Trailers<'a> {
     /// Create a new Trailers iterator from a commit message
     pub fn new(text: &'a str) -> Trailers<'a> {
         Trailers {
-            lines: Lines::new(text),
+            lines: Lines::from(text.lines()),
             buf: VecDeque::new(),
         }
     }

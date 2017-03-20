@@ -10,7 +10,6 @@
 use message::trailer::{Trailer, TrailerKey, TrailerValue};
 use regex::Regex;
 use std::iter::Peekable;
-use std::str;
 
 
 /// A line of an issue message
@@ -50,12 +49,6 @@ impl<'a> From<&'a str> for Line {
 
 #[derive(Debug)]
 pub struct Lines<'a>(Peekable<str::Lines<'a>>);
-
-impl<'a> Lines<'a> {
-    pub fn new(text: &'a str) -> Lines<'a> {
-        Lines::from(text.lines())
-    }
-}
 
 impl<'a> From<str::Lines<'a>> for Lines<'a> {
     fn from(lines: str::Lines<'a>) -> Self {
