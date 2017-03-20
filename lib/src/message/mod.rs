@@ -49,6 +49,14 @@ pub trait LineIteratorExt {
     /// The iterator returned by this function will return categorized lines.
     ///
     fn categorized_lines(self) -> line::Lines<Self::Iter, String>;
+
+    /// Create an iterator for extracting trailers
+    ///
+    /// Ths iterator returned will only yield trailers in the message. Strings
+    /// resembling trailers which co-exist with regular text-lines in a block of
+    /// non-blank lines will be ignored (e.g. not returned).
+    ///
+    fn trailers(self) -> trailer::Trailers<Self::Iter, String>;
 }
 
 impl<L> LineIteratorExt for L
@@ -74,6 +82,10 @@ impl<L> LineIteratorExt for L
 
     fn categorized_lines(self) -> line::Lines<Self::Iter, String> {
         line::Lines::from(self)
+    }
+
+    fn trailers(self) -> trailer::Trailers<Self::Iter, String> {
+        trailer::Trailers::from(self)
     }
 }
 
