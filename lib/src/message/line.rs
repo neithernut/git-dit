@@ -48,30 +48,33 @@ impl<'a> From<&'a str> for Line {
 
 
 #[derive(Debug)]
-pub struct Lines<'a, I>(Peekable<I>)
-    where I: Iterator<Item = &'a str>;
+pub struct Lines<I, S>(Peekable<I>)
+    where I: Iterator<Item = S>,
+          S: AsRef<str>;
 
-impl<'a, I> From<I> for Lines<'a, I>
-    where I: Iterator<Item = &'a str>
+impl<I, S> From<I> for Lines<I, S>
+    where I: Iterator<Item = S>,
+          S: AsRef<str>
 {
     fn from(lines: I) -> Self {
         Lines(lines.peekable())
     }
 }
 
-impl<'a, I> Iterator for Lines<'a, I>
-    where I: Iterator<Item = &'a str>
+impl<I, S> Iterator for Lines<I, S>
+    where I: Iterator<Item = S>,
+          S: AsRef<str>
 {
     type Item = Line;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match self.0.next().map(|line| Line::from(line)) {
+        match self.0.next().map(|line| Line::from(line.as_ref())) {
             Some(Line::Trailer(mut trailer)) => {
                 // accumulate potential multiline trailer
                 // TODO: also respect other whitespace
-                while self.0.peek().map_or(false, |l| l.starts_with(" ")) {
+                while self.0.peek().map_or(false, |l| l.as_ref().starts_with(" ")) {
                     // we have to consume the line we peeked at
-                    trailer.value = trailer.value.append(self.0.next().unwrap());
+                    trailer.value = trailer.value.append(self.0.next().unwrap().as_ref());
                 }
 
                 Some(Line::Trailer(trailer))
