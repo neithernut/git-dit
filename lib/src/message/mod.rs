@@ -43,6 +43,12 @@ pub trait LineIteratorExt {
     /// or end of a message.
     ///
     fn stripped(self) -> StripWhiteSpaceRightIter<WithoutCommentsIter<Self::Iter>>;
+
+    /// Create an iterator for categorizing lines
+    ///
+    /// The iterator returned by this function will return categorized lines.
+    ///
+    fn categorized_lines(self) -> line::Lines<Self::Iter, String>;
 }
 
 impl<L> LineIteratorExt for L
@@ -64,6 +70,10 @@ impl<L> LineIteratorExt for L
 
     fn stripped(self) -> StripWhiteSpaceRightIter<WithoutCommentsIter<Self::Iter>> {
         self.without_comments().strip_whitespace_right()
+    }
+
+    fn categorized_lines(self) -> line::Lines<Self::Iter, String> {
+        line::Lines::from(self)
     }
 }
 
