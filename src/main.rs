@@ -17,8 +17,8 @@ mod error;
 mod programs;
 mod util;
 
-use clap::App;
-use git2::{Commit, Oid, Repository};
+use clap::{App, Values};
+use git2::{Commit, Oid, Repository, References};
 use libgitdit::iter::IssueMessagesIter;
 use libgitdit::message::{CommitExt, LineIteratorExt};
 use libgitdit::repository::RepositoryExt;
@@ -210,53 +210,54 @@ fn show(repo: &Repository, sub: &clap::ArgMatches) -> i32 {
                 if do_abbrev { "%h" } else { "%H" })
     });
 
+    let refs_as_command_args = |mut cmd: Command, refs: References| {
+        // Builder pattern on steroids
+        refs
+            .map(|r| match r.map(|rf| rf.target()) {
+                Ok(Some(id)) => id,
+                Ok(None) => {
+                    error!("Error: Ref error");
+                    exit(42);
+                },
+                Err(e) => {
+                    error!("Error: {:?}", e);
+                    exit(42);
+                },
+            })
+            .map(|id| format!("{}", id))
+            .fold(&mut cmd, |cmd, elem| cmd.arg(elem));
+            cmd
+    };
+
     if message_tree {
         Oid::from_str(issue)
             .chain_err(|| "Cannot convert issue hash to Oid")
-            .and_then(|oid| repo.get_issue_leaves(oid)
-                                .chain_err(|| "Cannot find issue leaves"))
+            .and_then(|oid| repo.get_issue_leaves(oid).chain_err(|| "Cannot find issue leaves"))
             .map(|refs| {
-                let def = Command::new("git-log")
-                    .arg("--graph")
-                    .arg("--topo-order")
-                    .arg("--first-parent")
-                    .arg(format!("--format=format:{}", format));
+                let def = {
+                    let mut cdef = Command::new("git-log");
+                    cdef.arg("--graph")
+                        .arg("--topo-order")
+                        .arg("--first-parent")
+                        .arg(format!("--format=format:{}", format));
+                    cdef
+                };
 
-                // Builder pattern on steroids
-                let command = refs
-                    .map(|r| match r {
-                        Ok(r) => match r.target() {
-                            Some(id) => id,
-                            None => {
-                                error!("Error: Ref error");
-                                exit(42);
-                            }
-                        },
-                        Err(e) => {
-                            error!("Error: {:?}", e);
-                            exit(42);
-                        },
-                    })
-                    .map(|id| format!("{}", id))
-                    .fold(def, |cmd, elem| cmd.arg(elem));
+                let mut command = refs_as_command_args(def, refs);
+                let line_contains_line = |line: &&str| line.contains("|");
 
                 command
                     .output()
                     .map(|output| {
                         debug!("Exit code of command: {}", output.status);
                         let stdout = String::from_utf8(output.stdout)
-                            .map(|outstr| {
-                                outstr.lines()
-                                    .rev()
-                                    .filter(|line| line.contains("|"))
-                                    .collect()
-                            })
+                            .map(|s| s.lines().rev().filter(line_contains_line).collect())
                             .unwrap_or(String::from("UTF8-Error"));
 
                         println!("{}", stdout);
                         debug!("{:?}", String::from_utf8(output.stderr));
 
-                        0
+                        output.status.code().unwrap_or(42) // if killed, use 42 as exit status
                     })
                     .unwrap_or_else(|e| {
                         error!("Error: {:?}", e);
@@ -273,7 +274,7 @@ fn show(repo: &Repository, sub: &clap::ArgMatches) -> i32 {
             let commit = Oid::from_str(issue)
                 .chain_err(|| "Cannot parse commit hash")
                 .and_then(|oid| repo.find_commit(oid).chain_err(|| "Cannot find commit"))
-                .and_then(|commit| repo.find_tree_init(commit).chain_err(|| "Cannot find tree init"));
+                .and_then(|com| repo.find_tree_init(com).chain_err(|| "Cannot find tree init"));
 
             let commit = match commit {
                 Ok(c) => c,
@@ -284,9 +285,11 @@ fn show(repo: &Repository, sub: &clap::ArgMatches) -> i32 {
             };
 
             let mut cmd = Command::new("git-show");
+
             if do_abbrev {
                 cmd.arg("--abbrev");
             }
+
             cmd.arg(format!("{}", commit.id())).output(); // or something like this
 
             0
@@ -317,25 +320,7 @@ fn show(repo: &Repository, sub: &clap::ArgMatches) -> i32 {
                         .arg("--first-parent")
                         .arg(format!("--format=format:{}", format));
 
-                    // Builder pattern on steroids
-                    let command = refs
-                        .map(|r| match r {
-                            Ok(r) => match r.target() {
-                                Some(id) => id,
-                                None => {
-                                    error!("Error: Ref error");
-                                    exit(42);
-                                }
-                            },
-                            Err(e) => {
-                                error!("Error: {:?}", e);
-                                exit(42);
-                            },
-                        })
-                        .map(|id| format!("{}", id))
-                        .fold(cdef, |cmd, elem| cmd.arg(elem));
-
-                    command.output() // something like this
+                    refs_as_command_args(cdef, refs).output()
                 })
                 .map(|_| 0)
                 .unwrap_or_else(|e| {
