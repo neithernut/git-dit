@@ -188,10 +188,14 @@ fn main() {
     };
 
     std::process::exit(match matches.subcommand() {
+        // Plumbing subcommands
         ("check-message",               Some(sub_matches)) => check_message(sub_matches),
         ("create-message",              Some(sub_matches)) => create_message(&repo, sub_matches),
         ("find-tree-init-hash",         Some(sub_matches)) => find_tree_init_hash(&repo, sub_matches),
         ("get-issue-tree-init-hashes",  Some(sub_matches)) => get_issue_tree_init_hashes(&repo, sub_matches),
+        // Porcelain subcommands
+        // ...
+        // Unknown subcommands
         (name, sub_matches) => {
             let default = clap::ArgMatches::default();
             handle_unknown_subcommand(name, sub_matches.unwrap_or(&default))
