@@ -24,14 +24,14 @@ pub enum Line {
     Blank
 }
 
-impl<'a> From<&'a str> for Line {
-    fn from(line :&'a str) -> Self {
+impl<S: AsRef<str>> From<S> for Line {
+    fn from(line: S) -> Self {
         lazy_static! {
             // regex to match the beginning of a trailer
             static ref RE: Regex = Regex::new(r"^(?P<key>([^[:space:]]+)):\ (?P<value>(.*))$").unwrap();
         }
 
-        let trimmed = line.trim_right();
+        let trimmed = line.as_ref().trim_right();
         if trimmed.is_empty() {
             return Line::Blank;
         }
@@ -68,7 +68,7 @@ impl<I, S> Iterator for Lines<I, S>
     type Item = Line;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match self.0.next().map(|line| Line::from(line.as_ref())) {
+        match self.0.next().as_ref().map(Line::from) {
             Some(Line::Trailer(mut trailer)) => {
                 // accumulate potential multiline trailer
                 // TODO: also respect other whitespace
