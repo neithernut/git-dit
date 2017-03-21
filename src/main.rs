@@ -73,29 +73,6 @@ fn values_to_hashes<'repo>(repo: &'repo Repository, values: Values) -> Result<Ve
 }
 
 
-/// find-tree-init-hash subcommand implementation
-///
-fn find_tree_init_hash(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
-    // note: commit is always present since it is a required parameter
-    repo.revparse_single(matches.value_of("commit").unwrap())
-        .and_then(|obj| repo.find_commit(obj.id()))
-        .chain_err(|| EK::WrappedGitError)
-        .and_then(|commit| repo.find_tree_init(commit).chain_err(|| EK::WrappedGitDitError))
-        .map(|commit| {println!("{}", commit.id()); 0})
-        .unwrap_or_else(|err| {error!("{}", err); 1})
-}
-
-
-/// find-tree-init-hash subcommand implementation
-///
-fn get_issue_tree_init_hashes(repo: &Repository, _: &clap::ArgMatches) -> i32 {
-    for hash in try_or_1!(repo.get_all_issue_hashes()) {
-        println!("{}", try_or_1!(hash));
-    }
-    0
-}
-
-
 /// check-message subcommand implementation
 ///
 fn check_message(matches: &clap::ArgMatches) -> i32 {
@@ -146,6 +123,29 @@ fn create_message(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
     try_or_1!(io::stdin().read_to_string(&mut message));
 
     println!("{}", try_or_1!(repo.create_message(issue.as_ref(), &sig, &sig, &message, &tree, &parent_refs)));
+    0
+}
+
+
+/// find-tree-init-hash subcommand implementation
+///
+fn find_tree_init_hash(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
+    // note: commit is always present since it is a required parameter
+    repo.revparse_single(matches.value_of("commit").unwrap())
+        .and_then(|obj| repo.find_commit(obj.id()))
+        .chain_err(|| EK::WrappedGitError)
+        .and_then(|commit| repo.find_tree_init(commit).chain_err(|| EK::WrappedGitDitError))
+        .map(|commit| {println!("{}", commit.id()); 0})
+        .unwrap_or_else(|err| {error!("{}", err); 1})
+}
+
+
+/// find-tree-init-hash subcommand implementation
+///
+fn get_issue_tree_init_hashes(repo: &Repository, _: &clap::ArgMatches) -> i32 {
+    for hash in try_or_1!(repo.get_all_issue_hashes()) {
+        println!("{}", try_or_1!(hash));
+    }
     0
 }
 
