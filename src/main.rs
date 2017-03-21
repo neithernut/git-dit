@@ -73,6 +73,8 @@ fn values_to_hashes<'repo>(repo: &'repo Repository, values: Values) -> Result<Ve
 }
 
 
+// Plumbing subcommand implementations
+
 /// check-message subcommand implementation
 ///
 fn check_message(matches: &clap::ArgMatches) -> i32 {
@@ -149,6 +151,13 @@ fn get_issue_tree_init_hashes(repo: &Repository, _: &clap::ArgMatches) -> i32 {
     0
 }
 
+
+// Plumbing subcommand implementations
+
+// ...
+
+
+// Unknown subcommand handler
 
 /// Handle unknown subcommands
 ///
