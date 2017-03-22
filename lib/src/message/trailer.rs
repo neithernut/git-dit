@@ -120,28 +120,39 @@ impl<'l> TrailerCollector<'l> {
 }
 
 
-pub struct Trailers<'a> {
-    lines: Lines<'a>,
+pub struct Trailers<I, S>
+    where I: Iterator<Item = S>,
+          S: AsRef<str>
+{
+    lines: Lines<I, S>,
     buf: VecDeque<Trailer>,
 }
 
-impl<'a> Trailers<'a> {
+impl<I, S> Trailers<I, S>
+    where I: Iterator<Item = S>,
+          S: AsRef<str>
+{
+    pub fn only_dit(self) -> DitTrailers<I, S> {
+        DitTrailers(self)
+    }
+}
 
-    /// Create a new Trailers iterator from a commit message
-    pub fn new(text: &'a str) -> Trailers<'a> {
+impl<I, S> From<I> for Trailers<I, S>
+    where I: Iterator<Item = S>,
+          S: AsRef<str>
+{
+    fn from(lines: I) -> Self {
         Trailers {
-            lines: Lines::new(text),
+            lines: Lines::from(lines),
             buf: VecDeque::new(),
         }
     }
-
-    pub fn only_dit(self) -> DitTrailers<'a> {
-        DitTrailers(self)
-    }
-
 }
 
-impl<'a> Iterator for Trailers<'a> {
+impl<I, S> Iterator for Trailers<I, S>
+    where I: Iterator<Item = S>,
+          S: AsRef<str>
+{
     type Item = Trailer;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -171,9 +182,14 @@ impl<'a> Iterator for Trailers<'a> {
 
 }
 
-pub struct DitTrailers<'a>(Trailers<'a>);
+pub struct DitTrailers<I, S>(Trailers<I, S>)
+    where I: Iterator<Item = S>,
+          S: AsRef<str>;
 
-impl<'a> Iterator for DitTrailers<'a> {
+impl<I, S> Iterator for DitTrailers<I, S>
+    where I: Iterator<Item = S>,
+          S: AsRef<str>
+{
     type Item = Trailer;
 
     fn next(&mut self) -> Option<Self::Item> {
