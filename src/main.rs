@@ -73,28 +73,7 @@ fn values_to_hashes<'repo>(repo: &'repo Repository, values: Values) -> Result<Ve
 }
 
 
-/// find-tree-init-hash subcommand implementation
-///
-fn find_tree_init_hash(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
-    // note: commit is always present since it is a required parameter
-    repo.revparse_single(matches.value_of("commit").unwrap())
-        .and_then(|obj| repo.find_commit(obj.id()))
-        .chain_err(|| EK::WrappedGitError)
-        .and_then(|commit| repo.find_tree_init(commit).chain_err(|| EK::WrappedGitDitError))
-        .map(|commit| {println!("{}", commit.id()); 0})
-        .unwrap_or_else(|err| {error!("{}", err); 1})
-}
-
-
-/// find-tree-init-hash subcommand implementation
-///
-fn get_issue_tree_init_hashes(repo: &Repository, _: &clap::ArgMatches) -> i32 {
-    for hash in try_or_1!(repo.get_all_issue_hashes()) {
-        println!("{}", try_or_1!(hash));
-    }
-    0
-}
-
+// Plumbing subcommand implementations
 
 /// check-message subcommand implementation
 ///
@@ -150,6 +129,36 @@ fn create_message(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
 }
 
 
+/// find-tree-init-hash subcommand implementation
+///
+fn find_tree_init_hash(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
+    // note: commit is always present since it is a required parameter
+    repo.revparse_single(matches.value_of("commit").unwrap())
+        .and_then(|obj| repo.find_commit(obj.id()))
+        .chain_err(|| EK::WrappedGitError)
+        .and_then(|commit| repo.find_tree_init(commit).chain_err(|| EK::WrappedGitDitError))
+        .map(|commit| {println!("{}", commit.id()); 0})
+        .unwrap_or_else(|err| {error!("{}", err); 1})
+}
+
+
+/// find-tree-init-hash subcommand implementation
+///
+fn get_issue_tree_init_hashes(repo: &Repository, _: &clap::ArgMatches) -> i32 {
+    for hash in try_or_1!(repo.get_all_issue_hashes()) {
+        println!("{}", try_or_1!(hash));
+    }
+    0
+}
+
+
+// Plumbing subcommand implementations
+
+// ...
+
+
+// Unknown subcommand handler
+
 /// Handle unknown subcommands
 ///
 /// Try to invoke an executable matching the name of the subcommand.
@@ -179,10 +188,14 @@ fn main() {
     };
 
     std::process::exit(match matches.subcommand() {
+        // Plumbing subcommands
         ("check-message",               Some(sub_matches)) => check_message(sub_matches),
         ("create-message",              Some(sub_matches)) => create_message(&repo, sub_matches),
         ("find-tree-init-hash",         Some(sub_matches)) => find_tree_init_hash(&repo, sub_matches),
         ("get-issue-tree-init-hashes",  Some(sub_matches)) => get_issue_tree_init_hashes(&repo, sub_matches),
+        // Porcelain subcommands
+        // ...
+        // Unknown subcommands
         (name, sub_matches) => {
             let default = clap::ArgMatches::default();
             handle_unknown_subcommand(name, sub_matches.unwrap_or(&default))

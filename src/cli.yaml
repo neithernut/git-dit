@@ -20,6 +20,7 @@ args:
         multiple: false
         help: Print trace output (very verbose debug logging)
 subcommands:
+    # Plumbing subcommands
     - check-message:
         about: This command checks the message in file for validity
         version: 0.1.0
@@ -73,30 +74,6 @@ subcommands:
             - Julian Ganz <neither@nut.email>
         args:
 
-    - fetch:
-        about: Fetch issues
-        version: 0.1.0
-        authors:
-            - Matthias Beyer <mail@beyermatthias.de>
-            - Julian Ganz <neither@nut.email>
-        args:
-            - known:
-                help: also fetch known issues (those which visible through git dit list)
-                takes_value: false
-                multiple: false
-            - prune:
-                help: Prune (as with git fetch)
-                takes_value: false
-                multiple: false
-            - remote:
-                help: Remote to fetch from
-                index: 3
-                multiple: false
-            - issue:
-                help: Issue to fetch
-                index: 4
-                multiple: true
-
     - find-tree-init-hash:
         about: This command prints the init hash of the issue commit belongs to.
         version: 0.1.0
@@ -131,6 +108,31 @@ subcommands:
             - Matthias Beyer <mail@beyermatthias.de>
             - Julian Ganz <neither@nut.email>
         args:
+
+    # Porcelain subcommands
+    - fetch:
+        about: Fetch issues
+        version: 0.1.0
+        authors:
+            - Matthias Beyer <mail@beyermatthias.de>
+            - Julian Ganz <neither@nut.email>
+        args:
+            - known:
+                help: also fetch known issues (those which visible through git dit list)
+                takes_value: false
+                multiple: false
+            - prune:
+                help: Prune (as with git fetch)
+                takes_value: false
+                multiple: false
+            - remote:
+                help: Remote to fetch from
+                index: 3
+                multiple: false
+            - issue:
+                help: Issue to fetch
+                index: 4
+                multiple: true
 
     - list:
         about: >
