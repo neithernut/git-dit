@@ -9,6 +9,7 @@
 
 use message::line::{Line, Lines};
 use std::collections::VecDeque;
+use std::fmt::{self, Display, Formatter};
 
 /// The Key of a Trailer:
 ///
@@ -24,6 +25,12 @@ pub struct TrailerKey(String);
 impl From<String> for TrailerKey {
     fn from(string: String) -> Self {
         TrailerKey(string)
+    }
+}
+
+impl Display for TrailerKey {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+        write!(f, "{}", self.0)
     }
 }
 
@@ -68,6 +75,15 @@ impl TrailerValue {
     }
 }
 
+impl Display for TrailerValue {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+        match *self {
+            TrailerValue::Int(i)        => write!(f, "{}", i),
+            TrailerValue::String(ref s) => write!(f, "{}", s),
+        }
+    }
+}
+
 /// The combination of a TrailerKey and a TrailerValue
 #[derive(Debug, Hash, Eq, PartialEq, Ord, PartialOrd, Clone)]
 pub struct Trailer {
@@ -78,6 +94,12 @@ pub struct Trailer {
 impl Into<(TrailerKey, TrailerValue)> for Trailer {
     fn into(self) -> (TrailerKey, TrailerValue) {
         (self.key, self.value)
+    }
+}
+
+impl Display for Trailer {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+        write!(f, "{}: {}", self.key, self.value)
     }
 }
 
