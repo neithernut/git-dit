@@ -116,6 +116,14 @@ pub trait CommitExt {
     /// Get the commit message's body as a sequence of lines
     ///
     fn body_lines<'a>(&'a self) -> BodyLines<'a>;
+
+    /// Get the commit message's body as a sequence of categorized lines
+    ///
+    fn categorized_body<'a>(&'a self) -> line::Lines<BodyLines<'a>, &'a str>;
+
+    /// Get an iterator over all the trailers in the commit message's body
+    ///
+    fn trailers<'a>(&'a self) -> trailer::Trailers<BodyLines<'a>, &'a str>;
 }
 
 impl<'c> CommitExt for Commit<'c> {
@@ -125,6 +133,14 @@ impl<'c> CommitExt for Commit<'c> {
 
     fn body_lines<'a>(&'a self) -> BodyLines<'a> {
         self.message_lines().skip(2)
+    }
+
+    fn categorized_body<'a>(&'a self) -> line::Lines<BodyLines<'a>, &'a str> {
+        self.body_lines().categorized_lines()
+    }
+
+    fn trailers<'a>(&'a self) -> trailer::Trailers<BodyLines<'a>, &'a str> {
+        self.body_lines().trailers()
     }
 }
 
