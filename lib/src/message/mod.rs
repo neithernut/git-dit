@@ -96,6 +96,11 @@ impl<L, S> LineIteratorExt<S> for L
 }
 
 
+/// Type representing the lines composing the body part of a commit message
+///
+pub type BodyLines<'a> = Skip<str::Lines<'a>>;
+
+
 /// Extension for commit
 ///
 /// This extension gives a more convenient access to message functionality via
@@ -110,7 +115,7 @@ pub trait CommitExt {
 
     /// Get the commit message's body as a sequence of lines
     ///
-    fn body_lines<'a>(&'a self) -> Skip<str::Lines<'a>>;
+    fn body_lines<'a>(&'a self) -> BodyLines<'a>;
 }
 
 impl<'c> CommitExt for Commit<'c> {
@@ -118,7 +123,7 @@ impl<'c> CommitExt for Commit<'c> {
         self.message().unwrap_or("").lines()
     }
 
-    fn body_lines<'a>(&'a self) -> Skip<str::Lines<'a>> {
+    fn body_lines<'a>(&'a self) -> BodyLines<'a> {
         self.message_lines().skip(2)
     }
 }
