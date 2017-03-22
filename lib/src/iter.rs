@@ -7,7 +7,9 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
 
-use git2::{Oid, References, ReferenceNames};
+use first_parent_iter::FirstParentIter;
+use git2::{Commit, Oid, Repository, References, ReferenceNames};
+use repository::RepositoryExt;
 
 use error::*;
 use error::ErrorKind as EK;
@@ -51,6 +53,47 @@ impl<'r> From<ReferenceNames<'r>> for HeadRefsToIssuesIter<'r> {
         HeadRefsToIssuesIter(r)
     }
 }
+
+
+/// Iterator iterating over messages of an issue
+///
+/// This iterator returns the first parent of a commit or message successively
+/// until an initial issue message is encountered, inclusively.
+///
+pub struct IssueMessagesIter<'r> {
+    inner: FirstParentIter<'r>,
+    repo: &'r Repository,
+}
+
+impl<'r> IssueMessagesIter<'r> {
+    pub fn new<'a>(commit: Commit<'a>, repo: &'a Repository) -> IssueMessagesIter<'a> {
+        IssueMessagesIter {
+            inner: FirstParentIter::new(commit),
+            repo: repo,
+        }
+    }
+}
+
+impl<'r> Iterator for IssueMessagesIter<'r> {
+    type Item = <FirstParentIter<'r> as Iterator>::Item;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let next = self.inner.next();
+
+        // if this was the initial message, we fuse the underlying iterator
+        if next.as_ref()
+               .map(Commit::id)
+               .map(|id| self.repo.get_issue_heads(id))
+               .and_then(Result::ok)
+               .map(|refs| refs.count() > 0)
+               .unwrap_or(false) {
+            self.inner.fuse_now();
+        }
+
+        next
+    }
+}
+
 
 /// A trait to strip whitespace from a thing that consists of several strings, for example the
 /// `std::str::Lines` iterator.
