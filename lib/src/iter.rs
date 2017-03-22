@@ -54,52 +54,60 @@ impl<'r> From<ReferenceNames<'r>> for HeadRefsToIssuesIter<'r> {
 
 /// A trait to strip whitespace from a thing that consists of several strings, for example the
 /// `std::str::Lines` iterator.
-pub trait StripWhiteSpace<I: Iterator<Item = String> + Sized> {
-    fn strip_whitespace_left(self)  -> StripWhiteSpaceLeftIter<I>;
-    fn strip_whitespace_right(self) -> StripWhiteSpaceRightIter<I>;
+pub trait StripWhiteSpace<I, S>
+    where I: Iterator<Item = S> + Sized,
+          S: AsRef<str>
+{
+    fn strip_whitespace_left(self)  -> StripWhiteSpaceLeftIter<I, S>;
+    fn strip_whitespace_right(self) -> StripWhiteSpaceRightIter<I, S>;
 }
 
 /// Implement the StripWhiteSpace extension trait for all things where we can iterate over String
 /// objects.
 /// This implements StripWhiteSpace<String> for type String automatically, apparently.
-impl<I> StripWhiteSpace<I> for I
-    where I: Iterator<Item = String> + Sized
+impl<I, S> StripWhiteSpace<I, S> for I
+    where I: Iterator<Item = S> + Sized,
+          S: AsRef<str>
 {
-    fn strip_whitespace_left(self) -> StripWhiteSpaceLeftIter<I> {
+    fn strip_whitespace_left(self) -> StripWhiteSpaceLeftIter<I, S> {
         StripWhiteSpaceLeftIter(self)
     }
-    fn strip_whitespace_right(self) -> StripWhiteSpaceRightIter<I> {
+    fn strip_whitespace_right(self) -> StripWhiteSpaceRightIter<I, S> {
         StripWhiteSpaceRightIter(self)
     }
 }
 
 /// A Iterator type which iterates over String objects, used to strip whitespace from an iterator
 /// over String.
-pub struct StripWhiteSpaceLeftIter<I>(I)
-    where I: Iterator<Item = String> + Sized;
+pub struct StripWhiteSpaceLeftIter<I, S>(I)
+    where I: Iterator<Item = S> + Sized,
+          S: AsRef<str>;
 
-impl<I> Iterator for StripWhiteSpaceLeftIter<I>
-    where I: Iterator<Item = String> + Sized
+impl<'a, I, S> Iterator for StripWhiteSpaceLeftIter<I, S>
+    where I: Iterator<Item = S> + Sized,
+          S: AsRef<str>
 {
     type Item = String;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.0.next().map(|s| String::from(s.trim_left()))
+        self.0.next().map(|s| String::from(s.as_ref().trim_left()))
     }
 }
 
 /// A Iterator type which iterates over String objects, used to strip whitespace from an iterator
 /// over String.
-pub struct StripWhiteSpaceRightIter<I>(I)
-    where I: Iterator<Item = String> + Sized;
+pub struct StripWhiteSpaceRightIter<I, S>(I)
+    where I: Iterator<Item = S> + Sized,
+          S: AsRef<str>;
 
-impl<I> Iterator for StripWhiteSpaceRightIter<I>
-    where I: Iterator<Item = String> + Sized
+impl<'a, I, S> Iterator for StripWhiteSpaceRightIter<I, S>
+    where I: Iterator<Item = S> + Sized,
+          S: AsRef<str>
 {
     type Item = String;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.0.next().map(|s| String::from(s.trim_right()))
+        self.0.next().map(|s| String::from(s.as_ref().trim_right()))
     }
 }
 
