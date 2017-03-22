@@ -113,34 +113,38 @@ impl<'a, I, S> Iterator for StripWhiteSpaceRightIter<I, S>
 
 /// Extension trait for everything that iterates over Strings, to remove comment lines
 /// (Lines starting with "#")
-pub trait WithoutComments<I>
-    where I: Iterator<Item = String> + Sized
+pub trait WithoutComments<I, S>
+    where I: Iterator<Item = S> + Sized,
+          S: AsRef<str>
 {
-    fn without_comments(self) -> WithoutCommentsIter<I>;
+    fn without_comments(self) -> WithoutCommentsIter<I, S>;
 }
 
 /// Iterator type to be returned from WithoutComments::without_comments.
-pub struct WithoutCommentsIter<I>(I)
-    where I: Iterator<Item = String> + Sized;
+pub struct WithoutCommentsIter<I, S>(I)
+    where I: Iterator<Item = S> + Sized,
+          S: AsRef<str>;
 
-impl<I> WithoutComments<I> for I
-    where I: Iterator<Item = String> + Sized
+impl<I, S> WithoutComments<I, S> for I
+    where I: Iterator<Item = S> + Sized,
+          S: AsRef<str>
 {
-    fn without_comments(self) -> WithoutCommentsIter<I> {
+    fn without_comments(self) -> WithoutCommentsIter<I, S> {
         WithoutCommentsIter(self)
     }
 }
 
-impl<I> Iterator for WithoutCommentsIter<I>
-    where I: Iterator<Item = String> + Sized
+impl<I, S> Iterator for WithoutCommentsIter<I, S>
+    where I: Iterator<Item = S> + Sized,
+          S: AsRef<str>
 {
-    type Item = String;
+    type Item = S;
 
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(next) = self.0.next() {
             // we do not trim whitespace here, because of code blocks in the message which might
             // have a "#" at the beginning
-            if !next.starts_with("#") {
+            if !next.as_ref().starts_with("#") {
                 return Some(next)
             }
         }

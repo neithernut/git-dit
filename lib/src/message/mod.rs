@@ -42,7 +42,7 @@ pub trait LineIteratorExt {
     /// Note that the iterator does not (yet) strip blank lines at the beginning
     /// or end of a message.
     ///
-    fn stripped(self) -> StripWhiteSpaceRightIter<WithoutCommentsIter<Self::Iter>, String>;
+    fn stripped(self) -> StripWhiteSpaceRightIter<WithoutCommentsIter<Self::Iter, String>, String>;
 
     /// Create an iterator for categorizing lines
     ///
@@ -76,7 +76,7 @@ impl<L> LineIteratorExt for L
         Ok(())
     }
 
-    fn stripped(self) -> StripWhiteSpaceRightIter<WithoutCommentsIter<Self::Iter>, String> {
+    fn stripped(self) -> StripWhiteSpaceRightIter<WithoutCommentsIter<Self::Iter, String>, String> {
         self.without_comments().strip_whitespace_right()
     }
 
