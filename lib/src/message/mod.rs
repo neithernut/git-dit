@@ -9,8 +9,11 @@
 
 use error::*;
 use error::ErrorKind as EK;
+use git2::Commit;
 use iter::{StripWhiteSpace, StripWhiteSpaceRightIter};
 use iter::{WithoutComments, WithoutCommentsIter};
+use std::iter::Skip;
+use std::str;
 
 pub mod line;
 pub mod trailer;
@@ -89,6 +92,34 @@ impl<L, S> LineIteratorExt<S> for L
 
     fn trailers(self) -> trailer::Trailers<Self::Iter, S> {
         trailer::Trailers::from(self)
+    }
+}
+
+
+/// Extension for commit
+///
+/// This extension gives a more convenient access to message functionality via
+/// `git2::Commit`.
+///
+pub trait CommitExt {
+    /// Get the commit message as a sequence of lines
+    ///
+    /// If the commit has no message, an empty message will be simulated.
+    ///
+    fn message_lines<'a>(&'a self) -> str::Lines<'a>;
+
+    /// Get the commit message's body as a sequence of lines
+    ///
+    fn body_lines<'a>(&'a self) -> Skip<str::Lines<'a>>;
+}
+
+impl<'c> CommitExt for Commit<'c> {
+    fn message_lines<'a>(&'a self) -> str::Lines<'a> {
+        self.message().unwrap_or("").lines()
+    }
+
+    fn body_lines<'a>(&'a self) -> Skip<str::Lines<'a>> {
+        self.message_lines().skip(2)
     }
 }
 
