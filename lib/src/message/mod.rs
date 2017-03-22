@@ -22,8 +22,10 @@ pub mod trailer;
 /// commit messages. It is intended for use on iterators over the lines of a
 /// message.
 ///
-pub trait LineIteratorExt {
-    type Iter : Iterator<Item = String>;
+pub trait LineIteratorExt<S>
+    where S: AsRef<str>
+{
+    type Iter : Iterator<Item = S>;
 
     /// Check whether the formatting of a message is valid
     ///
@@ -42,13 +44,13 @@ pub trait LineIteratorExt {
     /// Note that the iterator does not (yet) strip blank lines at the beginning
     /// or end of a message.
     ///
-    fn stripped(self) -> StripWhiteSpaceRightIter<WithoutCommentsIter<Self::Iter, String>, String>;
+    fn stripped(self) -> StripWhiteSpaceRightIter<WithoutCommentsIter<Self::Iter, S>, S>;
 
     /// Create an iterator for categorizing lines
     ///
     /// The iterator returned by this function will return categorized lines.
     ///
-    fn categorized_lines(self) -> line::Lines<Self::Iter, String>;
+    fn categorized_lines(self) -> line::Lines<Self::Iter, S>;
 
     /// Create an iterator for extracting trailers
     ///
@@ -56,35 +58,36 @@ pub trait LineIteratorExt {
     /// resembling trailers which co-exist with regular text-lines in a block of
     /// non-blank lines will be ignored (e.g. not returned).
     ///
-    fn trailers(self) -> trailer::Trailers<Self::Iter, String>;
+    fn trailers(self) -> trailer::Trailers<Self::Iter, S>;
 }
 
-impl<L> LineIteratorExt for L
-    where L: Iterator<Item = String>
+impl<L, S> LineIteratorExt<S> for L
+    where L: Iterator<Item = S>,
+          S: AsRef<str>
 {
     type Iter = L;
 
     fn check_message_format(mut self) -> Result<()> {
-        if try!(self.next().ok_or(Error::from_kind(EK::EmptyMessage))).is_empty() {
+        if try!(self.next().ok_or(Error::from_kind(EK::EmptyMessage))).as_ref().is_empty() {
             return Err(Error::from_kind(EK::EmptySubject))
         }
 
-        if !self.next().map(|line| line.is_empty()).unwrap_or(true) {
+        if !self.next().map(|line| line.as_ref().is_empty()).unwrap_or(true) {
             return Err(Error::from_kind(EK::MalformedMessage));
         }
 
         Ok(())
     }
 
-    fn stripped(self) -> StripWhiteSpaceRightIter<WithoutCommentsIter<Self::Iter, String>, String> {
+    fn stripped(self) -> StripWhiteSpaceRightIter<WithoutCommentsIter<Self::Iter, S>, S> {
         self.without_comments().strip_whitespace_right()
     }
 
-    fn categorized_lines(self) -> line::Lines<Self::Iter, String> {
+    fn categorized_lines(self) -> line::Lines<Self::Iter, S> {
         line::Lines::from(self)
     }
 
-    fn trailers(self) -> trailer::Trailers<Self::Iter, String> {
+    fn trailers(self) -> trailer::Trailers<Self::Iter, S> {
         trailer::Trailers::from(self)
     }
 }
