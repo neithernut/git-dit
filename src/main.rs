@@ -13,10 +13,11 @@
 extern crate git2;
 extern crate libgitdit;
 
-mod error;
 mod editor;
+mod error;
+mod util;
 
-use clap::{App, Values};
+use clap::App;
 use git2::{Commit, Oid, Repository};
 use libgitdit::message::LineIteratorExt;
 use libgitdit::repository::RepositoryExt;
@@ -26,6 +27,7 @@ use std::process::Command;
 
 use error::ErrorKind as EK;
 use error::*;
+use util::RepositoryUtil;
 
 
 /// Convenience macro for early returns in subcommands
@@ -45,31 +47,6 @@ macro_rules! try_or_1 {
             Err(e)   => {error!("{:?}", e); return 1},
         }
     };
-}
-
-
-/// Open the DIT repo
-///
-/// Opens the DIT repo corresponding to the current one honouring the user
-/// configuration.
-///
-fn open_dit_repo() -> Result<Repository> {
-    // TODO: access the config and maybe return another repo instead
-    Repository::open_from_env().chain_err(|| EK::WrappedGitError)
-}
-
-
-/// Get a vector of commits from values
-///
-/// This function transforms values to a vector.
-///
-fn values_to_hashes<'repo>(repo: &'repo Repository, values: Values) -> Result<Vec<Commit<'repo>>> {
-    let mut retval = Vec::new();
-    for commit in values.map(|string| repo.revparse_single(string))
-                        .map(|oid| repo.find_commit(try!(oid).id())) {
-        retval.push(try!(commit));
-    }
-    Ok(retval)
 }
 
 
@@ -108,7 +85,7 @@ fn create_message(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
     // Note: The list of parents must live long enough to back the references we
     //       supply to `libgitdit::repository::RepositoryExt::create_message()`.
     let parents = match matches.values_of("parents")
-                               .map(|p| values_to_hashes(repo, p)) {
+                               .map(|p| repo.values_to_hashes(p)) {
         Some(hashes) => try_or_1!(hashes),
         _            => Vec::new(),
     };
@@ -182,7 +159,7 @@ fn main() {
     let yaml    = load_yaml!("cli.yaml");
     let matches = App::from_yaml(yaml).get_matches();
 
-    let repo = match open_dit_repo() {
+    let repo = match util::open_dit_repo() {
         Ok(r) => r,
         Err(e) => {error!("{}", e); std::process::exit(1)}
     };
