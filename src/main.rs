@@ -110,9 +110,7 @@ fn create_message(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
 ///
 fn find_tree_init_hash(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
     // note: commit is always present since it is a required parameter
-    repo.revparse_single(matches.value_of("commit").unwrap())
-        .and_then(|obj| repo.find_commit(obj.id()))
-        .chain_err(|| EK::WrappedGitError)
+    repo.value_to_commit(matches.value_of("commit").unwrap())
         .and_then(|commit| repo.find_tree_init(commit).chain_err(|| EK::WrappedGitDitError))
         .map(|commit| {println!("{}", commit.id()); 0})
         .unwrap_or_else(|err| {error!("{}", err); 1})
