@@ -19,6 +19,14 @@ impl<'repo> FirstParentIter<'repo> {
     pub fn new(commit: Commit) -> FirstParentIter {
         FirstParentIter { current: Some(commit) }
     }
+
+    /// Actively fuse this iterator
+    ///
+    /// The iterator will only yield `None`s after it is fused.
+    ///
+    pub fn fuse_now(&mut self) {
+        self.current = None;
+    }
 }
 
 impl<'repo> Iterator for FirstParentIter<'repo> {

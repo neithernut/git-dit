@@ -14,6 +14,7 @@ use iter::{StripWhiteSpace, StripWhiteSpaceRightIter};
 use iter::{WithoutComments, WithoutCommentsIter};
 use std::iter::Skip;
 use std::str;
+use std::vec;
 
 pub mod line;
 pub mod trailer;
@@ -98,7 +99,7 @@ impl<L, S> LineIteratorExt<S> for L
 
 /// Type representing the lines composing the body part of a commit message
 ///
-pub type BodyLines<'a> = Skip<str::Lines<'a>>;
+pub type BodyLines = Skip<vec::IntoIter<String>>;
 
 
 /// Extension for commit
@@ -111,35 +112,40 @@ pub trait CommitExt {
     ///
     /// If the commit has no message, an empty message will be simulated.
     ///
-    fn message_lines<'a>(&'a self) -> str::Lines<'a>;
+    fn message_lines(&self) -> vec::IntoIter<String>;
 
     /// Get the commit message's body as a sequence of lines
     ///
-    fn body_lines<'a>(&'a self) -> BodyLines<'a>;
+    fn body_lines(&self) -> BodyLines;
 
     /// Get the commit message's body as a sequence of categorized lines
     ///
-    fn categorized_body<'a>(&'a self) -> line::Lines<BodyLines<'a>, &'a str>;
+    fn categorized_body(&self) -> line::Lines<BodyLines, String>;
 
     /// Get an iterator over all the trailers in the commit message's body
     ///
-    fn trailers<'a>(&'a self) -> trailer::Trailers<BodyLines<'a>, &'a str>;
+    fn trailers(&self) -> trailer::Trailers<BodyLines, String>;
 }
 
 impl<'c> CommitExt for Commit<'c> {
-    fn message_lines<'a>(&'a self) -> str::Lines<'a> {
-        self.message().unwrap_or("").lines()
+    fn message_lines(&self) -> vec::IntoIter<String> {
+        let lines : Vec<String> = self.message()
+                                      .unwrap_or("")
+                                      .lines()
+                                      .map(String::from)
+                                      .collect();
+        lines.into_iter()
     }
 
-    fn body_lines<'a>(&'a self) -> BodyLines<'a> {
+    fn body_lines(&self) -> BodyLines {
         self.message_lines().skip(2)
     }
 
-    fn categorized_body<'a>(&'a self) -> line::Lines<BodyLines<'a>, &'a str> {
+    fn categorized_body(&self) -> line::Lines<BodyLines, String> {
         self.body_lines().categorized_lines()
     }
 
-    fn trailers<'a>(&'a self) -> trailer::Trailers<BodyLines<'a>, &'a str> {
+    fn trailers(&self) -> trailer::Trailers<BodyLines, String> {
         self.body_lines().trailers()
     }
 }
