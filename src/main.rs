@@ -152,7 +152,7 @@ fn get_issue_tree_init_hashes(repo: &Repository, _: &clap::ArgMatches) -> i32 {
 }
 
 
-// Plumbing subcommand implementations
+// Porcelain subcommand implementations
 
 // ...
 
