@@ -29,9 +29,9 @@ error_chain! {
             display("Could not find config: {}", configname)
         }
 
-        EditorError {
-            description("Could not find editor configuration or ENV variable")
-            display("Could not find editor configuration or ENV variable")
+        ProgramError(program_name: String) {
+            description("Could not find some configuration or ENV variable specifying a program")
+            display("Could not find {} configuration or ENV variable", program_name)
         }
     }
 }

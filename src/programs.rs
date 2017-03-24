@@ -24,6 +24,6 @@ pub fn editor(config: Config) -> Result<Command> {
         .or_else(|| env_var("GIT_EDITOR").ok())
         .or_else(|| env_var("EDITOR").ok())
         .map(Command::new)
-        .ok_or_else(|| Error::from_kind(EK::EditorError))
+        .ok_or_else(|| Error::from(EK::ProgramError("editor".to_owned())))
 }
 
