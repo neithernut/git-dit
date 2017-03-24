@@ -13,8 +13,8 @@
 extern crate git2;
 extern crate libgitdit;
 
-mod editor;
 mod error;
+mod programs;
 mod util;
 
 use clap::App;
