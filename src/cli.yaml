@@ -61,19 +61,6 @@ subcommands:
                 takes_value: true
                 multiple: false
 
-    - extract-trailers:
-        about: >
-                 Extract trailers from stdin and write them to stdout.
-                 This tool detects blocks of trailers and writes all trailers
-                 detected to stdout, in the order they were discovered. A block
-                 of trailers is a series of non-blank lines of text, with each
-                 single line being a trailer.
-        version: 0.1.0
-        authors:
-            - Matthias Beyer <mail@beyermatthias.de>
-            - Julian Ganz <neither@nut.email>
-        args:
-
     - find-tree-init-hash:
         about: This command prints the init hash of the issue commit belongs to.
         version: 0.1.0
