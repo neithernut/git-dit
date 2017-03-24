@@ -28,7 +28,7 @@ impl<S: AsRef<str>> From<S> for Line {
     fn from(line: S) -> Self {
         lazy_static! {
             // regex to match the beginning of a trailer
-            static ref RE: Regex = Regex::new(r"^(?P<key>([^[:space:]]+)):\ (?P<value>(.*))$").unwrap();
+            static ref RE: Regex = Regex::new(r"^([[:alnum:]-]+):(.*)$").unwrap();
         }
 
         let trimmed = line.as_ref().trim_right();
@@ -36,10 +36,10 @@ impl<S: AsRef<str>> From<S> for Line {
             return Line::Blank;
         }
 
-        match RE.captures(trimmed).map(|c| (c.name("key"), c.name("value"))) {
+        match RE.captures(trimmed).map(|c| (c.get(1), c.get(2))) {
             Some((Some(key), Some(value))) => Line::Trailer(Trailer {
                 key  : TrailerKey::from(String::from(key.as_str())),
-                value: TrailerValue::from_slice(value.as_str()),
+                value: TrailerValue::from_slice(value.as_str().trim()),
             }),
             _ => Line::Text(String::from(trimmed)),
         }

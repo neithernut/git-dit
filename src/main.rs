@@ -13,12 +13,14 @@
 extern crate git2;
 extern crate libgitdit;
 
-mod error;
 mod editor;
+mod error;
+mod util;
 
-use clap::{App, Values};
+use clap::App;
 use git2::{Commit, Oid, Repository};
-use libgitdit::message::LineIteratorExt;
+use libgitdit::iter::IssueMessagesIter;
+use libgitdit::message::{CommitExt, LineIteratorExt};
 use libgitdit::repository::RepositoryExt;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, Read};
@@ -26,6 +28,7 @@ use std::process::Command;
 
 use error::ErrorKind as EK;
 use error::*;
+use util::RepositoryUtil;
 
 
 /// Convenience macro for early returns in subcommands
@@ -45,31 +48,6 @@ macro_rules! try_or_1 {
             Err(e)   => {error!("{:?}", e); return 1},
         }
     };
-}
-
-
-/// Open the DIT repo
-///
-/// Opens the DIT repo corresponding to the current one honouring the user
-/// configuration.
-///
-fn open_dit_repo() -> Result<Repository> {
-    // TODO: access the config and maybe return another repo instead
-    Repository::open_from_env().chain_err(|| EK::WrappedGitError)
-}
-
-
-/// Get a vector of commits from values
-///
-/// This function transforms values to a vector.
-///
-fn values_to_hashes<'repo>(repo: &'repo Repository, values: Values) -> Result<Vec<Commit<'repo>>> {
-    let mut retval = Vec::new();
-    for commit in values.map(|string| repo.revparse_single(string))
-                        .map(|oid| repo.find_commit(try!(oid).id())) {
-        retval.push(try!(commit));
-    }
-    Ok(retval)
 }
 
 
@@ -108,7 +86,7 @@ fn create_message(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
     // Note: The list of parents must live long enough to back the references we
     //       supply to `libgitdit::repository::RepositoryExt::create_message()`.
     let parents = match matches.values_of("parents")
-                               .map(|p| values_to_hashes(repo, p)) {
+                               .map(|p| repo.values_to_hashes(p)) {
         Some(hashes) => try_or_1!(hashes),
         _            => Vec::new(),
     };
@@ -133,12 +111,23 @@ fn create_message(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
 ///
 fn find_tree_init_hash(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
     // note: commit is always present since it is a required parameter
-    repo.revparse_single(matches.value_of("commit").unwrap())
-        .and_then(|obj| repo.find_commit(obj.id()))
-        .chain_err(|| EK::WrappedGitError)
+    repo.value_to_commit(matches.value_of("commit").unwrap())
         .and_then(|commit| repo.find_tree_init(commit).chain_err(|| EK::WrappedGitDitError))
         .map(|commit| {println!("{}", commit.id()); 0})
         .unwrap_or_else(|err| {error!("{}", err); 1})
+}
+
+
+/// get-issue-metadata subcommand implementation
+///
+fn get_issue_metadata(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
+    // note: "head" is always present since it is a required parameter
+    let commits = try_or_1!(repo.value_to_commit(matches.value_of("head").unwrap())
+                                .map(|commit| IssueMessagesIter::new(commit, repo)));
+    for trailer in commits.flat_map(|commit| commit.trailers()) {
+        println!("{}", trailer);
+    }
+    0
 }
 
 
@@ -182,7 +171,7 @@ fn main() {
     let yaml    = load_yaml!("cli.yaml");
     let matches = App::from_yaml(yaml).get_matches();
 
-    let repo = match open_dit_repo() {
+    let repo = match util::open_dit_repo() {
         Ok(r) => r,
         Err(e) => {error!("{}", e); std::process::exit(1)}
     };
@@ -192,6 +181,7 @@ fn main() {
         ("check-message",               Some(sub_matches)) => check_message(sub_matches),
         ("create-message",              Some(sub_matches)) => create_message(&repo, sub_matches),
         ("find-tree-init-hash",         Some(sub_matches)) => find_tree_init_hash(&repo, sub_matches),
+        ("get-issue-metadata",          Some(sub_matches)) => get_issue_metadata(&repo, sub_matches),
         ("get-issue-tree-init-hashes",  Some(sub_matches)) => get_issue_tree_init_hashes(&repo, sub_matches),
         // Porcelain subcommands
         // ...

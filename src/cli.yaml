@@ -100,6 +100,7 @@ subcommands:
                 help: The head for which to collect the metadata
                 index: 1
                 multiple: false
+                required: true
 
     - get-issue-tree-init-hashes:
         about: Lists all SHA1 hashes of all issues (introducing commit)
