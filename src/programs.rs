@@ -10,6 +10,7 @@
 use std::process::Command;
 use std::env::var as env_var;
 use std::slice;
+use std::result::Result as RResult;
 
 use git2::Config;
 
@@ -62,7 +63,7 @@ fn program(config: Config, command: CommandSpec) -> Result<Command> {
         .chain_err(|| EK::ConfigError(command.config_name().to_owned()))?
         .value()
         .map(String::from)
-        .or_else(|| command.env_var_names().map(env_var).filter_map(|res| res.ok()).next())
+        .or_else(|| command.env_var_names().map(env_var).filter_map(RResult::ok).next())
         .map(Command::new)
         .ok_or_else(|| EK::ProgramError(command.name().to_owned()).into())
 }
