@@ -15,6 +15,32 @@ use git2::Config;
 use error::*;
 use error::ErrorKind as EK;
 
+
+/// Representation of variables
+///
+/// Instances represent variables from various sources.
+///
+enum Var<'a> {
+    Environ(&'a str),
+    GitConf(&'a str),
+    Default(&'a str),
+}
+
+impl<'a> Var<'a> {
+    /// Get the value of the variable
+    ///
+    /// Tries to retrieve the variable from the source.
+    ///
+    pub fn value(&self, config: &Config) -> Option<String> {
+        match self {
+            &Var::Environ(name) => env_var(name).ok(),
+            &Var::GitConf(name) => config.get_str(name).map(String::from).ok(),
+            &Var::Default(value) => Some(value.to_owned()),
+        }
+    }
+}
+
+
 pub fn editor(config: Config) -> Result<Command> {
     config
         .get_entry("core.editor")
