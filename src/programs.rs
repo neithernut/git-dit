@@ -7,10 +7,11 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
 
+use std::env::var as env_var;
+use std::path::PathBuf;
 use std::process::Child;
 use std::process::Command;
 use std::process::Stdio;
-use std::env::var as env_var;
 
 use git2::Config;
 
@@ -57,7 +58,11 @@ fn command(name: &str, prefs: &[Var], config: &Config) -> Result<Command> {
 }
 
 
-pub fn editor(config: Config) -> Result<Command> {
+/// Run an editor editing the file specified by the supplied path
+///
+/// A handle to the editor will be returned.
+///
+pub fn run_editor(config: Config, path: PathBuf) -> Result<Child> {
     // preference order as specified by the `git var` man page
     let prefs = [
         Var::Environ("GIT_EDITOR"),
@@ -66,7 +71,9 @@ pub fn editor(config: Config) -> Result<Command> {
         Var::Environ("EDITOR"),
         Var::Default("vi") // TODO: make settable at compile time
     ];
-    command("editor", &prefs, &config)
+    command("editor", &prefs, &config)?
+        .arg(path.as_os_str())
+        .spawn().chain_err(|| EK::WrappedIOError)
 }
 
 
