@@ -42,14 +42,14 @@ impl<'a> Var<'a> {
 
 
 pub fn editor(config: Config) -> Result<Command> {
-    config
-        .get_entry("core.editor")
-        .chain_err(|| EK::ConfigError("core.editor".to_owned()))?
-        .value()
-        .map(String::from)
-        .or_else(|| env_var("GIT_EDITOR").ok())
-        .or_else(|| env_var("EDITOR").ok())
-        .map(Command::new)
-        .ok_or_else(|| Error::from(EK::ProgramError("editor".to_owned())))
+    // preference order as specified by the `git var` man page
+    let prefs = [
+        Var::Environ("GIT_EDITOR"),
+        Var::GitConf("core.editor"),
+        Var::Environ("VISUAL"),
+        Var::Environ("EDITOR"),
+        Var::Default("vi") // TODO: make settable at compile time
+    ];
+    command("editor", &prefs, &config)
 }
 
