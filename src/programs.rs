@@ -41,6 +41,20 @@ impl<'a> Var<'a> {
 }
 
 
+/// Conveniece function for command assembly
+///
+/// This assembles a command from a slice of possible sources for the name of
+/// the program, or returns an error containing the name provided.
+///
+fn command(name: &str, prefs: &[Var], config: &Config) -> Result<Command> {
+    prefs.into_iter()
+         .filter_map(|var| var.value(config))
+         .map(Command::new)
+         .next()
+         .ok_or_else(|| Error::from(EK::ProgramError(name.to_owned())))
+}
+
+
 pub fn editor(config: Config) -> Result<Command> {
     // preference order as specified by the `git var` man page
     let prefs = [
