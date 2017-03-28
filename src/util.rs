@@ -7,18 +7,20 @@
 //   published by the Free Software Foundation.
 //
 
-use clap::Values;
+use clap::{ArgMatches, Values};
 use git2::{Commit, Repository};
 use std::fs::File;
 use std::io::BufRead;
 use std::io::BufReader;
 use std::path::PathBuf;
 use std::process::exit;
+use std::str::FromStr;
 
 use error::ErrorKind as EK;
 use error::*;
 use programs::run_editor;
 use libgitdit::message::LineIteratorExt;
+use libgitdit::message::trailer::Trailer;
 
 /// Open the DIT repo
 ///
@@ -60,6 +62,10 @@ pub trait RepositoryUtil<'r> {
     ///       used after the commit message is read back.
     ///
     fn get_commit_msg(&self, path: PathBuf) -> Result<Vec<String>>;
+
+    /// Retrieve metadata from command line arguments
+    ///
+    fn prepare_trailers(&self, matches: &ArgMatches) -> Result<Vec<Trailer>>;
 }
 
 impl<'r> RepositoryUtil<'r> for Repository {
@@ -104,6 +110,24 @@ impl<'r> RepositoryUtil<'r> for Repository {
         lines.iter().check_message_format().chain_err(|| EK::WrappedGitDitError)?;
 
         Ok(lines)
+    }
+
+    fn prepare_trailers(&self, matches: &ArgMatches) -> Result<Vec<Trailer>> {
+        let mut trailers = Vec::new();
+
+        if matches.is_present("signoff") {
+            let sig = self.signature().chain_err(|| EK::WrappedGitError)?.to_string();
+            trailers.push(Trailer::new("Signed-off-by", sig.as_str()));
+        }
+
+        // append misc metadata
+        if let Some(metadata) = matches.values_of("metadata") {
+            for trailer in metadata.map(Trailer::from_str) {
+                trailers.push(trailer?);
+            }
+        }
+
+        Ok(trailers)
     }
 }
 
