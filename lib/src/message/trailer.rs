@@ -92,6 +92,15 @@ pub struct Trailer {
     pub value: TrailerValue,
 }
 
+impl Trailer {
+    pub fn new(key: &str, value: &str) -> Trailer {
+        Trailer {
+            key  : TrailerKey::from(String::from(key)),
+            value: TrailerValue::from_slice(value),
+        }
+    }
+}
+
 impl Into<(TrailerKey, TrailerValue)> for Trailer {
     fn into(self) -> (TrailerKey, TrailerValue) {
         (self.key, self.value)
