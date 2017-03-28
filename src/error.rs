@@ -14,6 +14,11 @@ error_chain! {
     }
 
     errors {
+        WrappedIOError {
+            description("TODO: Wrapped error")
+            display("TODO: Wrapped error")
+        }
+
         WrappedGitError {
             description("TODO: Wrapped error")
             display("TODO: Wrapped error")

@@ -7,10 +7,11 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
 
-use std::process::Command;
 use std::env::var as env_var;
-use std::slice;
-use std::result::Result as RResult;
+use std::path::PathBuf;
+use std::process::Child;
+use std::process::Command;
+use std::process::Stdio;
 
 use git2::Config;
 
@@ -18,62 +19,81 @@ use error::*;
 use error::ErrorKind as EK;
 
 
-/// Command enum for internal representation of different commands
+/// Representation of variables
 ///
-enum CommandSpec { Editor, Pager }
+/// Instances represent variables from various sources.
+///
+enum Var<'a> {
+    Environ(&'a str),
+    GitConf(&'a str),
+    Default(&'a str),
+}
 
-impl CommandSpec {
-    /// The canonical name of the program
+impl<'a> Var<'a> {
+    /// Get the value of the variable
     ///
-    pub fn name(&self) -> &str {
+    /// Tries to retrieve the variable from the source.
+    ///
+    pub fn value(&self, config: &Config) -> Option<String> {
         match self {
-            &CommandSpec::Editor => "editor",
-            &CommandSpec::Pager  => "pager",
+            &Var::Environ(name) => env_var(name).ok(),
+            &Var::GitConf(name) => config.get_str(name).map(String::from).ok(),
+            &Var::Default(value) => Some(value.to_owned()),
         }
     }
-
-    /// Get the name of the git config containing the program name or path
-    ///
-    pub fn config_name(&self) -> &str {
-        match self {
-            &CommandSpec::Editor => "core.editor",
-            &CommandSpec::Pager  => "core.pager",
-        }
-    }
-
-    /// Get the names of the environment variables which may contain the program
-    /// name
-    ///
-    pub fn env_var_names(&self) -> slice::Iter<'static, &'static str> {
-        match self {
-            &CommandSpec::Editor => {static X : &'static [&'static str] = &["GIT_EDITOR", "EDITOR"]; X},
-            &CommandSpec::Pager  => {static X : &'static [&'static str] = &["GIT_PAGER",  "PAGER" ]; X},
-        }.into_iter()
-    }
 }
 
 
-/// Build a `Command` from the config provided
+/// Conveniece function for command assembly
 ///
-/// A bare command will be returned containing
+/// This assembles a command from a slice of possible sources for the name of
+/// the program, or returns an error containing the name provided.
 ///
-fn program(config: Config, command: CommandSpec) -> Result<Command> {
-    config
-        .get_entry(command.config_name())
-        .chain_err(|| EK::ConfigError(command.config_name().to_owned()))?
-        .value()
-        .map(String::from)
-        .or_else(|| command.env_var_names().map(env_var).filter_map(RResult::ok).next())
-        .map(Command::new)
-        .ok_or_else(|| EK::ProgramError(command.name().to_owned()).into())
+fn command(name: &str, prefs: &[Var], config: &Config) -> Result<Command> {
+    prefs.into_iter()
+         .filter_map(|var| var.value(config))
+         .map(Command::new)
+         .next()
+         .ok_or_else(|| Error::from(EK::ProgramError(name.to_owned())))
 }
 
 
-pub fn editor(config: Config) -> Result<Command> {
-    program(config, CommandSpec::Editor)
+/// Run an editor editing the file specified by the supplied path
+///
+/// A handle to the editor will be returned.
+///
+pub fn run_editor(config: Config, path: PathBuf) -> Result<Child> {
+    // preference order as specified by the `git var` man page
+    let prefs = [
+        Var::Environ("GIT_EDITOR"),
+        Var::GitConf("core.editor"),
+        Var::Environ("VISUAL"),
+        Var::Environ("EDITOR"),
+        Var::Default("vi") // TODO: make settable at compile time
+    ];
+    command("editor", &prefs, &config)?
+        .arg(path.as_os_str())
+        .spawn().chain_err(|| EK::WrappedIOError)
 }
 
-pub fn pager(config: Config) -> Result<Command> {
-    program(config, CommandSpec::Pager)
+
+/// Assemble and execute a pager command
+///
+/// Returns the handle to a pager, with a piped stdin, to which the caller may
+/// write in order to generate paged output.
+///
+pub fn pager(config: Config) -> Result<Child> {
+    // preference order as specified by the `git var` man page
+    let prefs = [
+        Var::Environ("GIT_PAGER"),
+        Var::GitConf("core.pager"),
+        Var::Environ("PAGER"),
+        Var::Default("less") // TODO: make settable at compile time
+    ];
+    command("pager", &prefs, &config)
+        .and_then(|mut command| {
+            command.stdin(Stdio::piped());
+            command.spawn().chain_err(|| EK::WrappedIOError)
+        })
 }
 
