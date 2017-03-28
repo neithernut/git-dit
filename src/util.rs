@@ -9,6 +9,7 @@
 
 use clap::Values;
 use git2::{Commit, Repository};
+use std::path::PathBuf;
 
 use error::ErrorKind as EK;
 use error::*;
@@ -38,6 +39,9 @@ pub trait RepositoryUtil<'r> {
     /// This function transforms values to a vector.
     ///
     fn values_to_hashes(&'r self, values: Values) -> Result<Vec<Commit<'r>>>;
+
+    /// Get the path to the file usually used to edit comit messages
+    fn commitmsg_edit_path(&self) -> PathBuf;
 }
 
 impl<'r> RepositoryUtil<'r> for Repository {
@@ -53,6 +57,10 @@ impl<'r> RepositoryUtil<'r> for Repository {
             retval.push(try!(commit));
         }
         Ok(retval)
+    }
+
+    fn commitmsg_edit_path(&self) -> PathBuf {
+        self.path().with_file_name("COMMIT_EDITMSG")
     }
 }
 
