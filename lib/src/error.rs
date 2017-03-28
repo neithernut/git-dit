@@ -40,6 +40,11 @@ error_chain! {
             display("Malformed head refernece: {}", name)
         }
 
+        TrailerFormatError(trailer: String) {
+            description("Found malformed trailer")
+            display("Malformed trailer: {}", trailer)
+        }
+
         EmptyMessage {
             description("An empty message was supplied")
             display("The message is empty")
