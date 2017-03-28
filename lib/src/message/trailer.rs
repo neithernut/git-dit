@@ -10,6 +10,7 @@
 use message::line::{Line, Lines};
 use std::collections::VecDeque;
 use std::fmt::{self, Display, Formatter};
+use std::result::Result as RResult;
 
 /// The Key of a Trailer:
 ///
@@ -29,7 +30,7 @@ impl From<String> for TrailerKey {
 }
 
 impl Display for TrailerKey {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+    fn fmt(&self, f: &mut Formatter) -> RResult<(), fmt::Error> {
         write!(f, "{}", self.0)
     }
 }
@@ -76,7 +77,7 @@ impl TrailerValue {
 }
 
 impl Display for TrailerValue {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+    fn fmt(&self, f: &mut Formatter) -> RResult<(), fmt::Error> {
         match *self {
             TrailerValue::Int(i)        => write!(f, "{}", i),
             TrailerValue::String(ref s) => write!(f, "{}", s),
@@ -98,7 +99,7 @@ impl Into<(TrailerKey, TrailerValue)> for Trailer {
 }
 
 impl Display for Trailer {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+    fn fmt(&self, f: &mut Formatter) -> RResult<(), fmt::Error> {
         write!(f, "{}: {}", self.key, self.value)
     }
 }
