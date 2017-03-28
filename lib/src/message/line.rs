@@ -7,9 +7,9 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
 
-use message::trailer::{Trailer, TrailerKey, TrailerValue};
-use regex::Regex;
+use message::trailer::Trailer;
 use std::iter::Peekable;
+use std::str::FromStr;
 
 
 /// A line of an issue message
@@ -26,21 +26,13 @@ pub enum Line {
 
 impl<S: AsRef<str>> From<S> for Line {
     fn from(line: S) -> Self {
-        lazy_static! {
-            // regex to match the beginning of a trailer
-            static ref RE: Regex = Regex::new(r"^([[:alnum:]-]+):(.*)$").unwrap();
-        }
-
         let trimmed = line.as_ref().trim_right();
         if trimmed.is_empty() {
             return Line::Blank;
         }
 
-        match RE.captures(trimmed).map(|c| (c.get(1), c.get(2))) {
-            Some((Some(key), Some(value))) => Line::Trailer(Trailer {
-                key  : TrailerKey::from(String::from(key.as_str())),
-                value: TrailerValue::from_slice(value.as_str().trim()),
-            }),
+        match Trailer::from_str(trimmed) {
+            Ok(trailer) => Line::Trailer(trailer),
             _ => Line::Text(String::from(trimmed)),
         }
     }
