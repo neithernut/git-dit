@@ -7,7 +7,9 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
 
+use std::process::Child;
 use std::process::Command;
+use std::process::Stdio;
 use std::env::var as env_var;
 
 use git2::Config;
@@ -65,5 +67,26 @@ pub fn editor(config: Config) -> Result<Command> {
         Var::Default("vi") // TODO: make settable at compile time
     ];
     command("editor", &prefs, &config)
+}
+
+
+/// Assemble and execute a pager command
+///
+/// Returns the handle to a pager, with a piped stdin, to which the caller may
+/// write in order to generate paged output.
+///
+pub fn pager(config: Config) -> Result<Child> {
+    // preference order as specified by the `git var` man page
+    let prefs = [
+        Var::Environ("GIT_PAGER"),
+        Var::GitConf("core.pager"),
+        Var::Environ("PAGER"),
+        Var::Default("less") // TODO: make settable at compile time
+    ];
+    command("pager", &prefs, &config)
+        .and_then(|mut command| {
+            command.stdin(Stdio::piped());
+            command.spawn().chain_err(|| EK::WrappedIOError)
+        })
 }
 
