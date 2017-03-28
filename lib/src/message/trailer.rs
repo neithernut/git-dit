@@ -8,9 +8,14 @@
 //
 
 use message::line::{Line, Lines};
+use regex::Regex;
 use std::collections::VecDeque;
 use std::fmt::{self, Display, Formatter};
 use std::result::Result as RResult;
+use std::str::FromStr;
+
+use error::ErrorKind as EK;
+use error::*;
 
 /// The Key of a Trailer:
 ///
@@ -110,6 +115,22 @@ impl Into<(TrailerKey, TrailerValue)> for Trailer {
 impl Display for Trailer {
     fn fmt(&self, f: &mut Formatter) -> RResult<(), fmt::Error> {
         write!(f, "{}: {}", self.key, self.value)
+    }
+}
+
+impl FromStr for Trailer {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        lazy_static! {
+            // regex to match the beginning of a trailer
+            static ref RE: Regex = Regex::new(r"^([[:alnum:]-]+)[:=](.*)$").unwrap();
+        }
+
+        match RE.captures(s).map(|c| (c.get(1), c.get(2))) {
+            Some((Some(key), Some(value))) => Ok(Trailer::new(key.as_str(), value.as_str().trim())),
+            _ => Err(Error::from_kind(EK::TrailerFormatError(s.to_owned())))
+        }
     }
 }
 
