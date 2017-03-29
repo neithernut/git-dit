@@ -161,8 +161,10 @@ subcommands:
             - message:
                 short: m
                 long: message
-                help: Use this as issue message
-                multiple: false
+                help: >
+                        Use this as issue message. If used multiple times, each
+                        argument will be a paragraph in the commit message.
+                multiple: true
                 takes_value: true
             - signoff:
                 short: s
