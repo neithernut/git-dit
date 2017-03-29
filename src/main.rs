@@ -17,14 +17,15 @@ mod error;
 mod programs;
 mod util;
 
-use clap::App;
-use git2::{Commit, Oid, Repository};
+use clap::{App, Values};
+use git2::{Commit, Oid, Repository, References};
 use libgitdit::iter::IssueMessagesIter;
 use libgitdit::message::{CommitExt, LineIteratorExt};
 use libgitdit::repository::RepositoryExt;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, Read};
 use std::process::Command;
+use std::process::exit;
 
 use error::ErrorKind as EK;
 use error::*;
@@ -52,6 +53,53 @@ macro_rules! try_or_1 {
 
 
 // Plumbing subcommand implementations
+
+/// Open the DIT repo
+///
+/// Opens the DIT repo corresponding to the current one honouring the user
+/// configuration.
+///
+fn open_dit_repo() -> Result<Repository> {
+    // TODO: access the config and maybe return another repo instead
+    Repository::open_from_env().chain_err(|| EK::WrappedGitError)
+}
+
+
+/// Get a vector of commits from values
+///
+/// This function transforms values to a vector.
+///
+fn values_to_hashes<'repo>(repo: &'repo Repository, values: Values) -> Result<Vec<Commit<'repo>>> {
+    let mut retval = Vec::new();
+    for commit in values.map(|string| repo.revparse_single(string))
+                        .map(|oid| repo.find_commit(try!(oid).id())) {
+        retval.push(try!(commit));
+    }
+    Ok(retval)
+}
+
+
+/// find-tree-init-hash subcommand implementation
+///
+fn find_tree_init_hash(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
+    // note: commit is always present since it is a required parameter
+    repo.revparse_single(matches.value_of("commit").unwrap())
+        .and_then(|obj| repo.find_commit(obj.id()))
+        .chain_err(|| EK::WrappedGitError)
+        .and_then(|commit| repo.find_tree_init(commit).chain_err(|| EK::WrappedGitDitError))
+        .map(|commit| {println!("{}", commit.id()); 0})
+        .unwrap_or_else(|err| {error!("{}", err); 1})
+}
+
+
+/// find-tree-init-hash subcommand implementation
+///
+fn get_issue_tree_init_hashes(repo: &Repository, _: &clap::ArgMatches) -> i32 {
+    for hash in try_or_1!(repo.get_all_issue_hashes()) {
+        println!("{}", try_or_1!(hash));
+    }
+    0
+}
 
 /// check-message subcommand implementation
 ///
@@ -143,7 +191,145 @@ fn get_issue_tree_init_hashes(repo: &Repository, _: &clap::ArgMatches) -> i32 {
 
 // Porcelain subcommand implementations
 
-// ...
+/// show subcommand implementation
+fn show(repo: &Repository, sub: &clap::ArgMatches) -> i32 {
+    let issue        = sub.value_of("parent").unwrap(); // clap has us here
+    let treeinit     = sub.value_of("tree-init-hash").unwrap(); // clap has us here
+    let do_abbrev    = sub.is_present("abbrev");
+    let only_init    = sub.is_present("initial");
+    let show_tree    = sub.is_present("tree");
+    let message_tree = sub.is_present("msgtree");
+    let verify_gpg   = sub.is_present("verify-gpg");
+    let decorate     = sub.is_present("decorate");
+    let format       = sub.value_of("format").map(String::from).unwrap_or_else(|| {
+        format!("%Cgreen{}\
+                %Creset%n\
+                %C(yellow)Author:    %an <%ae> (%ai)%Creset%n\
+                %C(yellow)Committed: %cn <%ce> (%ci)%Creset%n\
+                %n%s%n%n%b%n",
+                if do_abbrev { "%h" } else { "%H" })
+    });
+
+    let refs_as_command_args = |mut cmd: Command, refs: References| {
+        // Builder pattern on steroids
+        refs
+            .map(|r| match r.map(|rf| rf.target()) {
+                Ok(Some(id)) => id,
+                Ok(None) => {
+                    error!("Error: Ref error");
+                    exit(42);
+                },
+                Err(e) => {
+                    error!("Error: {:?}", e);
+                    exit(42);
+                },
+            })
+            .map(|id| format!("{}", id))
+            .fold(&mut cmd, |cmd, elem| cmd.arg(elem));
+            cmd
+    };
+
+    if message_tree {
+        Oid::from_str(issue)
+            .chain_err(|| "Cannot convert issue hash to Oid")
+            .and_then(|oid| repo.get_issue_leaves(oid).chain_err(|| "Cannot find issue leaves"))
+            .map(|refs| {
+                let def = {
+                    let mut cdef = Command::new("git-log");
+                    cdef.arg("--graph")
+                        .arg("--topo-order")
+                        .arg("--first-parent")
+                        .arg(format!("--format=format:{}", format));
+                    cdef
+                };
+
+                let mut command = refs_as_command_args(def, refs);
+                let line_contains_line = |line: &&str| line.contains("|");
+
+                command
+                    .output()
+                    .map(|output| {
+                        debug!("Exit code of command: {}", output.status);
+                        let stdout = String::from_utf8(output.stdout)
+                            .map(|s| s.lines().rev().filter(line_contains_line).collect())
+                            .unwrap_or(String::from("UTF8-Error"));
+
+                        println!("{}", stdout);
+                        debug!("{:?}", String::from_utf8(output.stderr));
+
+                        output.status.code().unwrap_or(42) // if killed, use 42 as exit status
+                    })
+                    .unwrap_or_else(|e| {
+                        error!("Error: {:?}", e);
+                        1
+                    })
+            })
+            .map(|_| 0)
+            .unwrap_or_else(|e| {
+                error!("Something went wrong: {:?}", e);
+                1
+            })
+    } else {
+        if only_init {
+            let commit = Oid::from_str(issue)
+                .chain_err(|| "Cannot parse commit hash")
+                .and_then(|oid| repo.find_commit(oid).chain_err(|| "Cannot find commit"))
+                .and_then(|com| repo.find_tree_init(com).chain_err(|| "Cannot find tree init"));
+
+            let commit = match commit {
+                Ok(c) => c,
+                Err(e) => {
+                    error!("Error: {:?}", e);
+                    return 1;
+                }
+            };
+
+            let mut cmd = Command::new("git-show");
+
+            if do_abbrev {
+                cmd.arg("--abbrev");
+            }
+
+            cmd.arg(format!("{}", commit.id())).output(); // or something like this
+
+            0
+        } else {
+            Oid::from_str(issue)
+                .chain_err(|| "Cannot convert issue hash to Oid")
+                .and_then(|oid| repo.get_issue_leaves(oid).chain_err(|| "Cannot find issue leaves"))
+                .map(|refs| {
+                    let mut cdef = Command::new("git-log");
+
+                    if do_abbrev {
+                        cdef.arg("--abbrev-commit");
+                    }
+
+                    if show_tree {
+                        cdef.arg("--graph");
+                    }
+
+                    if verify_gpg {
+                        cdef.arg("--verify-gpg");
+                    }
+
+                    if decorate {
+                        cdef.arg("--decorate");
+                    }
+
+                    cdef.arg("--topo-order")
+                        .arg("--first-parent")
+                        .arg(format!("--format=format:{}", format));
+
+                    refs_as_command_args(cdef, refs).output()
+                })
+                .map(|_| 0)
+                .unwrap_or_else(|e| {
+                    error!("Something went wrong: {:?}", e);
+                    1
+                })
+        }
+    }
+}
 
 
 // Unknown subcommand handler
@@ -183,8 +369,10 @@ fn main() {
         ("find-tree-init-hash",         Some(sub_matches)) => find_tree_init_hash(&repo, sub_matches),
         ("get-issue-metadata",          Some(sub_matches)) => get_issue_metadata(&repo, sub_matches),
         ("get-issue-tree-init-hashes",  Some(sub_matches)) => get_issue_tree_init_hashes(&repo, sub_matches),
+
         // Porcelain subcommands
-        // ...
+        ("show",                        Some(sub_matches)) => show(&repo, sub_matches),
+
         // Unknown subcommands
         (name, sub_matches) => {
             let default = clap::ArgMatches::default();

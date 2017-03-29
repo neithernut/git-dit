@@ -277,10 +277,12 @@ subcommands:
                 help: Parent
                 index: 1
                 multiple: false
+                required: true
             - tree-init-hash:
                 help: Tree init hash
                 index: 2
                 multiple: false
+                required: true
             - abbrev:
                 short: a
                 long: abbrev
