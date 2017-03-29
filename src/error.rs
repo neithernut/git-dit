@@ -38,5 +38,10 @@ error_chain! {
             description("Could not find some configuration or ENV variable specifying a program")
             display("Could not find {} configuration or ENV variable", program_name)
         }
+
+        ChildError {
+            description("A child program was unsuccessful")
+            display("A child program was unsuccessful")
+        }
     }
 }

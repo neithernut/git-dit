@@ -62,7 +62,7 @@ fn command(name: &str, prefs: &[Var], config: &Config) -> Result<Command> {
 ///
 /// A handle to the editor will be returned.
 ///
-pub fn run_editor(config: Config, path: PathBuf) -> Result<Child> {
+pub fn run_editor(config: Config, path: &PathBuf) -> Result<Child> {
     // preference order as specified by the `git var` man page
     let prefs = [
         Var::Environ("GIT_EDITOR"),

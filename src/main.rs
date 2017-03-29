@@ -23,7 +23,8 @@ use libgitdit::iter::IssueMessagesIter;
 use libgitdit::message::{CommitExt, LineIteratorExt};
 use libgitdit::repository::RepositoryExt;
 use std::fs::File;
-use std::io::{self, BufRead, BufReader, Read};
+use std::io::{self, BufRead, BufReader, Read, Write};
+use std::path::PathBuf;
 use std::process::Command;
 
 use error::ErrorKind as EK;
@@ -143,7 +144,43 @@ fn get_issue_tree_init_hashes(repo: &Repository, _: &clap::ArgMatches) -> i32 {
 
 // Porcelain subcommand implementations
 
-// ...
+/// new subcommand implementation
+///
+fn new_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
+    let sig = try_or_1!(repo.signature());
+
+    // get the message, either from the command line argument or an editor
+    let message = if let Some(paragraphs) = matches.values_of("message") {
+        // the message was supplied via the command line
+        paragraphs.map(str::to_owned)
+                  .map(|p| (p + "\n").to_owned()) // paragraphs
+                  .chain(try_or_1!(repo.prepare_trailers(matches)).into_iter().map(|t| t.to_string()))
+                  .collect()
+    } else {
+        // we need an editor
+
+        // get the path where we want to edit the message
+        let path = matches.value_of("tempfile")
+                          .map(PathBuf::from)
+                          .unwrap_or(repo.commitmsg_edit_path());
+
+        { // write
+            let mut file = try_or_1!(File::create(path.as_path()));
+            for trailer in try_or_1!(repo.prepare_trailers(matches)) {
+                try_or_1!(file.write_fmt(format_args!("{}\n", trailer)));
+            }
+            try_or_1!(file.flush());
+        }
+
+        try_or_1!(repo.get_commit_msg(path))
+    }.into_iter().collect_string();
+
+    // commit the message
+    let tree = try_or_1!(repo.empty_tree());
+    let parent_refs = Vec::new();
+    println!("[dit][new] {}", try_or_1!(repo.create_message(None, &sig, &sig, message.trim(), &tree, &parent_refs)));
+    0
+}
 
 
 // Unknown subcommand handler
@@ -184,7 +221,7 @@ fn main() {
         ("get-issue-metadata",          Some(sub_matches)) => get_issue_metadata(&repo, sub_matches),
         ("get-issue-tree-init-hashes",  Some(sub_matches)) => get_issue_tree_init_hashes(&repo, sub_matches),
         // Porcelain subcommands
-        // ...
+        ("new",     Some(sub_matches)) => new_impl(&repo, sub_matches),
         // Unknown subcommands
         (name, sub_matches) => {
             let default = clap::ArgMatches::default();
