@@ -8,8 +8,14 @@
 //
 
 use message::line::{Line, Lines};
+use regex::Regex;
 use std::collections::VecDeque;
 use std::fmt::{self, Display, Formatter};
+use std::result::Result as RResult;
+use std::str::FromStr;
+
+use error::ErrorKind as EK;
+use error::*;
 
 /// The Key of a Trailer:
 ///
@@ -29,7 +35,7 @@ impl From<String> for TrailerKey {
 }
 
 impl Display for TrailerKey {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+    fn fmt(&self, f: &mut Formatter) -> RResult<(), fmt::Error> {
         write!(f, "{}", self.0)
     }
 }
@@ -76,7 +82,7 @@ impl TrailerValue {
 }
 
 impl Display for TrailerValue {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+    fn fmt(&self, f: &mut Formatter) -> RResult<(), fmt::Error> {
         match *self {
             TrailerValue::Int(i)        => write!(f, "{}", i),
             TrailerValue::String(ref s) => write!(f, "{}", s),
@@ -91,6 +97,15 @@ pub struct Trailer {
     pub value: TrailerValue,
 }
 
+impl Trailer {
+    pub fn new(key: &str, value: &str) -> Trailer {
+        Trailer {
+            key  : TrailerKey::from(String::from(key)),
+            value: TrailerValue::from_slice(value),
+        }
+    }
+}
+
 impl Into<(TrailerKey, TrailerValue)> for Trailer {
     fn into(self) -> (TrailerKey, TrailerValue) {
         (self.key, self.value)
@@ -98,8 +113,24 @@ impl Into<(TrailerKey, TrailerValue)> for Trailer {
 }
 
 impl Display for Trailer {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+    fn fmt(&self, f: &mut Formatter) -> RResult<(), fmt::Error> {
         write!(f, "{}: {}", self.key, self.value)
+    }
+}
+
+impl FromStr for Trailer {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        lazy_static! {
+            // regex to match the beginning of a trailer
+            static ref RE: Regex = Regex::new(r"^([[:alnum:]-]+)[:=](.*)$").unwrap();
+        }
+
+        match RE.captures(s).map(|c| (c.get(1), c.get(2))) {
+            Some((Some(key), Some(value))) => Ok(Trailer::new(key.as_str(), value.as_str().trim())),
+            _ => Err(Error::from_kind(EK::TrailerFormatError(s.to_owned())))
+        }
     }
 }
 

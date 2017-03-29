@@ -63,6 +63,10 @@ pub trait LineIteratorExt<S>
     /// non-blank lines will be ignored (e.g. not returned).
     ///
     fn trailers(self) -> trailer::Trailers<Self::Iter, S>;
+
+    /// Accumulate the lines into a single string
+    ///
+    fn collect_string(self) -> String;
 }
 
 impl<L, S> LineIteratorExt<S> for L
@@ -93,6 +97,14 @@ impl<L, S> LineIteratorExt<S> for L
 
     fn trailers(self) -> trailer::Trailers<Self::Iter, S> {
         trailer::Trailers::from(self)
+    }
+
+    fn collect_string(self) -> String {
+        self.fold(String::new(), |mut res, line| {
+            res.push_str(line.as_ref());
+            res.push('\n');
+            res
+        })
     }
 }
 
