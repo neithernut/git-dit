@@ -18,6 +18,7 @@ use std::vec;
 
 pub mod line;
 pub mod trailer;
+pub mod quoted;
 
 
 /// Special iterator extension for messages
