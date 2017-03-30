@@ -29,7 +29,7 @@ use std::process::Command;
 
 use error::ErrorKind as EK;
 use error::*;
-use util::RepositoryUtil;
+use util::{RepositoryUtil, message_from_args};
 
 
 /// Convenience macro for early returns in subcommands
@@ -150,12 +150,13 @@ fn new_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
     let sig = try_or_1!(repo.signature());
 
     // get the message, either from the command line argument or an editor
-    let message = if let Some(paragraphs) = matches.values_of("message") {
+    let message = if let Some(m) = message_from_args(matches) {
         // the message was supplied via the command line
-        paragraphs.map(str::to_owned)
-                  .map(|p| (p + "\n").to_owned()) // paragraphs
-                  .chain(try_or_1!(repo.prepare_trailers(matches)).into_iter().map(|t| t.to_string()))
-                  .collect()
+        m.into_iter()
+         .chain(try_or_1!(repo.prepare_trailers(matches))
+                              .into_iter()
+                              .map(|t| t.to_string()))
+         .collect()
     } else {
         // we need an editor
 
