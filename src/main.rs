@@ -182,6 +182,85 @@ fn new_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
 }
 
 
+/// reply subcommand implementation
+///
+fn reply_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
+    let sig = try_or_1!(repo.signature());
+
+    // NOTE: We want to do a lot of stuff early, because we want to report
+    //       errors before a user spent time writing a commit message in her
+    //       editor. This means that we have a lot of bindings which may not
+    //       be neccessary otherwise, resulting in data lying around.
+
+    // the unwrap is safe since `parent` is a required value
+    // and get all the info from it that we might need
+    let mut parent = try_or_1!(repo.value_to_commit(matches.value_of("parent").unwrap()));
+
+    // extract the subject and tree from the parent
+    let subject = parent.summary().map(|s| {
+        if s.starts_with("Re: ") {
+            s.to_owned()
+        } else {
+            format!("Re: {}", s)
+        }
+    });
+    let tree = try_or_1!(parent.tree());
+
+    // figure out to what issue we reply
+    let issue = try_or_1!(repo.find_tree_init(&parent)).id();
+
+    // get the references specified on the command line
+    let references = match matches.values_of("parents")
+                               .map(|p| repo.values_to_hashes(p)) {
+        Some(hashes) => try_or_1!(hashes),
+        _            => Vec::new(),
+    };
+
+    // get the message, either from the command line argument or an editor
+    let message = if let Some(m) = message_from_args(matches) {
+        // the message was supplied via the command line
+        if matches.is_present("quote") {
+            warn!("Message will only quoted if an editor is used.");
+        }
+
+        m.into_iter()
+         .chain(try_or_1!(repo.prepare_trailers(matches))
+                              .into_iter()
+                              .map(|t| t.to_string()))
+         .collect()
+    } else {
+        // we need an editor
+
+        // get the path where we want to edit the message
+        let path = repo.commitmsg_edit_path(matches);
+
+        { // write
+            let mut file = try_or_1!(File::create(path.as_path()));
+            if let Some(s) = subject {
+                try_or_1!(write!(&mut file, "{}\n\n", s));
+            }
+
+            if matches.is_present("quote") {
+                try_or_1!(file.consume_lines(parent.body_lines().quoted()));
+                try_or_1!(write!(&mut file, "\n"));
+            }
+
+            try_or_1!(file.consume_lines(try_or_1!(repo.prepare_trailers(matches))));
+            try_or_1!(file.flush());
+        }
+
+        try_or_1!(repo.get_commit_msg(path))
+    }.into_iter().collect_string();
+
+    // construct a vector holding all parents
+    let parent_refs : Vec<&Commit> = Some(&parent).into_iter().chain(references.iter()).collect();
+
+    // finally, create the message
+    try_or_1!(repo.create_message(Some(&issue), &sig, &sig, message.trim(), &tree, &parent_refs));
+    0
+}
+
+
 // Unknown subcommand handler
 
 /// Handle unknown subcommands
@@ -221,6 +300,7 @@ fn main() {
         ("get-issue-tree-init-hashes",  Some(sub_matches)) => get_issue_tree_init_hashes(&repo, sub_matches),
         // Porcelain subcommands
         ("new",     Some(sub_matches)) => new_impl(&repo, sub_matches),
+        ("reply",   Some(sub_matches)) => reply_impl(&repo, sub_matches),
         // Unknown subcommands
         (name, sub_matches) => {
             let default = clap::ArgMatches::default();
