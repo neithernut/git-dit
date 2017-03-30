@@ -133,3 +133,15 @@ impl<'r> RepositoryUtil<'r> for Repository {
     }
 }
 
+/// Get the message specified on the command line, as lines
+///
+/// Retrieve the message specified on the command line. If no paragraph was
+/// specified, an empty vector will be returned.
+///
+pub fn message_from_args(matches: &ArgMatches) -> Option<Vec<String>> {
+    matches.values_of("message")
+           .map(|ps| ps.map(str::to_owned)
+                       .map(|p| (p + "\n").to_owned()) // paragraphs
+                       .collect())
+}
+
