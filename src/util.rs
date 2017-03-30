@@ -84,7 +84,7 @@ impl<'r> RepositoryUtil<'r> for Repository {
     }
 
     fn commitmsg_edit_path(&self) -> PathBuf {
-        self.path().with_file_name("COMMIT_EDITMSG")
+        self.path().join("COMMIT_EDITMSG")
     }
 
     fn get_commit_msg(&self, path: PathBuf) -> Result<Vec<String>> {
