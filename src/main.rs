@@ -31,6 +31,7 @@ use std::process::Command;
 use error::ErrorKind as EK;
 use error::*;
 use util::{RepositoryUtil, message_from_args};
+use write::WriteExt;
 
 
 /// Convenience macro for early returns in subcommands
@@ -166,9 +167,7 @@ fn new_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
 
         { // write
             let mut file = try_or_1!(File::create(path.as_path()));
-            for trailer in try_or_1!(repo.prepare_trailers(matches)) {
-                try_or_1!(file.write_fmt(format_args!("{}\n", trailer)));
-            }
+            try_or_1!(file.consume_lines(try_or_1!(repo.prepare_trailers(matches))));
             try_or_1!(file.flush());
         }
 
