@@ -232,7 +232,7 @@ subcommands:
                 short: m
                 long: message
                 help: Use this as issue message
-                multiple: false
+                multiple: true
                 takes_value: true
             - signoff:
                 short: s
