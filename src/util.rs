@@ -49,7 +49,7 @@ pub trait RepositoryUtil<'r> {
     fn values_to_hashes(&'r self, values: Values) -> Result<Vec<Commit<'r>>>;
 
     /// Get the path to the file usually used to edit comit messages
-    fn commitmsg_edit_path(&self) -> PathBuf;
+    fn commitmsg_edit_path(&self, matches: &ArgMatches) -> PathBuf;
 
     /// Get a commit message
     ///
@@ -83,8 +83,10 @@ impl<'r> RepositoryUtil<'r> for Repository {
         Ok(retval)
     }
 
-    fn commitmsg_edit_path(&self) -> PathBuf {
-        self.path().join("COMMIT_EDITMSG")
+    fn commitmsg_edit_path(&self, matches: &ArgMatches) -> PathBuf {
+        matches.value_of("tempfile")
+               .map(PathBuf::from)
+               .unwrap_or_else(|| self.path().join("COMMIT_EDITMSG"))
     }
 
     fn get_commit_msg(&self, path: PathBuf) -> Result<Vec<String>> {
@@ -129,5 +131,17 @@ impl<'r> RepositoryUtil<'r> for Repository {
 
         Ok(trailers)
     }
+}
+
+/// Get the message specified on the command line, as lines
+///
+/// Retrieve the message specified on the command line. If no paragraph was
+/// specified, an empty vector will be returned.
+///
+pub fn message_from_args(matches: &ArgMatches) -> Option<Vec<String>> {
+    matches.values_of("message")
+           .map(|ps| ps.map(str::to_owned)
+                       .map(|p| (p + "\n").to_owned()) // paragraphs
+                       .collect())
 }
 
