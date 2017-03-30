@@ -49,7 +49,7 @@ pub trait RepositoryUtil<'r> {
     fn values_to_hashes(&'r self, values: Values) -> Result<Vec<Commit<'r>>>;
 
     /// Get the path to the file usually used to edit comit messages
-    fn commitmsg_edit_path(&self) -> PathBuf;
+    fn commitmsg_edit_path(&self, matches: &ArgMatches) -> PathBuf;
 
     /// Get a commit message
     ///
@@ -83,8 +83,10 @@ impl<'r> RepositoryUtil<'r> for Repository {
         Ok(retval)
     }
 
-    fn commitmsg_edit_path(&self) -> PathBuf {
-        self.path().join("COMMIT_EDITMSG")
+    fn commitmsg_edit_path(&self, matches: &ArgMatches) -> PathBuf {
+        matches.value_of("tempfile")
+               .map(PathBuf::from)
+               .unwrap_or_else(|| self.path().join("COMMIT_EDITMSG"))
     }
 
     fn get_commit_msg(&self, path: PathBuf) -> Result<Vec<String>> {

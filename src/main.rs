@@ -160,9 +160,7 @@ fn new_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
         // we need an editor
 
         // get the path where we want to edit the message
-        let path = matches.value_of("tempfile")
-                          .map(PathBuf::from)
-                          .unwrap_or(repo.commitmsg_edit_path());
+        let path = repo.commitmsg_edit_path(matches);
 
         { // write
             let mut file = try_or_1!(File::create(path.as_path()));
