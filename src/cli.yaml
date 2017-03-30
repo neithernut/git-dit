@@ -267,6 +267,10 @@ subcommands:
                 takes_value: true
                 value_names:
                     - commithash
+            - parent:
+                help: Message to which to reply to
+                index: 1
+                multiple: false
 
     - show:
         about: This uses 'git log' to print the issues.
