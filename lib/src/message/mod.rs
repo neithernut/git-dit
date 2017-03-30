@@ -51,6 +51,13 @@ pub trait LineIteratorExt<S>
     ///
     fn stripped(self) -> StripWhiteSpaceRightIter<WithoutCommentsIter<Self::Iter, S>, S>;
 
+    /// Create an iterator for quoting lines
+    ///
+    /// The iterator returned will prepend a `>` and, in the case of non-empty
+    /// lines, a space, to each item.
+    ///
+    fn quoted(self) -> quoted::Quoted<Self::Iter, S>;
+
     /// Create an iterator for categorizing lines
     ///
     /// The iterator returned by this function will return categorized lines.
@@ -90,6 +97,10 @@ impl<L, S> LineIteratorExt<S> for L
 
     fn stripped(self) -> StripWhiteSpaceRightIter<WithoutCommentsIter<Self::Iter, S>, S> {
         self.without_comments().strip_whitespace_right()
+    }
+
+    fn quoted(self) -> quoted::Quoted<Self::Iter, S> {
+        quoted::Quoted::from(self)
     }
 
     fn categorized_lines(self) -> line::Lines<Self::Iter, S> {
