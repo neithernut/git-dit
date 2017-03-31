@@ -7,9 +7,10 @@
 //   published by the Free Software Foundation.
 //
 
-#[macro_use] extern crate log;
 #[macro_use] extern crate clap;
 #[macro_use] extern crate error_chain;
+#[macro_use] extern crate log;
+extern crate chrono;
 extern crate git2;
 extern crate libgitdit;
 
@@ -19,6 +20,7 @@ mod programs;
 mod util;
 mod write;
 
+use chrono::{FixedOffset, TimeZone};
 use clap::App;
 use git2::{Commit, Oid, Repository};
 use libgitdit::iter::IssueMessagesIter;
@@ -143,6 +145,52 @@ fn get_issue_tree_init_hashes(repo: &Repository, _: &clap::ArgMatches) -> i32 {
 
 
 // Porcelain subcommand implementations
+
+/// list subcommand implementation
+///
+fn list_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
+    // get initial commits
+    let mut commits : Vec<Commit> = try_or_1!(repo.get_all_issue_hashes())
+        .abort_on_err()
+        .map(|oid| repo.find_commit(oid))
+        .abort_on_err()
+        .collect();
+
+    // descending order, maybe limited to some number specified by the user
+    commits.sort_by(|a, b| b.time().cmp(&a.time()));
+    if let Some(number) = matches.value_of("n") {
+        // TODO: better error reporting?
+        commits.truncate(try_or_1!(str::parse(number)));
+    }
+
+    let id_len = try_or_1!(repo.abbreviation_length(matches));
+
+    // spawn a pager
+    let mut pager = try_or_1!(programs::pager(try_or_1!(repo.config())));
+
+    {
+        let mut stream = pager.stdin.as_mut().unwrap();
+        let long = matches.is_present("long");
+        for mut commit in commits {
+            let id = commit.id();
+            let time = {
+                let gtime = commit.time();
+                FixedOffset::east(gtime.offset_minutes()*60).timestamp(gtime.seconds(), 0)
+            };
+            if long {
+                try_or_1!(write!(stream, "Issue:  {}\nAuthor: {}\nDate:   {}\n\n", id, commit.author(), time.to_rfc3339()));
+                try_or_1!(stream.consume_lines(commit.message_lines()));
+                try_or_1!(write!(stream, "\n\n"));
+            } else {
+                try_or_1!(writeln!(stream, "{0:.1$} ({2}) {3}", id, id_len, time.format("%c"), commit.summary().unwrap_or("")));
+            }
+        }
+    }
+
+    // don't trash the shell by exitting with a child still printing to it
+    try_or_1!(pager.wait()).code().unwrap_or(1)
+}
+
 
 /// new subcommand implementation
 ///
@@ -297,6 +345,7 @@ fn main() {
         ("get-issue-metadata",          Some(sub_matches)) => get_issue_metadata(&repo, sub_matches),
         ("get-issue-tree-init-hashes",  Some(sub_matches)) => get_issue_tree_init_hashes(&repo, sub_matches),
         // Porcelain subcommands
+        ("list",    Some(sub_matches)) => list_impl(&repo, sub_matches),
         ("new",     Some(sub_matches)) => new_impl(&repo, sub_matches),
         ("reply",   Some(sub_matches)) => reply_impl(&repo, sub_matches),
         // Unknown subcommands
