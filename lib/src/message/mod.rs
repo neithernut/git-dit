@@ -18,6 +18,7 @@ use std::vec;
 
 pub mod line;
 pub mod trailer;
+pub mod quoted;
 
 
 /// Special iterator extension for messages
@@ -49,6 +50,13 @@ pub trait LineIteratorExt<S>
     /// or end of a message.
     ///
     fn stripped(self) -> StripWhiteSpaceRightIter<WithoutCommentsIter<Self::Iter, S>, S>;
+
+    /// Create an iterator for quoting lines
+    ///
+    /// The iterator returned will prepend a `>` and, in the case of non-empty
+    /// lines, a space, to each item.
+    ///
+    fn quoted(self) -> quoted::Quoted<Self::Iter, S>;
 
     /// Create an iterator for categorizing lines
     ///
@@ -89,6 +97,10 @@ impl<L, S> LineIteratorExt<S> for L
 
     fn stripped(self) -> StripWhiteSpaceRightIter<WithoutCommentsIter<Self::Iter, S>, S> {
         self.without_comments().strip_whitespace_right()
+    }
+
+    fn quoted(self) -> quoted::Quoted<Self::Iter, S> {
+        quoted::Quoted::from(self)
     }
 
     fn categorized_lines(self) -> line::Lines<Self::Iter, S> {
