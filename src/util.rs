@@ -13,9 +13,9 @@ use std::fs::File;
 use std::io::BufRead;
 use std::io::BufReader;
 use std::path::PathBuf;
-use std::process::exit;
 use std::str::FromStr;
 
+use abort::IteratorExt;
 use error::ErrorKind as EK;
 use error::*;
 use programs::run_editor;
@@ -101,11 +101,7 @@ impl<'r> RepositoryUtil<'r> for Repository {
         // read the message back, check for validity
         let lines : Vec<String> = BufReader::new(File::open(path).chain_err(|| EK::WrappedIOError)?)
             .lines()
-            .map(|l| l.unwrap_or_else(|err| {
-                // abort on IO errors
-                error!("{:?}", err);
-                exit(1);
-            }))
+            .abort_on_err()
             .stripped()
             .collect();
 
