@@ -45,3 +45,22 @@ impl<I, V, E> Iterator for AbortingIter<I, V, E>
     }
 }
 
+
+/// Extension trait for convenient creation of `AbortingIter`s
+///
+pub trait IteratorExt<I, V, E>
+    where I: Iterator<Item = Result<V, E>> + Sized
+{
+    /// Wrap this instance in an aborting iterator
+    ///
+    fn abort_on_err(self) -> AbortingIter<I, V, E>;
+}
+
+impl<I, V, E> IteratorExt<I, V, E> for I
+    where I: Iterator<Item = Result<V, E>> + Sized
+{
+    fn abort_on_err(self) -> AbortingIter<I, V, E> {
+        AbortingIter::from(self)
+    }
+}
+
