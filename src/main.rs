@@ -13,6 +13,7 @@
 extern crate git2;
 extern crate libgitdit;
 
+mod abort;
 mod error;
 mod programs;
 mod util;
@@ -28,6 +29,7 @@ use std::io::{self, BufRead, BufReader, Read, Write};
 use std::path::PathBuf;
 use std::process::Command;
 
+use abort::IteratorExt;
 use error::ErrorKind as EK;
 use error::*;
 use util::{RepositoryUtil, message_from_args};
@@ -64,11 +66,7 @@ fn check_message(matches: &clap::ArgMatches) -> i32 {
         None            => Box::from(io::stdin()),
     };
     BufReader::new(reader).lines()
-                          .map(|l| l.unwrap_or_else(|err| {
-                              // abort on IO errors
-                              error!("{:?}", err);
-                              std::process::exit(1);
-                          }))
+                          .abort_on_err()
                           .skip_while(|l| l.is_empty())
                           .stripped()
                           .check_message_format()
