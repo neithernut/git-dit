@@ -75,9 +75,6 @@ and low level ("plumbing") commands.
 ## git-dit-get-issue-tree-init-hashes
     List all known issue hashes.
 
-## git-dit-extract-trailers
-    Extract meta-data from issue messages.
-
 ## git-dit-get-issue-metadata
     Extract meta-data from a thread in an issue.
 
