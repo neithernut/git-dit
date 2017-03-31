@@ -81,9 +81,6 @@ and low level ("plumbing") commands.
 ## git-dit-get-issue-metadata
     Extract meta-data from a thread in an issue.
 
-## git-dit-prepare-metadata
-    Prepare meta-data for use by `git-dit-extract-trailers`.
-
 
 # DISCUSSION
 
