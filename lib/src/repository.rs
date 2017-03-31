@@ -33,7 +33,7 @@ pub trait RepositoryExt {
     ///
     /// For a given message of an issue, find the initial message.
     ///
-    fn find_tree_init<'a>(&'a self, commit: Commit<'a>) -> Result<Commit>;
+    fn find_tree_init<'a>(&'a self, commit: &Commit<'a>) -> Result<Commit>;
 
     /// Get issue hashes for a prefix
     ///
@@ -86,11 +86,14 @@ impl RepositoryExt for Repository {
             .chain_err(|| EK::WrappedGitError)
     }
 
-    fn find_tree_init<'a>(&'a self, commit: Commit<'a>) -> Result<Commit> {
+    fn find_tree_init<'a>(&'a self, commit: &Commit<'a>) -> Result<Commit> {
         // follow the chain of first parents towards an initial message for
         // which a head exists
         let cid = commit.id();
-        for c in FirstParentIter::new(commit) {
+        // NOTE: The following is this ugly because `Clone` is not implemented
+        //       for `git2::Commit`. We take a reference because consuming the
+        //       commit doesn't make sense for this function, semantically.
+        for c in FirstParentIter::new(commit.as_object().clone().into_commit().ok().unwrap()) {
             let head = try!(self
                             .get_issue_heads(c.id())
                             .chain_err(|| EK::CannotFindIssueHead(c.id())));
