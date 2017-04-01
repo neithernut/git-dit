@@ -137,6 +137,7 @@ subcommands:
             - Julian Ganz <neither@nut.email>
         args:
             - n:
+                short: n
                 help: List only <n> issues
                 multiple: false
                 takes_value: true
