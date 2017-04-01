@@ -208,7 +208,7 @@ fn reply_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
     let issue = try_or_1!(repo.find_tree_init(&parent)).id();
 
     // get the references specified on the command line
-    let references = match matches.values_of("parents")
+    let references = match matches.values_of("reference")
                                .map(|p| repo.values_to_hashes(p)) {
         Some(hashes) => try_or_1!(hashes),
         _            => Vec::new(),
