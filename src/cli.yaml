@@ -271,6 +271,7 @@ subcommands:
                 help: Message to which to reply to
                 index: 1
                 multiple: false
+                required: true
 
     - show:
         about: This uses 'git log' to print the issues.
