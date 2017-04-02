@@ -165,6 +165,7 @@ subcommands:
                         Use this as issue message. If used multiple times, each
                         argument will be a paragraph in the commit message.
                 multiple: true
+                number_of_values: 1
                 takes_value: true
             - signoff:
                 short: s
@@ -199,6 +200,7 @@ subcommands:
                         where <value> is the desired new value to set.
                         Passing an empty value leaves the metadata empty.
                 multiple: true
+                number_of_values: 1
                 takes_value: true
                 value_names:
                     - data
@@ -233,6 +235,7 @@ subcommands:
                 long: message
                 help: Use this as issue message
                 multiple: true
+                number_of_values: 1
                 takes_value: true
             - signoff:
                 short: s
@@ -264,6 +267,7 @@ subcommands:
                 long: reference
                 help: Reference a commit or message in the new message
                 multiple: true
+                number_of_values: 1
                 takes_value: true
                 value_names:
                     - commithash
@@ -372,6 +376,7 @@ subcommands:
                 long: reference
                 help: Reference a commit or message in the new message
                 multiple: true
+                number_of_values: 1
                 takes_value: true
                 value_names:
                     - commithash
