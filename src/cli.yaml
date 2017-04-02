@@ -286,13 +286,9 @@ subcommands:
             - Matthias Beyer <mail@beyermatthias.de>
             - Julian Ganz <neither@nut.email>
         args:
-            - parent:
-                help: Parent
+            - issue:
+                help: Issue to show
                 index: 1
-                multiple: false
-            - tree-init-hash:
-                help: Tree init hash
-                index: 2
                 multiple: false
             - abbrev:
                 short: a
