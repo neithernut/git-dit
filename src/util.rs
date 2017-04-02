@@ -66,6 +66,10 @@ pub trait RepositoryUtil<'r> {
     /// Retrieve metadata from command line arguments
     ///
     fn prepare_trailers(&self, matches: &ArgMatches) -> Result<Vec<Trailer>>;
+
+    /// Get the abbreviation length for oids
+    ///
+    fn abbreviation_length(&self, matches: &ArgMatches) -> Result<usize>;
 }
 
 impl<'r> RepositoryUtil<'r> for Repository {
@@ -126,6 +130,31 @@ impl<'r> RepositoryUtil<'r> for Repository {
         }
 
         Ok(trailers)
+    }
+
+    fn abbreviation_length(&self, matches: &ArgMatches) -> Result<usize> {
+        if !matches.is_present("abbrev") {
+            // If the abbreviation option was not used, we can just use the
+            // known length of a hash.
+            // TODO: have this compile-time at some prominent place
+            return Ok(40);
+        }
+
+        // TODO: the following _might_ be simplified using the `programs::Var`
+        //       enum in the future.
+
+        if let Some(number) = matches.value_of("abbrev") {
+            // The abbreviation flas might have been specified with a value.
+            return str::parse(number).chain_err(|| EK::WrappedParseError);
+        }
+
+        if let Some(number) = self.config().and_then(|c| c.get_i32("core.abbrev")).ok() {
+            // The abbreviation flag might have been specified as a configuration option
+            return Ok(number as usize);
+        }
+
+        // TODO: use a larger number based on the number of objects in the repo
+        Ok(7)
     }
 }
 
