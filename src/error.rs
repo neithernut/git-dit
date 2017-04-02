@@ -19,6 +19,11 @@ error_chain! {
             display("TODO: Wrapped error")
         }
 
+        WrappedParseError {
+            description("TODO: Wrapped error")
+            display("TODO: Wrapped error")
+        }
+
         WrappedGitError {
             description("TODO: Wrapped error")
             display("TODO: Wrapped error")
