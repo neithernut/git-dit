@@ -106,20 +106,22 @@ subcommands:
             - Julian Ganz <neither@nut.email>
         args:
             - known:
+                short: k
                 help: also fetch known issues (those which visible through git dit list)
                 takes_value: false
                 multiple: false
             - prune:
+                short: p
                 help: Prune (as with git fetch)
                 takes_value: false
                 multiple: false
             - remote:
                 help: Remote to fetch from
-                index: 3
+                index: 1
                 multiple: false
             - issue:
                 help: Issue to fetch
-                index: 4
+                index: 2
                 multiple: true
 
     - list:
@@ -165,6 +167,7 @@ subcommands:
                         Use this as issue message. If used multiple times, each
                         argument will be a paragraph in the commit message.
                 multiple: true
+                number_of_values: 1
                 takes_value: true
             - signoff:
                 short: s
@@ -199,6 +202,7 @@ subcommands:
                         where <value> is the desired new value to set.
                         Passing an empty value leaves the metadata empty.
                 multiple: true
+                number_of_values: 1
                 takes_value: true
                 value_names:
                     - data
@@ -233,6 +237,7 @@ subcommands:
                 long: message
                 help: Use this as issue message
                 multiple: true
+                number_of_values: 1
                 takes_value: true
             - signoff:
                 short: s
@@ -264,6 +269,7 @@ subcommands:
                 long: reference
                 help: Reference a commit or message in the new message
                 multiple: true
+                number_of_values: 1
                 takes_value: true
                 value_names:
                     - commithash
@@ -271,6 +277,7 @@ subcommands:
                 help: Message to which to reply to
                 index: 1
                 multiple: false
+                required: true
 
     - show:
         about: This uses 'git log' to print the issues.
@@ -279,13 +286,9 @@ subcommands:
             - Matthias Beyer <mail@beyermatthias.de>
             - Julian Ganz <neither@nut.email>
         args:
-            - parent:
-                help: Parent
+            - issue:
+                help: Issue to show
                 index: 1
-                multiple: false
-            - tree-init-hash:
-                help: Tree init hash
-                index: 2
                 multiple: false
             - abbrev:
                 short: a
@@ -371,6 +374,7 @@ subcommands:
                 long: reference
                 help: Reference a commit or message in the new message
                 multiple: true
+                number_of_values: 1
                 takes_value: true
                 value_names:
                     - commithash
