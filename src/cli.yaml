@@ -106,20 +106,22 @@ subcommands:
             - Julian Ganz <neither@nut.email>
         args:
             - known:
+                short: k
                 help: also fetch known issues (those which visible through git dit list)
                 takes_value: false
                 multiple: false
             - prune:
+                short: p
                 help: Prune (as with git fetch)
                 takes_value: false
                 multiple: false
             - remote:
                 help: Remote to fetch from
-                index: 3
+                index: 1
                 multiple: false
             - issue:
                 help: Issue to fetch
-                index: 4
+                index: 2
                 multiple: true
 
     - list:
