@@ -24,10 +24,11 @@ mod write;
 
 use chrono::{FixedOffset, TimeZone};
 use clap::App;
-use git2::{Commit, ObjectType, Oid, Repository};
+use git2::{Commit, ObjectType, FetchOptions, FetchPrune, Oid, Repository};
 use libgitdit::iter::IssueMessagesIter;
 use libgitdit::message::trailer::Trailer;
 use libgitdit::message::{CommitExt, LineIteratorExt};
+use libgitdit::remote::RemoteExt;
 use libgitdit::repository::RepositoryExt;
 use log::LogLevel;
 use std::fs::File;
@@ -151,6 +152,39 @@ fn get_issue_tree_init_hashes(repo: &Repository, _: &clap::ArgMatches) -> i32 {
 
 
 // Porcelain subcommand implementations
+
+/// fetch subcommand implementation
+///
+fn fetch_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
+    // note: "remote" is always present since it is a required parameter
+    let mut remote = try_or_1!(repo.find_remote(matches.value_of("remote").unwrap()));
+
+    // accumulate the refspecs to fetch
+    let refspecs : Vec<String> = if let Some(issues) = matches.values_of("issue") {
+        // fetch a specific list of issues
+        let iter = issues.map(Oid::from_str).abort_on_err();
+        if matches.is_present("known") {
+            iter.chain(try_or_1!(repo.get_all_issue_hashes()).abort_on_err())
+                .filter_map(|issue| remote.issue_refspec(issue))
+                .collect()
+        } else {
+            iter.filter_map(|issue| remote.issue_refspec(issue))
+                .collect()
+        }
+    } else {
+        vec![remote.all_issues_refspec().unwrap()]
+    };
+
+    // set the options for the fetch
+    let mut fetch_options = FetchOptions::new();
+    fetch_options.prune(if matches.is_present("prune") { FetchPrune::On } else { FetchPrune::Unspecified });
+    fetch_options.remote_callbacks(callbacks::callbacks());
+
+    let refspec_refs : Vec<&str> = refspecs.iter().map(String::as_str).collect();
+    try_or_1!(remote.fetch(refspec_refs.as_ref(), Some(&mut fetch_options), None));
+    0
+}
+
 
 /// list subcommand implementation
 ///
@@ -393,6 +427,7 @@ fn main() {
         ("get-issue-metadata",          Some(sub_matches)) => get_issue_metadata(&repo, sub_matches),
         ("get-issue-tree-init-hashes",  Some(sub_matches)) => get_issue_tree_init_hashes(&repo, sub_matches),
         // Porcelain subcommands
+        ("fetch",   Some(sub_matches)) => fetch_impl(&repo, sub_matches),
         ("list",    Some(sub_matches)) => list_impl(&repo, sub_matches),
         ("new",     Some(sub_matches)) => new_impl(&repo, sub_matches),
         ("reply",   Some(sub_matches)) => reply_impl(&repo, sub_matches),
