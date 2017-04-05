@@ -243,13 +243,7 @@ fn reply_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
     let mut parent = try_or_1!(repo.value_to_commit(matches.value_of("parent").unwrap()));
 
     // extract the subject and tree from the parent
-    let subject = parent.summary().map(|s| {
-        if s.starts_with("Re: ") {
-            s.to_owned()
-        } else {
-            format!("Re: {}", s)
-        }
-    });
+    let subject = parent.reply_subject();
     let tree = try_or_1!(parent.tree());
 
     // figure out to what issue we reply
