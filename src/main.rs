@@ -250,11 +250,7 @@ fn reply_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
     let issue = try_or_1!(repo.find_tree_init(&parent)).id();
 
     // get the references specified on the command line
-    let references = match matches.values_of("reference")
-                               .map(|p| repo.values_to_hashes(p)) {
-        Some(hashes) => try_or_1!(hashes),
-        _            => Vec::new(),
-    };
+    let references = try_or_1!(repo.cli_references(matches));
 
     // get the message, either from the command line argument or an editor
     let message = if let Some(m) = message_from_args(matches) {
