@@ -149,6 +149,12 @@ pub trait CommitExt {
     /// Get an iterator over all the trailers in the commit message's body
     ///
     fn trailers(&self) -> trailer::Trailers<BodyLines, String>;
+
+    /// Get a suitable subject for a reply
+    ///
+    /// The subject returned will start with "Re: ".
+    ///
+    fn reply_subject(&mut self) -> Option<String>;
 }
 
 impl<'c> CommitExt for Commit<'c> {
@@ -171,6 +177,16 @@ impl<'c> CommitExt for Commit<'c> {
 
     fn trailers(&self) -> trailer::Trailers<BodyLines, String> {
         self.body_lines().trailers()
+    }
+
+    fn reply_subject(&mut self) -> Option<String> {
+        self.summary().map(|s| {
+            if s.starts_with("Re: ") {
+                s.to_owned()
+            } else {
+                format!("Re: {}", s)
+            }
+        })
     }
 }
 
