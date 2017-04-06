@@ -27,6 +27,7 @@ use git2::{Commit, Oid, Repository};
 use libgitdit::iter::IssueMessagesIter;
 use libgitdit::message::{CommitExt, LineIteratorExt};
 use libgitdit::repository::RepositoryExt;
+use log::LogLevel;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, Read, Write};
 use std::path::PathBuf;
@@ -332,6 +333,10 @@ fn handle_unknown_subcommand(name: &str, matches: &clap::ArgMatches) -> i32 {
 fn main() {
     let yaml    = load_yaml!("cli.yaml");
     let matches = App::from_yaml(yaml).get_matches();
+
+    if let Err(err) = logger::Logger::init(LogLevel::Warn) {
+        writeln!(io::stderr(), "Could not initialize logger: {}", err).ok();
+    }
 
     let repo = match util::open_dit_repo() {
         Ok(r) => r,
