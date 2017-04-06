@@ -16,6 +16,7 @@ extern crate libgitdit;
 
 mod abort;
 mod error;
+mod logger;
 mod programs;
 mod util;
 mod write;
