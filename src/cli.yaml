@@ -118,6 +118,7 @@ subcommands:
             - remote:
                 help: Remote to fetch from
                 index: 1
+                required: true
                 multiple: false
             - issue:
                 help: Issue to fetch
