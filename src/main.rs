@@ -34,8 +34,9 @@ use std::path::PathBuf;
 use std::process::Command;
 
 use abort::IteratorExt;
-use error::ErrorKind as EK;
 use error::*;
+use error::ErrorKind as EK;
+use logger::LoggableError;
 use util::{RepositoryUtil, message_from_args};
 use write::WriteExt;
 
@@ -44,8 +45,8 @@ use write::WriteExt;
 ///
 /// This macro is similar to the `try!` macro. It evaluates the expression
 /// passed. If the result the expression yields is ok, it will be unwrapped.
-/// Else the error will be printed using the `error!` macro and abort the
-/// function, returning `1`.
+/// Else the error will be printed using the `LoggableError` extension and abort
+/// the function, returning `1`.
 ///
 /// Note: using this macro in clauses usually doesn't make sense, since it
 ///       aborts the function by returning a numeric value.
@@ -54,7 +55,7 @@ macro_rules! try_or_1 {
     ($expr: expr) => {
         match $expr {
             Ok(v) => v,
-            Err(e)   => {error!("{:?}", e); return 1},
+            Err(e)   => {e.log(); return 1},
         }
     };
 }
@@ -75,7 +76,7 @@ fn check_message(matches: &clap::ArgMatches) -> i32 {
                           .stripped()
                           .check_message_format()
                           .map(|_| 0)
-                          .unwrap_or_else(|err| {error!("{:?}", err); 1})
+                          .unwrap_or_else(|err| {err.log(); 1})
 }
 
 
@@ -119,7 +120,7 @@ fn find_tree_init_hash(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
     repo.value_to_commit(matches.value_of("commit").unwrap())
         .and_then(|commit| repo.find_tree_init(&commit).chain_err(|| EK::WrappedGitDitError))
         .map(|commit| {println!("{}", commit.id()); 0})
-        .unwrap_or_else(|err| {error!("{}", err); 1})
+        .unwrap_or_else(|err| {err.log(); 1})
 }
 
 
@@ -326,7 +327,7 @@ fn handle_unknown_subcommand(name: &str, matches: &clap::ArgMatches) -> i32 {
     command.spawn()
            .and_then(|mut child| child.wait())
            .map(|result| result.code().unwrap_or(1))
-           .unwrap_or_else(|err| {error!("{}", err); 1})
+           .unwrap_or_else(|err| {err.log(); 1})
 }
 
 
@@ -340,7 +341,7 @@ fn main() {
 
     let repo = match util::open_dit_repo() {
         Ok(r) => r,
-        Err(e) => {error!("{}", e); std::process::exit(1)}
+        Err(e) => {e.log(); std::process::exit(1)}
     };
 
     std::process::exit(match matches.subcommand() {
