@@ -9,6 +9,7 @@
 
 use log::{self, LogRecord, LogLevel, LogMetadata};
 use io::{stderr, Write};
+use std::error::Error;
 use std::result::Result as RResult;
 
 
@@ -41,6 +42,27 @@ impl log::Log for Logger {
     fn log(&self, record: &LogRecord) {
         if self.enabled(record.metadata()) {
             writeln!(stderr(), "{}", record.args()).ok();
+        }
+    }
+}
+
+
+/// Convenience trait for logging error types
+///
+/// Logs all layers of an error using the `error!` macro.
+///
+pub trait LoggableError {
+    fn log(&self);
+}
+
+impl<E> LoggableError for E
+    where E: Error
+{
+    fn log(&self) {
+        let mut current = Some(self as &Error);
+        while let Some(err) = current {
+            error!("{}", err);
+            current = err.cause();
         }
     }
 }
