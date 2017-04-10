@@ -23,8 +23,9 @@ mod write;
 
 use chrono::{FixedOffset, TimeZone};
 use clap::App;
-use git2::{Commit, Oid, Repository};
+use git2::{Commit, ObjectType, Oid, Repository};
 use libgitdit::iter::IssueMessagesIter;
+use libgitdit::message::trailer::Trailer;
 use libgitdit::message::{CommitExt, LineIteratorExt};
 use libgitdit::repository::RepositoryExt;
 use log::LogLevel;
@@ -32,6 +33,7 @@ use std::fs::File;
 use std::io::{self, BufRead, BufReader, Read, Write};
 use std::path::PathBuf;
 use std::process::Command;
+use std::str::FromStr;
 
 use abort::IteratorExt;
 use error::*;
@@ -246,24 +248,14 @@ fn reply_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
     let mut parent = try_or_1!(repo.value_to_commit(matches.value_of("parent").unwrap()));
 
     // extract the subject and tree from the parent
-    let subject = parent.summary().map(|s| {
-        if s.starts_with("Re: ") {
-            s.to_owned()
-        } else {
-            format!("Re: {}", s)
-        }
-    });
+    let subject = parent.reply_subject();
     let tree = try_or_1!(parent.tree());
 
     // figure out to what issue we reply
     let issue = try_or_1!(repo.find_tree_init(&parent)).id();
 
     // get the references specified on the command line
-    let references = match matches.values_of("reference")
-                               .map(|p| repo.values_to_hashes(p)) {
-        Some(hashes) => try_or_1!(hashes),
-        _            => Vec::new(),
-    };
+    let references = try_or_1!(repo.cli_references(matches));
 
     // get the message, either from the command line argument or an editor
     let message = if let Some(m) = message_from_args(matches) {
@@ -306,6 +298,54 @@ fn reply_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
 
     // finally, create the message
     try_or_1!(repo.create_message(Some(&issue), &sig, &sig, message.trim(), &tree, &parent_refs));
+    0
+}
+
+/// tag subcommand implementation
+///
+fn tag_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
+    // NOTE: the issue-hash is a required parameter
+    let issue = try_or_1!(Oid::from_str(matches.value_of("issue-hash").unwrap()));
+
+    // get the head for the issue to tag
+    let mut issue_head = try_or_1!(repo.get_local_issue_head(issue));
+    let mut head_commit = try_or_1!(issue_head.peel(ObjectType::Commit)).into_commit().ok().unwrap();
+
+    if matches.is_present("list") {
+        // we only list the metadata
+        let trailers = IssueMessagesIter::new(head_commit, repo).flat_map(|c| c.trailers());
+        try_or_1!(io::stdout().consume_lines(trailers));
+        return 0;
+    }
+
+    // we produce a commit with status and references
+
+    // get references and trailers for the new commit
+    let references = try_or_1!(repo.cli_references(matches));
+    let trailers : Vec<Trailer> = matches.values_of("set-status")
+                                         .into_iter()
+                                         .flat_map(|values| values)
+                                         .map(Trailer::from_str)
+                                         .abort_on_err()
+                                         .collect();
+    if references.is_empty() && trailers.is_empty() {
+        warn!("No commit was created because no reference or tags were supplied.");
+        return 0;
+    }
+
+    // construct the message
+    let sig = try_or_1!(repo.signature());
+    let message = [head_commit.reply_subject().unwrap_or_default(), String::new()]
+        .to_vec()
+        .into_iter()
+        .chain(trailers.into_iter().map(|t| t.to_string()))
+        .collect_string();
+    let tree = try_or_1!(repo.empty_tree());
+    let parent_refs : Vec<&Commit> = Some(&head_commit).into_iter().chain(references.iter()).collect();
+    let new = try_or_1!(repo.commit(None, &sig, &sig, message.trim(), &tree, &parent_refs));
+
+    // update the head reference
+    try_or_1!(issue_head.set_target(new, "Issue head updated by git-dit-tag"));
     0
 }
 
@@ -355,6 +395,7 @@ fn main() {
         ("list",    Some(sub_matches)) => list_impl(&repo, sub_matches),
         ("new",     Some(sub_matches)) => new_impl(&repo, sub_matches),
         ("reply",   Some(sub_matches)) => reply_impl(&repo, sub_matches),
+        ("tag",     Some(sub_matches)) => tag_impl(&repo, sub_matches),
         // Unknown subcommands
         (name, sub_matches) => {
             let default = clap::ArgMatches::default();

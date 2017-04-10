@@ -367,9 +367,10 @@ subcommands:
             - set-status:
                 short: s
                 long: status
-                help: Set a 'Git-status' tag. Key-value pair expected.
-                multiple: false
-                takes_value: false
+                help: Set a tag. Key-value pair expected.
+                multiple: true
+                number_of_values: 1
+                takes_value: true
             - reference:
                 short: r
                 long: reference

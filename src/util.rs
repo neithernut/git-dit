@@ -48,6 +48,10 @@ pub trait RepositoryUtil<'r> {
     ///
     fn values_to_hashes(&'r self, values: Values) -> Result<Vec<Commit<'r>>>;
 
+    /// Retrieve the references from the command line
+    ///
+    fn cli_references(&'r self, matches: &ArgMatches) -> Result<Vec<Commit<'r>>>;
+
     /// Get the path to the file usually used to edit comit messages
     fn commitmsg_edit_path(&self, matches: &ArgMatches) -> PathBuf;
 
@@ -91,6 +95,12 @@ impl<'r> RepositoryUtil<'r> for Repository {
         matches.value_of("tempfile")
                .map(PathBuf::from)
                .unwrap_or_else(|| self.path().join("COMMIT_EDITMSG"))
+    }
+
+    fn cli_references(&'r self, matches: &ArgMatches) -> Result<Vec<Commit<'r>>> {
+        matches.values_of("reference")
+               .map(|p| self.values_to_hashes(p))
+               .unwrap_or(Ok(vec![]))
     }
 
     fn get_commit_msg(&self, path: PathBuf) -> Result<Vec<String>> {

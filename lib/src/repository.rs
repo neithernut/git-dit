@@ -7,7 +7,7 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
 
-use git2::{Commit, Oid, References, Repository, Signature, Tree};
+use git2::{Commit, Oid, Reference, References, Repository, Signature, Tree};
 
 use error::*;
 use error::ErrorKind as EK;
@@ -21,6 +21,10 @@ pub trait RepositoryExt {
     /// provided.
     ///
     fn get_issue_heads(&self, issue: Oid) -> Result<References>;
+
+    /// Get the local issue head for an issue
+    ///
+    fn get_local_issue_head(&self, issue: Oid) -> Result<Reference>;
 
     /// Get leaf references of an issue by its oid
     ///
@@ -78,6 +82,15 @@ impl RepositoryExt for Repository {
         let glob = format!("**/dit/{}/head", issue);
         self.references_glob(&glob)
             .chain_err(|| EK::WrappedGitError)
+    }
+
+    fn get_local_issue_head(&self, issue: Oid) -> Result<Reference> {
+        let glob = format!("refs/dit/{}/head", issue);
+        self.references_glob(&glob)
+            .chain_err(|| EK::WrappedGitError)?
+            .next()
+            .ok_or_else(|| Error::from_kind(EK::CannotFindIssueHead(issue)))
+            .and_then(|reference| reference.chain_err(|| EK::WrappedGitError))
     }
 
     fn get_issue_leaves(&self, issue: Oid) -> Result<References> {
