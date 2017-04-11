@@ -16,7 +16,7 @@ git2 = "0.6"
 log = "0.3"
 
 [dependencies.clap]
-version = "2.20"
+version = "2.23"
 default-features = false
 features = [ "suggestions", "color", "yaml" ]
 
