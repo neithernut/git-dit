@@ -221,6 +221,7 @@ subcommands:
             - remote:
                 help: Push to this remote
                 index: 1
+                required: true
                 multiple: false
             - issuehash:
                 help: Push this issue
