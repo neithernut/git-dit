@@ -8,7 +8,11 @@
 //
 
 use git2::{self, Cred, CredentialType, Error};
+use std::io::{self, Write};
 use std::result::Result as RResult;
+use std::str;
+
+use logger::LoggableError;
 
 
 /// Get credentials from the user
@@ -24,11 +28,27 @@ fn get_creds(url: &str, username: Option<&str>, types: CredentialType) -> RResul
 }
 
 
+/// Print sideband progress
+///
+fn print_sideband(data: &[u8]) -> bool {
+    let mut stderr = io::stderr();
+    // We don't consider output errors critical for sideband data.
+    match str::from_utf8(data) {
+        Ok(string) => write!(stderr, "remote: {}", string)
+                        .and_then(|_| stderr.flush())
+                        .ok().unwrap(),
+        Err(e) => e.log()
+    }
+    true
+}
+
+
 /// Callbacks to use for fetches and pushes
 ///
 pub fn callbacks() -> git2::RemoteCallbacks<'static> {
     let mut retval = git2::RemoteCallbacks::new();
     retval.credentials(get_creds);
+    retval.sideband_progress(print_sideband);
     retval
 }
 
