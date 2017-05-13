@@ -223,7 +223,7 @@ subcommands:
                 index: 1
                 required: true
                 multiple: false
-            - issuehash:
+            - issue:
                 help: Push this issue
                 index: 2
                 multiple: true
