@@ -24,7 +24,7 @@ mod write;
 
 use chrono::{FixedOffset, TimeZone};
 use clap::App;
-use git2::{Commit, ObjectType, FetchOptions, FetchPrune, Oid, Repository};
+use git2::{Commit, ObjectType, FetchOptions, FetchPrune, Oid, PushOptions, Repository};
 use libgitdit::iter::IssueMessagesIter;
 use libgitdit::message::trailer::Trailer;
 use libgitdit::message::{CommitExt, LineIteratorExt};
@@ -268,6 +268,43 @@ fn new_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
 }
 
 
+/// push subcommand implementation
+///
+fn push_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
+    // note: "remote" is always present since it is a required parameter
+    let mut remote = try_or_1!(repo.find_remote(matches.value_of("remote").unwrap()));
+
+    // accumulate the refspecs to push
+    let refspecs : Vec<String> = if let Some(issues) = matches.values_of("issue") {
+        // push a specific list of issues
+        issues.map(Oid::from_str).abort_on_err()
+              .map(|issue| repo.get_issue_refs(issue))
+              .abort_on_err()
+              .flat_map(git2::References::names)
+              .abort_on_err()
+              .map(String::from)
+              .collect()
+    } else {
+        try_or_1!(repo.get_issue_hashes("refs"))
+            .abort_on_err()
+            .map(|issue| repo.get_issue_refs(issue))
+            .abort_on_err()
+            .flat_map(git2::References::names)
+            .abort_on_err()
+            .map(String::from)
+            .collect()
+    };
+
+    // set the options for the push
+    let mut fetch_options = PushOptions::new();
+    fetch_options.remote_callbacks(callbacks::callbacks());
+
+    let refspec_refs : Vec<&str> = refspecs.iter().map(String::as_str).collect();
+    try_or_1!(remote.push(refspec_refs.as_ref(), Some(&mut fetch_options)));
+    0
+}
+
+
 /// reply subcommand implementation
 ///
 fn reply_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
@@ -430,6 +467,7 @@ fn main() {
         ("fetch",   Some(sub_matches)) => fetch_impl(&repo, sub_matches),
         ("list",    Some(sub_matches)) => list_impl(&repo, sub_matches),
         ("new",     Some(sub_matches)) => new_impl(&repo, sub_matches),
+        ("push",    Some(sub_matches)) => push_impl(&repo, sub_matches),
         ("reply",   Some(sub_matches)) => reply_impl(&repo, sub_matches),
         ("tag",     Some(sub_matches)) => tag_impl(&repo, sub_matches),
         // Unknown subcommands
