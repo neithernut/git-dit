@@ -16,6 +16,7 @@ extern crate regex;
 pub mod error;
 pub mod iter;
 pub mod message;
+pub mod remote;
 pub mod repository;
 
 mod first_parent_iter;
