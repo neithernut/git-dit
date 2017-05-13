@@ -7,7 +7,7 @@
 //   published by the Free Software Foundation.
 //
 
-use git2::{self, Cred, CredentialType, Error};
+use git2::{self, Cred, CredentialType, Error, Oid};
 use std::io::{self, Write};
 use std::result::Result as RResult;
 use std::str;
@@ -43,12 +43,26 @@ fn print_sideband(data: &[u8]) -> bool {
 }
 
 
+/// Print new and deleted messages
+///
+fn print_tip_updates(refname: &str, old: Oid, new: Oid) -> bool {
+    match (old.is_zero(), new.is_zero()) {
+        (false, false) => println!("[changed]:  {}", refname),
+        (true,  false) => println!("[new]:      {}", refname),
+        (false, true ) => println!("[deleted]:  {}", refname),
+        _ => {}
+    }
+    true
+}
+
+
 /// Callbacks to use for fetches and pushes
 ///
 pub fn callbacks() -> git2::RemoteCallbacks<'static> {
     let mut retval = git2::RemoteCallbacks::new();
     retval.credentials(get_creds);
     retval.sideband_progress(print_sideband);
+    retval.update_tips(print_tip_updates);
     retval
 }
 
