@@ -56,6 +56,17 @@ fn print_tip_updates(refname: &str, old: Oid, new: Oid) -> bool {
 }
 
 
+/// Print info regarding pushed refs
+///
+fn print_push_ref_updates(refname: &str, failmsg: Option<&str>) -> RResult<(), git2::Error> {
+    match failmsg {
+        None      => println!("[updated]:  {}", refname),
+        Some(msg) => println!("[error]:    {} ({})", refname, msg),
+    };
+    Ok(())
+}
+
+
 /// Callbacks to use for fetches and pushes
 ///
 pub fn callbacks() -> git2::RemoteCallbacks<'static> {
@@ -63,6 +74,7 @@ pub fn callbacks() -> git2::RemoteCallbacks<'static> {
     retval.credentials(get_creds);
     retval.sideband_progress(print_sideband);
     retval.update_tips(print_tip_updates);
+    retval.push_update_reference(print_push_ref_updates);
     retval
 }
 
