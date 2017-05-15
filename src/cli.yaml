@@ -293,6 +293,7 @@ subcommands:
                 help: Issue to show
                 index: 1
                 multiple: false
+                required: true
             - abbrev:
                 short: a
                 long: abbrev
