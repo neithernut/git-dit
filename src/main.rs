@@ -433,6 +433,7 @@ fn main() {
         ("reply",   Some(sub_matches)) => reply_impl(&repo, sub_matches),
         ("tag",     Some(sub_matches)) => tag_impl(&repo, sub_matches),
         // Unknown subcommands
+        ("", _) => { writeln!(io::stderr(), "{}", matches.usage()).ok(); 1 },
         (name, sub_matches) => {
             let default = clap::ArgMatches::default();
             handle_unknown_subcommand(name, sub_matches.unwrap_or(&default))
