@@ -33,6 +33,10 @@ pub trait RepositoryExt {
     ///
     fn get_issue_leaves(&self, issue: Oid) -> Result<References>;
 
+    /// Get all references for a specific issue
+    ///
+    fn get_issue_refs(&self, issue: Oid) -> Result<References>;
+
     /// Find the initial message of an issue
     ///
     /// For a given message of an issue, find the initial message.
@@ -95,6 +99,12 @@ impl RepositoryExt for Repository {
 
     fn get_issue_leaves(&self, issue: Oid) -> Result<References> {
         let glob = format!("**/dit/{}/leaves/*", issue);
+        self.references_glob(&glob)
+            .chain_err(|| EK::WrappedGitError)
+    }
+
+    fn get_issue_refs(&self, issue: Oid) -> Result<References> {
+        let glob = format!("refs/dit/{}/**", issue);
         self.references_glob(&glob)
             .chain_err(|| EK::WrappedGitError)
     }
