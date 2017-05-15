@@ -43,6 +43,7 @@ use abort::IteratorExt;
 use error::*;
 use error::ErrorKind as EK;
 use logger::LoggableError;
+use msgtree::{IntoTreeGraph, TreeGraphElemLine};
 use util::{RepositoryUtil, message_from_args};
 use write::WriteExt;
 
@@ -375,6 +376,27 @@ fn reply_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
     0
 }
 
+/// show subcommand implementation
+///
+fn show_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
+    // first, get us an iterator over all the commits
+    // NOTE: "issue" is a required parameter
+    let issue = try_or_1!(Oid::from_str(matches.value_of("issue").unwrap()));
+    let mut commits : Vec<(TreeGraphElemLine, Commit)> =
+        try_or_1!(repo.get_issue_revwalk(issue))
+            .abort_on_err()
+            .map(|oid| repo.find_commit(oid))
+            .abort_on_err()
+            .into_tree_graph()
+            .collect();
+
+    // TODO: reverse the iterator if necessary (chronological vs. "timeline")
+
+    // TODO: expand commits according to format (use `CommitTreeGraphLines`)
+    // TODO: print to stdout
+    0
+}
+
 /// tag subcommand implementation
 ///
 fn tag_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
@@ -471,6 +493,7 @@ fn main() {
         ("new",     Some(sub_matches)) => new_impl(&repo, sub_matches),
         ("push",    Some(sub_matches)) => push_impl(&repo, sub_matches),
         ("reply",   Some(sub_matches)) => reply_impl(&repo, sub_matches),
+        ("show",    Some(sub_matches)) => show_impl(&repo, sub_matches),
         ("tag",     Some(sub_matches)) => tag_impl(&repo, sub_matches),
         // Unknown subcommands
         ("", _) => { writeln!(io::stderr(), "{}", matches.usage()).ok(); 1 },
