@@ -1,0 +1,110 @@
+//   git-dit - the distributed issue tracker for git
+//   Copyright (C) 2016 Matthias Beyer <mail@beyermatthias.de>
+//   Copyright (C) 2016 Julian Ganz <neither@nut.email>
+//
+//   This program is free software; you can redistribute it and/or modify
+//   it under the terms of the GNU General Public License version 2 as
+//   published by the Free Software Foundation.
+//
+
+use git2::{Commit, Oid};
+use std::iter::FromIterator;
+
+
+/// Representation of graph elements used to display trees
+///
+pub enum TreeGraphElem {
+    Empty,
+    Following,
+    Mark(MarkType),
+}
+
+/// Representation of the type of mark
+///
+/// A mark may start or terminate a thread. This information is required for
+/// proper formatting in cases where the representation of a commit spreads
+/// across multiple lines.
+///
+#[derive(Clone, PartialEq)]
+pub enum MarkType {
+    Start,
+    Mid,
+    End
+}
+
+
+/// Representation of one line of tree graph elements
+///
+pub struct TreeGraphElemLine(Vec<TreeGraphElem>);
+
+impl TreeGraphElemLine {
+    /// Append a graph element to the line
+    pub fn append(&mut self, e: TreeGraphElem) {
+        self.0.push(e);
+    }
+}
+
+impl FromIterator<TreeGraphElem> for TreeGraphElemLine {
+    fn from_iter<I>(iter: I) -> Self
+        where I: IntoIterator<Item=TreeGraphElem>
+    { TreeGraphElemLine(iter.into_iter().collect()) }
+}
+
+
+/// Iterator generating graph elements for a series of commits
+///
+/// This iterator generates lines of tree graph elements from an iterator over
+/// commits. If the lines are printed in the order extracted from this iterator,
+/// it will result in a graph mirroring the topology of the commits on which the
+/// iterator is based.
+///
+pub struct TreeGraphElemLineIterator<'r, I>
+    where I: Iterator<Item = Commit<'r>>
+{
+    inner: I, // inner iterator over commits for which to display the graph
+    parents: Vec<Option<Oid>>, // currently tracked parents
+}
+
+impl<'r, I> Iterator for TreeGraphElemLineIterator<'r, I>
+    where I: Iterator<Item = Commit<'r>>
+{
+    type Item = (TreeGraphElemLine, Commit<'r>);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.inner.next().map(|commit| {
+            // We will definitely require the parent id in order to draw a graph.
+            // However, we only want to track the parent once, so we end up with
+            // nice horizontal merges in our graph.
+            let mut parent_update = commit.parent(0).as_ref().map(Commit::id).ok();
+
+            // generate graph elements for the parents currently tracked
+            let mut elems : TreeGraphElemLine = self.parents.iter_mut().map(|mut parent| {
+                match *parent {
+                    Some(id) => if commit.id() == id {
+                            // the current commit is a parent we were awaiting
+                            *parent = parent_update.take();
+                            let mark_type = if parent.is_some() { MarkType::Mid } else { MarkType::End };
+                            TreeGraphElem::Mark(mark_type)
+                        } else { TreeGraphElem::Following },
+                    None => TreeGraphElem::Empty,
+                }
+            }).collect();
+
+            if parent_update.is_some() {
+                // a history for the current commit doesn't yet exist, so we
+                // should create one
+                elems.append(TreeGraphElem::Mark(MarkType::Start));
+                self.parents.push(parent_update);
+            }
+
+            // keep the graph slim by removing parent trackig information that
+            // is no longer required from the back of the list
+            while self.parents.last().map(Option::is_none).unwrap_or(false) {
+                self.parents.pop();
+            }
+
+            (elems, commit)
+        })
+    }
+}
+

@@ -19,6 +19,7 @@ mod abort;
 mod callbacks;
 mod error;
 mod logger;
+mod msgtree;
 mod programs;
 mod util;
 mod write;
