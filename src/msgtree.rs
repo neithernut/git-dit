@@ -13,6 +13,7 @@ use std::iter::FromIterator;
 
 /// Representation of graph elements used to display trees
 ///
+#[derive(Clone, PartialEq)]
 pub enum TreeGraphElem {
     Empty,
     Following,
@@ -42,12 +43,46 @@ impl TreeGraphElemLine {
     pub fn append(&mut self, e: TreeGraphElem) {
         self.0.push(e);
     }
+
+    /// Transform into an iterator over lines for one commit
+    ///
+    pub fn commit_iterator(self) -> CommitTreeGraphLines {
+        CommitTreeGraphLines(self.0)
+    }
 }
 
 impl FromIterator<TreeGraphElem> for TreeGraphElemLine {
     fn from_iter<I>(iter: I) -> Self
         where I: IntoIterator<Item=TreeGraphElem>
     { TreeGraphElemLine(iter.into_iter().collect()) }
+}
+
+
+/// Iterator returning the graph elements for a single commit
+///
+/// Only the first line returned by the iterator will contain marks. The other
+/// lines will contain only "following" and "empty" such that "start" and "end"
+/// marks will delimit a thread.
+///
+pub struct CommitTreeGraphLines(Vec<TreeGraphElem>);
+
+impl Iterator for CommitTreeGraphLines {
+    type Item = TreeGraphElemLine;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let retval = TreeGraphElemLine(self.0.clone());
+
+        // marks shall only be part in the first line for each commit
+        for elem in self.0.iter_mut() {
+            match elem {
+                &mut TreeGraphElem::Mark(MarkType::End) => *elem = TreeGraphElem::Empty,
+                &mut TreeGraphElem::Mark(_) => *elem = TreeGraphElem::Following,
+                _ => {},
+            }
+        }
+
+        Some(retval)
+    }
 }
 
 
