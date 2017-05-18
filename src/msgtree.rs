@@ -143,3 +143,25 @@ impl<'r, I> Iterator for TreeGraphElemLineIterator<'r, I>
     }
 }
 
+
+/// Extension trait for convenient creation of graph iterators from commits
+///
+pub trait IntoTreeGraph<'r, I>
+    where I: Iterator<Item = Commit<'r>>
+{
+    /// Transform self into a tree graph iterator
+    ///
+    /// The iterator on which this function is used must return a message only
+    /// after all the replies to that message.
+    ///
+    fn into_tree_graph(self) -> TreeGraphElemLineIterator<'r, I>;
+}
+
+impl<'r, I> IntoTreeGraph<'r, I> for I
+    where I: Iterator<Item = Commit<'r>>
+{
+    fn into_tree_graph(self) -> TreeGraphElemLineIterator<'r, Self> {
+        TreeGraphElemLineIterator { inner: self, parents: vec![] }
+    }
+}
+
