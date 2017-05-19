@@ -43,7 +43,7 @@ use abort::IteratorExt;
 use error::*;
 use error::ErrorKind as EK;
 use logger::LoggableError;
-use msgtree::{IntoTreeGraph, TreeGraphElemLine};
+use msgtree::{IntoTreeGraph, TreeGraphElem, TreeGraphElemLine};
 use util::{RepositoryUtil, message_from_args};
 use write::WriteExt;
 
@@ -390,10 +390,34 @@ fn show_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
             .into_tree_graph()
             .collect();
 
-    // TODO: reverse the iterator if necessary (chronological vs. "timeline")
+    // Decide on the order in which the messages will be printed.
+    if matches.is_present("tree") {
+        // We want the commits in chronological order
+        commits.reverse();
+        for commit in commits.iter_mut() {
+            commit.0.reverse_marks();
+        }
+    };
 
-    // TODO: expand commits according to format (use `CommitTreeGraphLines`)
+    // Transform the simple graph element line into an iterator over lines to
+    // print via multiple steps.
+    let graph = commits
+        .into_iter()
+        // expand the graph element lines for each message
+        .map(|commit| {
+            let mut elems = commit.0;
+            // offset the commit from the graph elements by adding an empty one
+            // in between
+            elems.append(TreeGraphElem::Empty);
+            (elems.commit_iterator(), commit.1)
+        })
+        // expand the message to a series of lines
+        .flat_map(|commit| commit.0.zip(vec![commit.1.id().to_string(), String::new()]))
+        // combine each line of graph elements and message
+        .map(|line| format!("{} {}", line.0, line.1));
+
     // TODO: print to stdout
+
     0
 }
 
