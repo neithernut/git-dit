@@ -8,6 +8,7 @@
 //
 
 use git2::{Commit, Oid};
+use std::fmt::{self, Write};
 use std::iter::FromIterator;
 
 
@@ -68,6 +69,21 @@ impl FromIterator<TreeGraphElem> for TreeGraphElemLine {
     fn from_iter<I>(iter: I) -> Self
         where I: IntoIterator<Item=TreeGraphElem>
     { TreeGraphElemLine(iter.into_iter().collect()) }
+}
+
+impl fmt::Display for TreeGraphElemLine {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        let mut has_mark = false;
+        for elem in self.0.iter() {
+            f.write_char(if is_match!(elem, &TreeGraphElem::Mark(_)) {
+                has_mark = true;
+                '+'
+            } else {
+                if has_mark { '-' } else { elem.to_char() }
+            })?;
+        }
+        Ok(())
+    }
 }
 
 
