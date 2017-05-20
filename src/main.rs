@@ -416,9 +416,14 @@ fn show_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
         // combine each line of graph elements and message
         .map(|line| format!("{} {}", line.0, line.1));
 
-    // TODO: print to stdout
+    // spawn a pager and write the graph
+    let mut pager = try_or_1!(programs::pager(try_or_1!(repo.config())));
+    try_or_1!(pager.stdin.as_mut().unwrap().consume_lines(graph));
 
-    0
+    // don't trash the shell by exitting with a child still printing to it
+    try_or_1!(pager.wait())
+        .code()
+        .unwrap_or(1)
 }
 
 /// tag subcommand implementation
