@@ -47,6 +47,18 @@ pub enum MarkType {
     End
 }
 
+impl MarkType {
+    /// Replace `Start` with `End` and the other way round
+    ///
+    pub fn reverse(&mut self) {
+        match self {
+            &mut MarkType::Start => *self = MarkType::End,
+            &mut MarkType::End   => *self = MarkType::Start,
+            _ => {},
+        }
+    }
+}
+
 
 /// Representation of one line of tree graph elements
 ///
@@ -56,6 +68,17 @@ impl TreeGraphElemLine {
     /// Append a graph element to the line
     pub fn append(&mut self, e: TreeGraphElem) {
         self.0.push(e);
+    }
+
+    /// Reverse "start" and "end" marks
+    ///
+    pub fn reverse_marks(&mut self) {
+        for elem in self.0.iter_mut() {
+            match elem {
+                &mut TreeGraphElem::Mark(ref mut mt) => mt.reverse(),
+                _ => {},
+            }
+        }
     }
 
     /// Transform into an iterator over lines for one commit
