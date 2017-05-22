@@ -7,6 +7,25 @@
 //   published by the Free Software Foundation.
 //
 
+//! Helper types for displaying message trees
+//!
+//! This module provides multiple helper types which may be used for generating
+//! a textual tree representation from a commit sequence, e.g. using the
+//! `IntoTreeGraph` convenience trait. The commit sequence has to be ordered
+//! such that the iterator returns message's parents only after all replies have
+//! been returned.
+//!
+//! The graph is represented using columns of `TreeGraphElem`s. Each single
+//! column represents a slot availible for the representation of a thread, with
+//! a `TreeGraphElem::Mark` denoting commits. A line may contain multiple marks,
+//! in which case the commit represented by the line is a merge-point for the
+//! threads on which the marks are placed. Within a column, marks are connected
+//! via the `TreeGraphElem::Following` element. An `TreeGraphElem::Empty`
+//! element may be used as a place holder if a column is not occupied by a
+//! thread.
+//!
+
+
 use git2::{Commit, Oid};
 use std::fmt::{self, Write};
 use std::iter::FromIterator;
