@@ -20,6 +20,19 @@ pub enum TreeGraphElem {
     Mark(MarkType),
 }
 
+impl TreeGraphElem {
+    /// Get the character for the tree graph element
+    ///
+    pub fn to_char(&self) -> char {
+        match self {
+            &TreeGraphElem::Empty     => ' ',
+            &TreeGraphElem::Following => '|',
+            &TreeGraphElem::Mark(_)   => '+',
+        }
+    }
+}
+
+
 /// Representation of the type of mark
 ///
 /// A mark may start or terminate a thread. This information is required for
