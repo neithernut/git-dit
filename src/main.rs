@@ -410,12 +410,16 @@ fn show_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
     // NOTE: "issue" is a required parameter
     let issue = try_or_1!(Oid::from_str(matches.value_of("issue").unwrap()));
     let mut commits : Vec<(TreeGraphElemLine, Commit)> =
-        try_or_1!(repo.get_issue_revwalk(issue))
-            .abort_on_err()
-            .map(|oid| repo.find_commit(oid))
-            .abort_on_err()
-            .into_tree_graph()
-            .collect();
+        if matches.is_present("initial") {
+            vec![(TreeGraphElemLine::empty(), try_or_1!(repo.find_commit(issue)))]
+        } else {
+            try_or_1!(repo.get_issue_revwalk(issue))
+                .abort_on_err()
+                .map(|oid| repo.find_commit(oid))
+                .abort_on_err()
+                .into_tree_graph()
+                .collect()
+        };
 
     // Decide on the order in which the messages will be printed.
     if matches.is_present("tree") {
