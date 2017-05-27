@@ -84,6 +84,10 @@ impl MarkType {
 pub struct TreeGraphElemLine(Vec<TreeGraphElem>);
 
 impl TreeGraphElemLine {
+    pub fn empty() -> TreeGraphElemLine {
+        TreeGraphElemLine(vec![])
+    }
+
     /// Append a graph element to the line
     pub fn append(&mut self, e: TreeGraphElem) {
         self.0.push(e);
