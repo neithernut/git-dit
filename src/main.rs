@@ -379,6 +379,33 @@ fn reply_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
 /// show subcommand implementation
 ///
 fn show_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
+    let id_len = try_or_1!(repo.abbreviation_length(matches));
+
+    // translate commit to lines representing the commit
+    let commit_lines = |mut commit: Commit| -> Vec<String> {
+        // the function is this ugly to comply to the old bash interface
+        if matches.is_present("msgtree") {
+            // With the "tree" option, we only display subjects in a short
+            // format
+
+            // NOTE: the commit is borrowed mutable in order to get the subject
+            let subject = commit.summary().unwrap_or("").to_owned();
+            vec![format!("{0:.1$} {2}: {3}", commit.id(), id_len, commit.author(), subject)]
+        } else {
+            let mut id = commit.id().to_string();
+            id.truncate(id_len);
+            // Regular "long" format
+            vec![
+                id,
+                commit.author().to_string(),
+                String::new()
+            ].into_iter()
+                .chain(commit.message_lines())
+                .chain(vec![String::new()].into_iter())
+                .collect()
+        }
+    };
+
     // first, get us an iterator over all the commits
     // NOTE: "issue" is a required parameter
     let issue = try_or_1!(Oid::from_str(matches.value_of("issue").unwrap()));
@@ -412,7 +439,7 @@ fn show_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
             (elems.commit_iterator(), commit.1)
         })
         // expand the message to a series of lines
-        .flat_map(|commit| commit.0.zip(vec![commit.1.id().to_string(), String::new()]))
+        .flat_map(|commit| commit.0.zip(commit_lines(commit.1)))
         // combine each line of graph elements and message
         .map(|line| format!("{} {}", line.0, line.1));
 
