@@ -34,11 +34,6 @@ error_chain! {
             display("TODO: Wrapped error")
         }
 
-        ConfigError(configname: String) {
-            description("Could not find config")
-            display("Could not find config: {}", configname)
-        }
-
         ProgramError(program_name: String) {
             description("Could not find some configuration or ENV variable specifying a program")
             display("Could not find {} configuration or ENV variable", program_name)
