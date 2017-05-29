@@ -200,6 +200,13 @@ impl<'l> TrailerCollector<'l> {
 }
 
 
+/// Iterator extracting trailers from a sequence of strings representing lines
+///
+/// This iterator extracts all trailers from a text provided by the wrapped
+/// iterator over the text's lines. Blocks of lines which contain regular lines
+/// of text are ignored. Only trailers which are part of a pure block of
+/// trailers, delimited by blank lines, are returned by the iterator.
+///
 pub struct Trailers<I, S>
     where I: Iterator<Item = S>,
           S: AsRef<str>
