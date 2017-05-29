@@ -269,6 +269,9 @@ impl<I, S> Iterator for Trailers<I, S>
 
 }
 
+
+/// Iterator extracting DIT trailers from an iterator over trailers
+///
 pub struct DitTrailers<I, S>(Trailers<I, S>)
     where I: Iterator<Item = S>,
           S: AsRef<str>;
