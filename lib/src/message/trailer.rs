@@ -154,12 +154,22 @@ impl FromStr for Trailer {
 
 /// Helper type for colecting trailers in a linked list
 ///
+/// This collector helps parsing blocks of test such that a block contains only
+/// lines of text or trailers. In such a situation, we may need to collect
+/// trailers as long as the block of text "looks" like a block of trailers but
+/// dump them as soon as the block turns out to be a block of text.
+///
+/// This collector holds this state and offers the functionality for collecting
+/// trailers transparently.
+///
 enum TrailerCollector<'l> {
     Collecting(&'l mut VecDeque<Trailer>),
     Dumping,
 }
 
 impl<'l> TrailerCollector<'l> {
+    /// Create a new trailer collector collecting into a target
+    ///
     pub fn new(target: &'l mut VecDeque<Trailer>) -> Self {
         TrailerCollector::Collecting(target)
     }
