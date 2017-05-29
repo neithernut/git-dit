@@ -101,7 +101,11 @@ impl Display for TrailerValue {
     }
 }
 
-/// The combination of a TrailerKey and a TrailerValue
+/// Trailer representation
+///
+/// A trailer is nothing but the combination of a `TrailerKey` and a
+/// `TrailerValue`.
+///
 #[derive(Debug, Hash, Eq, PartialEq, Ord, PartialOrd, Clone)]
 pub struct Trailer {
     pub key: TrailerKey,
@@ -109,6 +113,8 @@ pub struct Trailer {
 }
 
 impl Trailer {
+    /// Create a trailer from a key and the string representation of its value
+    ///
     pub fn new(key: &str, value: &str) -> Trailer {
         Trailer {
             key  : TrailerKey::from(String::from(key)),
