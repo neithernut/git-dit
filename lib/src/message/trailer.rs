@@ -7,6 +7,13 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
 
+//! Trailer related functionality
+//!
+//! This module offers types and functionality for handling git-trailers.
+//! Trailers are key-value pairs which may be embedded in a message. "git-dit"
+//! uses trailers as storage for issue metadata.
+//!
+
 use message::line::{Line, Lines};
 use regex::Regex;
 use std::collections::VecDeque;
