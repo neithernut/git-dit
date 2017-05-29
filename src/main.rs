@@ -35,7 +35,6 @@ use libgitdit::repository::RepositoryExt;
 use log::LogLevel;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, Read, Write};
-use std::path::PathBuf;
 use std::process::Command;
 use std::str::FromStr;
 
