@@ -9,6 +9,7 @@
 
 #[macro_use] extern crate clap;
 #[macro_use] extern crate error_chain;
+#[macro_use] extern crate is_match;
 #[macro_use] extern crate log;
 extern crate chrono;
 extern crate git2;
@@ -18,6 +19,7 @@ mod abort;
 mod callbacks;
 mod error;
 mod logger;
+mod msgtree;
 mod programs;
 mod util;
 mod write;
@@ -41,6 +43,7 @@ use abort::IteratorExt;
 use error::*;
 use error::ErrorKind as EK;
 use logger::LoggableError;
+use msgtree::{IntoTreeGraph, TreeGraphElem, TreeGraphElemLine};
 use util::{RepositoryUtil, message_from_args};
 use write::WriteExt;
 
@@ -373,6 +376,87 @@ fn reply_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
     0
 }
 
+/// show subcommand implementation
+///
+fn show_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
+    let id_len = try_or_1!(repo.abbreviation_length(matches));
+
+    // translate commit to lines representing the commit
+    let commit_lines = |mut commit: Commit| -> Vec<String> {
+        // the function is this ugly to comply to the old bash interface
+        if matches.is_present("msgtree") {
+            // With the "tree" option, we only display subjects in a short
+            // format
+
+            // NOTE: the commit is borrowed mutable in order to get the subject
+            let subject = commit.summary().unwrap_or("").to_owned();
+            vec![format!("{0:.1$} {2}: {3}", commit.id(), id_len, commit.author(), subject)]
+        } else {
+            let mut id = commit.id().to_string();
+            id.truncate(id_len);
+            // Regular "long" format
+            vec![
+                id,
+                commit.author().to_string(),
+                String::new()
+            ].into_iter()
+                .chain(commit.message_lines())
+                .chain(vec![String::new()].into_iter())
+                .collect()
+        }
+    };
+
+    // first, get us an iterator over all the commits
+    // NOTE: "issue" is a required parameter
+    let issue = try_or_1!(Oid::from_str(matches.value_of("issue").unwrap()));
+    let mut commits : Vec<(TreeGraphElemLine, Commit)> =
+        if matches.is_present("initial") {
+            vec![(TreeGraphElemLine::empty(), try_or_1!(repo.find_commit(issue)))]
+        } else {
+            try_or_1!(repo.get_issue_revwalk(issue))
+                .abort_on_err()
+                .map(|oid| repo.find_commit(oid))
+                .abort_on_err()
+                .into_tree_graph()
+                .collect()
+        };
+
+    // Decide on the order in which the messages will be printed.
+    if matches.is_present("tree") {
+        // We want the commits in chronological order
+        commits.reverse();
+        for commit in commits.iter_mut() {
+            commit.0.reverse_marks();
+        }
+    };
+
+    // Transform the simple graph element line into an iterator over lines to
+    // print via multiple steps.
+    let graph = commits
+        .into_iter()
+        // expand the graph element lines for each message
+        .map(|commit| {
+            let mut elems = commit.0;
+            // offset the commit from the graph elements by adding an empty one
+            // in between
+            elems.append(TreeGraphElem::Empty);
+            (elems.commit_iterator(), commit.1)
+        })
+        // expand the message to a series of lines
+        .flat_map(|commit| commit.0.zip(commit_lines(commit.1)))
+        // combine each line of graph elements and message
+        .map(|line| format!("{} {}", line.0, line.1));
+
+    // spawn a pager and write the graph
+    let mut pager = try_or_1!(programs::pager(try_or_1!(repo.config())));
+    try_or_1!(pager.stdin.as_mut().unwrap().consume_lines(graph));
+
+    // don't trash the shell by exitting with a child still printing to it
+    try_or_1!(pager.wait())
+        .code()
+        .unwrap_or(1)
+}
+
 /// tag subcommand implementation
 ///
 fn tag_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
@@ -469,6 +553,7 @@ fn main() {
         ("new",     Some(sub_matches)) => new_impl(&repo, sub_matches),
         ("push",    Some(sub_matches)) => push_impl(&repo, sub_matches),
         ("reply",   Some(sub_matches)) => reply_impl(&repo, sub_matches),
+        ("show",    Some(sub_matches)) => show_impl(&repo, sub_matches),
         ("tag",     Some(sub_matches)) => tag_impl(&repo, sub_matches),
         // Unknown subcommands
         ("", _) => { writeln!(io::stderr(), "{}", matches.usage()).ok(); 1 },

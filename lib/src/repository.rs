@@ -7,7 +7,7 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
 
-use git2::{Commit, Oid, Reference, References, Repository, Signature, Tree};
+use git2::{self, Commit, Oid, Reference, References, Repository, Revwalk, Signature, Tree};
 
 use error::*;
 use error::ErrorKind as EK;
@@ -36,6 +36,10 @@ pub trait RepositoryExt {
     /// Get all references for a specific issue
     ///
     fn get_issue_refs(&self, issue: Oid) -> Result<References>;
+
+    /// Get a revwalk for traversing all messages of an issue
+    ///
+    fn get_issue_revwalk(&self, issue: Oid) -> Result<Revwalk>;
 
     /// Find the initial message of an issue
     ///
@@ -106,6 +110,18 @@ impl RepositoryExt for Repository {
     fn get_issue_refs(&self, issue: Oid) -> Result<References> {
         let glob = format!("refs/dit/{}/**", issue);
         self.references_glob(&glob)
+            .chain_err(|| EK::WrappedGitError)
+    }
+
+    fn get_issue_revwalk(&self, issue: Oid) -> Result<Revwalk> {
+        let glob = format!("**/dit/{}/**", issue);
+        self.revwalk()
+            .and_then(|mut revwalk| {
+                revwalk.push_glob(glob.as_ref())?;
+                revwalk.simplify_first_parent();
+                revwalk.set_sorting(git2::SORT_TOPOLOGICAL);
+                Ok(revwalk)
+            })
             .chain_err(|| EK::WrappedGitError)
     }
 
