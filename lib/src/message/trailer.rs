@@ -65,7 +65,11 @@ pub enum TrailerValue {
 }
 
 impl TrailerValue {
-
+    /// Parse a `TrailerValue` from a string slice
+    ///
+    /// This function will try to parse an integer and fall back to a plain
+    /// string.
+    ///
     pub fn from_slice(slice: &str) -> TrailerValue {
         use std::str::FromStr;
 
