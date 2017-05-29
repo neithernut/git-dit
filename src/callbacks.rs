@@ -17,6 +17,7 @@ use logger::LoggableError;
 
 /// Get credentials from the user
 ///
+#[allow(unused)]
 fn get_creds(url: &str, username: Option<&str>, types: CredentialType) -> RResult<Cred, Error> {
     // TODO: implement other authentication methods
     if types.contains(git2::SSH_KEY) {
