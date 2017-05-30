@@ -14,6 +14,11 @@ use repository::RepositoryExt;
 use error::*;
 use error::ErrorKind as EK;
 
+/// Iterator for transforming the names of head references to issues
+///
+/// This iterator wrapps a `ReferenceNames` iterator and returns issues
+/// associated to the head references returned by the wrapped iterator.
+///
 pub struct HeadRefsToIssuesIter<'r>(ReferenceNames<'r>);
 
 impl<'r> Iterator for HeadRefsToIssuesIter<'r> {
