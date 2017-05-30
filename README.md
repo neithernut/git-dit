@@ -7,8 +7,7 @@ system using git. For a system overview and conceptual information, refer to the
 
 ---
 
-**WARNING: This is a proof of concept. This shows how we think distributed issue
-tracking in git should work. Expect bugs and incompatibilities!**
+**WARNING: This is pre-1.0! Expect bugs and incompatibilities!**
 
 ---
 
