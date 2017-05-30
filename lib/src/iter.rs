@@ -7,6 +7,11 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
 
+//! Utility iterators
+//!
+//! This module provides various iterators.
+//!
+
 use first_parent_iter::FirstParentIter;
 use git2::{Commit, Oid, Repository, References, ReferenceNames};
 use repository::RepositoryExt;
