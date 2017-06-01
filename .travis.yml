@@ -16,3 +16,5 @@ addons:
       - cmake
       - cmake-data
       - pandoc
+env:
+  - BUILD_GIT_DIT_MAN=1
