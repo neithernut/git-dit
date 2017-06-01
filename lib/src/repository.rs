@@ -13,7 +13,7 @@
 //! issue handling utilities for repositories.
 //!
 
-use git2::{self, Commit, Oid, Reference, References, Repository, Revwalk, Signature, Tree};
+use git2::{Commit, Oid, Repository, Signature, Tree};
 
 use issue::Issue;
 use error::*;
@@ -34,32 +34,6 @@ pub trait RepositoryExt {
     /// Returns the issue with a given id.
     ///
     fn find_issue(&self, id: Oid) -> Result<Issue>;
-
-    /// Get possible heads of an issue by its oid
-    ///
-    /// Returns heads from both the local repository and remotes for the issue
-    /// provided.
-    ///
-    fn get_issue_heads(&self, issue: Oid) -> Result<References>;
-
-    /// Get the local issue head for an issue
-    ///
-    fn get_local_issue_head(&self, issue: Oid) -> Result<Reference>;
-
-    /// Get leaf references of an issue by its oid
-    ///
-    /// Returns leaf references from both the local repository and remotes for
-    /// the issue provided.
-    ///
-    fn get_issue_leaves(&self, issue: Oid) -> Result<References>;
-
-    /// Get all references for a specific issue
-    ///
-    fn get_issue_refs(&self, issue: Oid) -> Result<References>;
-
-    /// Get a revwalk for traversing all messages of an issue
-    ///
-    fn get_issue_revwalk(&self, issue: Oid) -> Result<Revwalk>;
 
     /// Find the initial message of an issue
     ///
@@ -116,45 +90,6 @@ impl RepositoryExt for Repository {
         } else {
             Err(Error::from_kind(EK::CannotFindIssueHead(id)))
         }
-    }
-
-    fn get_issue_heads(&self, issue: Oid) -> Result<References> {
-        let glob = format!("**/dit/{}/head", issue);
-        self.references_glob(&glob)
-            .chain_err(|| EK::CannotGetReferences(glob))
-    }
-
-    fn get_local_issue_head(&self, issue: Oid) -> Result<Reference> {
-        let glob = format!("refs/dit/{}/head", issue);
-        self.references_glob(&glob)
-            .chain_err(|| EK::CannotGetReferences(glob))?
-            .next()
-            .ok_or_else(|| Error::from_kind(EK::CannotFindIssueHead(issue)))
-            .and_then(|reference| reference.chain_err(|| EK::ReferenceNameError))
-    }
-
-    fn get_issue_leaves(&self, issue: Oid) -> Result<References> {
-        let glob = format!("**/dit/{}/leaves/*", issue);
-        self.references_glob(&glob)
-            .chain_err(|| EK::CannotGetReferences(glob))
-    }
-
-    fn get_issue_refs(&self, issue: Oid) -> Result<References> {
-        let glob = format!("refs/dit/{}/**", issue);
-        self.references_glob(&glob)
-            .chain_err(|| EK::CannotGetReferences(glob))
-    }
-
-    fn get_issue_revwalk(&self, issue: Oid) -> Result<Revwalk> {
-        let glob = format!("**/dit/{}/**", issue);
-        self.revwalk()
-            .and_then(|mut revwalk| {
-                revwalk.push_glob(glob.as_ref())?;
-                revwalk.simplify_first_parent();
-                revwalk.set_sorting(git2::SORT_TOPOLOGICAL);
-                Ok(revwalk)
-            })
-            .chain_err(|| EK::CannotGetReferences(glob))
     }
 
     fn find_tree_init<'a>(&'a self, commit: &Commit<'a>) -> Result<Commit> {
