@@ -13,3 +13,4 @@ addons:
     packages:
       - cmake
       - cmake-data
+      - pandoc
