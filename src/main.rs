@@ -419,7 +419,8 @@ fn show_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
         if matches.is_present("initial") {
             vec![(TreeGraphElemLine::empty(), try_or_1!(repo.find_commit(issue)))]
         } else {
-            try_or_1!(repo.get_issue_revwalk(issue))
+            try_or_1!(repo.find_issue(issue)
+                          .and_then(|issue| issue.message_revwalk()))
                 .abort_on_err()
                 .map(|oid| repo.find_commit(oid))
                 .abort_on_err()
