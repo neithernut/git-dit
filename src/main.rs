@@ -471,7 +471,8 @@ fn tag_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
     let issue = try_or_1!(Oid::from_str(matches.value_of("issue-hash").unwrap()));
 
     // get the head for the issue to tag
-    let mut issue_head = try_or_1!(repo.get_local_issue_head(issue));
+    let mut issue_head = try_or_1!(repo.find_issue(issue)
+                                       .and_then(|issue| issue.find_local_head()));
     let mut head_commit = try_or_1!(issue_head.peel(ObjectType::Commit)).into_commit().ok().unwrap();
 
     if matches.is_present("list") {
