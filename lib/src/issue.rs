@@ -12,9 +12,12 @@
 //! This module provides the `Issue` type and related functionality.
 //!
 
-use git2::{self, Oid};
+use git2::{self, Oid, References};
 use std::fmt;
 use std::result::Result as RResult;
+
+use error::*;
+use error::ErrorKind as EK;
 
 
 /// Issue handle
@@ -38,6 +41,18 @@ impl<'r> Issue<'r> {
     ///
     pub fn id(&self) -> Oid {
         self.id
+    }
+
+    /// Get possible heads of the issue
+    ///
+    /// Returns the head references from both the local repository and remotes
+    /// for this issue.
+    ///
+    pub fn heads(&self) -> Result<References<'r>> {
+        let glob = format!("**/dit/{}/head", self.unique_ref_part());
+        self.repo
+            .references_glob(&glob)
+            .chain_err(|| EK::CannotFindIssueHead(self.id))
     }
 
     /// Get reference part unique for this issue
