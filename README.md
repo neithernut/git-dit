@@ -19,6 +19,18 @@ git-dit - the distributed issue tracker for git
 When playing with this, please keep in mind that this is alpha quality - there
 are bugs, missing things and rough edges.
 
+# Dependencies
+
+The following crates are used:
+* chrono 0.3
+* error-chain 0.10
+* git2 0.6
+* is-match 0.1
+* log 0.3
+
+Additionally, for building the man page, `pandoc` is required.
+
+
 # Installing
 
 _TBD_
