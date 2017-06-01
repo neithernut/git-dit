@@ -13,6 +13,8 @@
 //!
 
 use git2::{self, Oid};
+use std::fmt;
+use std::result::Result as RResult;
 
 
 /// Issue handle
@@ -36,6 +38,12 @@ impl<'r> Issue<'r> {
     ///
     pub fn id(&self) -> Oid {
         self.id
+    }
+}
+
+impl<'r> fmt::Display for Issue<'r> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> RResult<(), fmt::Error> {
+        write!(f, "{}", self.id)
     }
 }
 
