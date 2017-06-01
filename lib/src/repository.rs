@@ -165,12 +165,8 @@ impl RepositoryExt for Repository {
         //       for `git2::Commit`. We take a reference because consuming the
         //       commit doesn't make sense for this function, semantically.
         for c in FirstParentIter::new(commit.as_object().clone().into_commit().ok().unwrap()) {
-            let head = try!(self
-                            .get_issue_heads(c.id())
-                            .chain_err(|| EK::CannotFindIssueHead(c.id())));
-
-            if head.count() > 0 {
-                return Ok(c);
+            if self.find_issue(c.id()).is_ok() {
+                return Ok(c)
             }
         }
 
