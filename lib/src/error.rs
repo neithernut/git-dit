@@ -15,9 +15,24 @@ error_chain! {
     }
 
     errors {
-        WrappedGitError {
-            description("TODO: Wrapped error")
-            display("TODO: Wrapped error")
+        CannotGetCommitForRev(rev: String) {
+            description("Cannot get commit from rev")
+            display("Cannot get commit from rev '{}'", rev)
+        }
+
+        ReferenceNameError {
+            description("Error getting reference name")
+            display("Error getting reference name")
+        }
+
+        CannotGetReferences(glob: String) {
+            description("Cannot get references from repository")
+            display("Cannot get references '{}' from repository", glob)
+        }
+
+        CannotBuildTree {
+            description("Cannot build Tree")
+            display("Cannot build Tree")
         }
 
         CannotFindIssueHead(id: Oid) {

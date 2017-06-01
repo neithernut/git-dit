@@ -34,7 +34,7 @@ impl<'r> Iterator for HeadRefsToIssuesIter<'r> {
             .next()
             .map(|r_name|  {
                 r_name
-                    .chain_err(|| EK::WrappedGitError)
+                    .chain_err(|| EK::ReferenceNameError)
                     .and_then(|name| if name.ends_with("/head") {
                         name.rsplitn(3, "/")
                             .nth(1)

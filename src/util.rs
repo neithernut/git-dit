@@ -29,7 +29,7 @@ use libgitdit::message::trailer::Trailer;
 ///
 pub fn open_dit_repo() -> Result<Repository> {
     // TODO: access the config and maybe return another repo instead
-    Repository::open_from_env().chain_err(|| EK::WrappedGitError)
+    Repository::open_from_env().chain_err(|| EK::CannotOpenRepository)
 }
 
 
@@ -80,7 +80,7 @@ impl<'r> RepositoryUtil<'r> for Repository {
     fn value_to_commit(&'r self, rev: &str) -> Result<Commit<'r>> {
         self.revparse_single(rev)
             .and_then(|oid| self.find_commit(oid.id()))
-            .chain_err(|| EK::WrappedGitError)
+            .chain_err(|| EK::WrappedGitDitError)
     }
 
     fn values_to_hashes(&'r self, values: Values) -> Result<Vec<Commit<'r>>> {
@@ -105,7 +105,7 @@ impl<'r> RepositoryUtil<'r> for Repository {
 
     fn get_commit_msg(&self, path: PathBuf) -> Result<Vec<String>> {
         // let the user write the message
-        if !run_editor(self.config().chain_err(|| EK::WrappedGitError)?, &path)?
+        if !run_editor(self.config().chain_err(|| EK::CannotGetRepositoryConfig)?, &path)?
             .wait().chain_err(|| EK::WrappedIOError)?
             .success()
         {
@@ -119,7 +119,9 @@ impl<'r> RepositoryUtil<'r> for Repository {
             .stripped()
             .collect();
 
-        lines.iter().check_message_format().chain_err(|| EK::WrappedGitDitError)?;
+        lines.iter()
+            .check_message_format()
+            .chain_err(|| EK::WrappedGitDitError)?;
 
         Ok(lines)
     }
@@ -128,7 +130,7 @@ impl<'r> RepositoryUtil<'r> for Repository {
         let mut trailers = Vec::new();
 
         if matches.is_present("signoff") {
-            let sig = self.signature().chain_err(|| EK::WrappedGitError)?.to_string();
+            let sig = self.signature().chain_err(|| EK::CannotGetSignature)?.to_string();
             trailers.push(Trailer::new("Signed-off-by", sig.as_str()));
         }
 
