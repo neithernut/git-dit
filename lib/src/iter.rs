@@ -7,6 +7,11 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
 
+//! Utility iterators
+//!
+//! This module provides various iterators.
+//!
+
 use first_parent_iter::FirstParentIter;
 use git2::{Commit, Oid, Repository, References, ReferenceNames};
 use repository::RepositoryExt;
@@ -14,6 +19,11 @@ use repository::RepositoryExt;
 use error::*;
 use error::ErrorKind as EK;
 
+/// Iterator for transforming the names of head references to issues
+///
+/// This iterator wrapps a `ReferenceNames` iterator and returns issues
+/// associated to the head references returned by the wrapped iterator.
+///
 pub struct HeadRefsToIssuesIter<'r>(ReferenceNames<'r>);
 
 impl<'r> Iterator for HeadRefsToIssuesIter<'r> {

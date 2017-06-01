@@ -7,6 +7,17 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
 
+//! Line categorization
+//!
+//! When processing messages, we may have to differentiate between three types
+//! of lines: regular lines of text, trailers and blank lines, which delimit
+//! blocks of either text or trailers.
+//!
+//! This module provides a type for representing the different types of lines as
+//! well as an convenience iterator which may be used for categorizing lines
+//! provided by an iterator.
+//!
+
 use message::trailer::Trailer;
 use std::iter::Peekable;
 use std::str::FromStr;
@@ -39,6 +50,12 @@ impl<S: AsRef<str>> From<S> for Line {
 }
 
 
+/// Categorized lines from a sequence of strings
+///
+/// This iterator wraps an iterator over string-like items. It translates the
+/// strings pulled from the wrapped iterator into categorized lines. Multiline
+/// trailers will be converted in single `Line::Trailer` items.
+///
 #[derive(Debug)]
 pub struct Lines<I, S>(Peekable<I>)
     where I: Iterator<Item = S>,

@@ -7,6 +7,13 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
 
+//! Trailer related functionality
+//!
+//! This module offers types and functionality for handling git-trailers.
+//! Trailers are key-value pairs which may be embedded in a message. "git-dit"
+//! uses trailers as storage for issue metadata.
+//!
+
 use message::line::{Line, Lines};
 use regex::Regex;
 use std::collections::VecDeque;
@@ -58,7 +65,11 @@ pub enum TrailerValue {
 }
 
 impl TrailerValue {
-
+    /// Parse a `TrailerValue` from a string slice
+    ///
+    /// This function will try to parse an integer and fall back to a plain
+    /// string.
+    ///
     pub fn from_slice(slice: &str) -> TrailerValue {
         use std::str::FromStr;
 
@@ -90,7 +101,11 @@ impl Display for TrailerValue {
     }
 }
 
-/// The combination of a TrailerKey and a TrailerValue
+/// Trailer representation
+///
+/// A trailer is nothing but the combination of a `TrailerKey` and a
+/// `TrailerValue`.
+///
 #[derive(Debug, Hash, Eq, PartialEq, Ord, PartialOrd, Clone)]
 pub struct Trailer {
     pub key: TrailerKey,
@@ -98,6 +113,8 @@ pub struct Trailer {
 }
 
 impl Trailer {
+    /// Create a trailer from a key and the string representation of its value
+    ///
     pub fn new(key: &str, value: &str) -> Trailer {
         Trailer {
             key  : TrailerKey::from(String::from(key)),
@@ -137,12 +154,22 @@ impl FromStr for Trailer {
 
 /// Helper type for colecting trailers in a linked list
 ///
+/// This collector helps parsing blocks of test such that a block contains only
+/// lines of text or trailers. In such a situation, we may need to collect
+/// trailers as long as the block of text "looks" like a block of trailers but
+/// dump them as soon as the block turns out to be a block of text.
+///
+/// This collector holds this state and offers the functionality for collecting
+/// trailers transparently.
+///
 enum TrailerCollector<'l> {
     Collecting(&'l mut VecDeque<Trailer>),
     Dumping,
 }
 
 impl<'l> TrailerCollector<'l> {
+    /// Create a new trailer collector collecting into a target
+    ///
     pub fn new(target: &'l mut VecDeque<Trailer>) -> Self {
         TrailerCollector::Collecting(target)
     }
@@ -173,6 +200,13 @@ impl<'l> TrailerCollector<'l> {
 }
 
 
+/// Iterator extracting trailers from a sequence of strings representing lines
+///
+/// This iterator extracts all trailers from a text provided by the wrapped
+/// iterator over the text's lines. Blocks of lines which contain regular lines
+/// of text are ignored. Only trailers which are part of a pure block of
+/// trailers, delimited by blank lines, are returned by the iterator.
+///
 pub struct Trailers<I, S>
     where I: Iterator<Item = S>,
           S: AsRef<str>
@@ -235,6 +269,9 @@ impl<I, S> Iterator for Trailers<I, S>
 
 }
 
+
+/// Iterator extracting DIT trailers from an iterator over trailers
+///
 pub struct DitTrailers<I, S>(Trailers<I, S>)
     where I: Iterator<Item = S>,
           S: AsRef<str>;

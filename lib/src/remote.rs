@@ -7,6 +7,9 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
 
+//! Module providing extension trait for remotes
+//!
+
 use git2::{Oid, Remote};
 
 

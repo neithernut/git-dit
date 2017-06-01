@@ -7,6 +7,18 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
 
+//! Message handling utilities
+//!
+//! This module provides utilities for handling and processing individual
+//! messages' texts. It may be used in order to prepare a message for
+//! committing or analyzing messages which are already committed.
+//!
+//! The main interface provided by this module are the `LineIteratorExt` trait
+//! and the `CommitExt` trait. While the former provides git-dit specific
+//! utility operations on lines of text, the latter provides functions for
+//! retrieving lines of text as well as other data from commits conveniently.
+//!
+
 use error::*;
 use error::ErrorKind as EK;
 use git2::Commit;

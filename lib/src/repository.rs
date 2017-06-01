@@ -7,6 +7,12 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
 
+//! Repository related utilities
+//!
+//! This module provides the `RepositoryExt` extension trait which provides
+//! issue handling utilities for repositories.
+//!
+
 use git2::{self, Commit, Oid, Reference, References, Repository, Revwalk, Signature, Tree};
 
 use error::*;
@@ -14,6 +20,13 @@ use error::ErrorKind as EK;
 use first_parent_iter::FirstParentIter;
 use iter::HeadRefsToIssuesIter;
 
+
+/// Extension trait for Repositories
+///
+/// This trait is intended as an extension for repositories. It introduces
+/// utility functions for dealing with issues, e.g. for retrieving references
+/// for issues, creating messages and finding the initial message of an issue.
+///
 pub trait RepositoryExt {
     /// Get possible heads of an issue by its oid
     ///

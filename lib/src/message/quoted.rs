@@ -7,8 +7,17 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
 
+//! Quotation utility
+//!
+
 use std::ops::Add;
 
+
+/// Quotation wrapper for iterators over strings
+///
+/// This iterator wrapps an iterator over lines as string-like items. It
+/// returns the lines prefixed with a quotation.
+///
 #[derive(Debug)]
 pub struct Quoted<I, S>(I)
     where I: Iterator<Item = S>,
