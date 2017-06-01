@@ -79,6 +79,18 @@ impl<'r> Issue<'r> {
             .chain_err(|| EK::CannotGetReferences(glob))
     }
 
+    /// Get all local references for the issue
+    ///
+    /// Return all references associated with the issue from the local
+    /// repository.
+    ///
+    pub fn local_refs(&self) -> Result<References<'r>> {
+        let glob = format!("refs/dit/{}/**", self.unique_ref_part());
+        self.repo
+            .references_glob(&glob)
+            .chain_err(|| EK::CannotGetReferences(glob))
+    }
+
     /// Get reference part unique for this issue
     ///
     /// The references associated with an issue reside in paths specific to the
