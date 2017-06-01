@@ -15,6 +15,7 @@
 
 use git2::{self, Commit, Oid, Reference, References, Repository, Revwalk, Signature, Tree};
 
+use issue::Issue;
 use error::*;
 use error::ErrorKind as EK;
 use first_parent_iter::FirstParentIter;
@@ -28,6 +29,12 @@ use iter::HeadRefsToIssuesIter;
 /// for issues, creating messages and finding the initial message of an issue.
 ///
 pub trait RepositoryExt {
+    /// Retrieve an issue
+    ///
+    /// Returns the issue with a given id.
+    ///
+    fn find_issue(&self, id: Oid) -> Result<Issue>;
+
     /// Get possible heads of an issue by its oid
     ///
     /// Returns heads from both the local repository and remotes for the issue
@@ -99,6 +106,18 @@ pub trait RepositoryExt {
 }
 
 impl RepositoryExt for Repository {
+    fn find_issue(&self, id: Oid) -> Result<Issue> {
+        let retval = Issue::new(self, id);
+
+        // make sure the id refers to an issue by checking whether an associated
+        // head reference exists
+        if retval.heads()?.next().is_some() {
+            Ok(retval)
+        } else {
+            Err(Error::from_kind(EK::CannotFindIssueHead(id)))
+        }
+    }
+
     fn get_issue_heads(&self, issue: Oid) -> Result<References> {
         let glob = format!("**/dit/{}/head", issue);
         self.references_glob(&glob)
