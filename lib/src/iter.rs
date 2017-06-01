@@ -93,9 +93,9 @@ impl<'r> Iterator for IssueMessagesIter<'r> {
         // if this was the initial message, we fuse the underlying iterator
         if next.as_ref()
                .map(Commit::id)
-               .map(|id| self.repo.get_issue_heads(id))
-               .and_then(Result::ok)
-               .map(|refs| refs.count() > 0)
+               .map(|id| self.repo.find_issue(id))
+               .as_ref()
+               .map(Result::is_ok)
                .unwrap_or(false) {
             self.inner.fuse_now();
         }
