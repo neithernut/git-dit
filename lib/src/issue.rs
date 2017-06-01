@@ -91,6 +91,34 @@ impl<'r> Issue<'r> {
             .chain_err(|| EK::CannotGetReferences(glob))
     }
 
+    /// Get a revwalk for traversing all messages of the issue
+    ///
+    /// The sorting of the revwalk will be set to "topological".
+    ///
+    pub fn message_revwalk(&self) -> Result<git2::Revwalk<'r>> {
+        let glob = format!("**/dit/{}/**", self.unique_ref_part());
+        self.repo
+            .revwalk()
+            .and_then(|mut revwalk| {
+                // The iterator will iterate over all the messages in the tree
+                // spanned but it will halt at the initial message.
+                revwalk.push_glob(glob.as_ref())?;
+                let _ = self.repo
+                    .find_commit(self.id)
+                    .and_then(|commit| commit.parent_id(0))
+                    .ok() // the initial message having no parent is not unusual
+                    .map(|parent| revwalk.hide(parent))
+                    .unwrap_or(Ok(()))?;
+
+                // configure the revwalk
+                revwalk.simplify_first_parent();
+                revwalk.set_sorting(git2::SORT_TOPOLOGICAL);
+
+                Ok(revwalk)
+            })
+            .chain_err(|| EK::CannotGetReferences(glob))
+    }
+
     /// Get reference part unique for this issue
     ///
     /// The references associated with an issue reside in paths specific to the
