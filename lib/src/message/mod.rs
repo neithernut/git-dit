@@ -22,7 +22,6 @@
 use error::*;
 use error::ErrorKind as EK;
 use git2::Commit;
-use iter::{StripWhiteSpace, StripWhiteSpaceRightIter};
 use iter::{WithoutComments, WithoutCommentsIter};
 use std::iter::Skip;
 use std::str;
@@ -32,7 +31,7 @@ pub mod line;
 pub mod line_processor;
 pub mod trailer;
 
-use self::line_processor::Quoted;
+use self::line_processor::{Quoted, StripWhiteSpaceRightIter};
 
 
 /// Special iterator extension for messages
@@ -110,7 +109,7 @@ impl<L, S> LineIteratorExt<S> for L
     }
 
     fn stripped(self) -> StripWhiteSpaceRightIter<WithoutCommentsIter<Self::Iter, S>, S> {
-        self.without_comments().strip_whitespace_right()
+        StripWhiteSpaceRightIter::from(self.without_comments())
     }
 
     fn quoted(self) -> Quoted<Self::Iter, S> {
