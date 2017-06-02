@@ -13,7 +13,7 @@
 //! issue handling utilities for repositories.
 //!
 
-use git2::{Commit, Oid, Repository, Signature, Tree};
+use git2::{self, Commit, Oid, Repository, Signature, Tree};
 
 use issue::Issue;
 use error::*;
@@ -34,6 +34,12 @@ pub trait RepositoryExt {
     /// Returns the issue with a given id.
     ///
     fn find_issue(&self, id: Oid) -> Result<Issue>;
+
+    /// Retrieve an issue by its head ref
+    ///
+    /// Returns the issue associated with a head reference.
+    ///
+    fn issue_by_head_ref(&self, head_ref: &git2::Reference) -> Result<Issue>;
 
     /// Find the initial message of an issue
     ///
@@ -90,6 +96,25 @@ impl RepositoryExt for Repository {
         } else {
             Err(Error::from_kind(EK::CannotFindIssueHead(id)))
         }
+    }
+
+    fn issue_by_head_ref(&self, head_ref: &git2::Reference) -> Result<Issue> {
+        let name = head_ref.name();
+        name.and_then(|name| if name.ends_with("/head") {
+                Some(name)
+            } else {
+                None
+            })
+            .and_then(|name| name.rsplitn(3, "/").nth(1))
+            .ok_or_else(|| {
+                let n = name.unwrap_or_default().to_owned();
+                Error::from_kind(EK::MalFormedHeadReference(n))
+            })
+            .and_then(|hash| {
+               Oid::from_str(hash)
+                   .chain_err(|| EK::OidFormatError(hash.to_string()))
+            })
+            .map(|id| Issue::new(self, id))
     }
 
     fn find_tree_init<'a>(&'a self, commit: &Commit<'a>) -> Result<Commit> {
