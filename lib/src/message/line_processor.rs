@@ -7,10 +7,8 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
 
-//! Quotation utility
+//! Line processing utilities
 //!
-
-use std::ops::Add;
 
 
 /// Quotation wrapper for iterators over strings
@@ -43,7 +41,7 @@ impl<I, S> Iterator for Quoted<I, S>
             let line = l.as_ref();
             match line.is_empty() {
                 true  => String::from(">"),
-                false => String::from("> ").add(line),
+                false => format!("> {}", line),
             }
         })
     }

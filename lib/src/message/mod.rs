@@ -29,8 +29,10 @@ use std::str;
 use std::vec;
 
 pub mod line;
+pub mod line_processor;
 pub mod trailer;
-pub mod quoted;
+
+use self::line_processor::Quoted;
 
 
 /// Special iterator extension for messages
@@ -68,7 +70,7 @@ pub trait LineIteratorExt<S>
     /// The iterator returned will prepend a `>` and, in the case of non-empty
     /// lines, a space, to each item.
     ///
-    fn quoted(self) -> quoted::Quoted<Self::Iter, S>;
+    fn quoted(self) -> Quoted<Self::Iter, S>;
 
     /// Create an iterator for categorizing lines
     ///
@@ -111,8 +113,8 @@ impl<L, S> LineIteratorExt<S> for L
         self.without_comments().strip_whitespace_right()
     }
 
-    fn quoted(self) -> quoted::Quoted<Self::Iter, S> {
-        quoted::Quoted::from(self)
+    fn quoted(self) -> Quoted<Self::Iter, S> {
+        Quoted::from(self)
     }
 
     fn categorized_lines(self) -> line::Lines<Self::Iter, S> {
