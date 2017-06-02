@@ -103,3 +103,39 @@ impl<'a, I, S> Iterator for StripWhiteSpaceRightIter<I, S>
     }
 }
 
+
+/// An iterator type for removing comment lines
+///
+/// Given an iterator over the lines of a message in the form of strings, this
+/// iterator will remove all lines starting with a "#".
+///
+pub struct WithoutCommentsIter<I, S>(I)
+    where I: Iterator<Item = S> + Sized,
+          S: AsRef<str>;
+
+impl<I, S> From<I> for WithoutCommentsIter<I, S>
+    where I: Iterator<Item = S>,
+          S: AsRef<str>
+{
+    fn from(lines: I) -> Self {
+        WithoutCommentsIter(lines)
+    }
+}
+
+impl<I, S> Iterator for WithoutCommentsIter<I, S>
+    where I: Iterator<Item = S> + Sized,
+          S: AsRef<str>
+{
+    type Item = S;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while let Some(next) = self.0.next() {
+            // we do not trim whitespace here, because of code blocks in the message which might
+            // have a "#" at the beginning
+            if !next.as_ref().starts_with("#") {
+                return Some(next)
+            }
+        }
+        None
+    }
+}
