@@ -41,11 +41,11 @@ pub trait RepositoryExt {
     ///
     fn issue_by_head_ref(&self, head_ref: &git2::Reference) -> Result<Issue>;
 
-    /// Find the initial message of an issue
+    /// Find the issue with a given message in it
     ///
-    /// For a given message of an issue, find the initial message.
+    /// Returns the issue containing the message provided
     ///
-    fn find_tree_init<'a>(&'a self, commit: &Commit<'a>) -> Result<Commit>;
+    fn find_tree_init<'a>(&'a self, commit: &Commit<'a>) -> Result<Issue>;
 
     /// Get issue hashes for a prefix
     ///
@@ -117,7 +117,7 @@ impl RepositoryExt for Repository {
             .map(|id| Issue::new(self, id))
     }
 
-    fn find_tree_init<'a>(&'a self, commit: &Commit<'a>) -> Result<Commit> {
+    fn find_tree_init<'a>(&'a self, commit: &Commit<'a>) -> Result<Issue> {
         // follow the chain of first parents towards an initial message for
         // which a head exists
         let cid = commit.id();
@@ -125,8 +125,9 @@ impl RepositoryExt for Repository {
         //       for `git2::Commit`. We take a reference because consuming the
         //       commit doesn't make sense for this function, semantically.
         for c in FirstParentIter::new(commit.as_object().clone().into_commit().ok().unwrap()) {
-            if self.find_issue(c.id()).is_ok() {
-                return Ok(c)
+            let issue = self.find_issue(c.id());
+            if issue.is_ok() {
+                return issue
             }
         }
 
