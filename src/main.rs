@@ -125,8 +125,8 @@ fn find_tree_init_hash(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
     // note: commit is always present since it is a required parameter
     repo.value_to_commit(matches.value_of("commit").unwrap())
         .and_then(|commit| {
-            repo.find_tree_init(&commit)
-                .chain_err(|| EK::WrappedGitError)
+            repo.issue_with_message(&commit)
+                .chain_err(|| EK::WrappedGitDitError)
         })
         .map(|commit| {println!("{}", commit.id()); 0})
         .unwrap_or_else(|err| {err.log(); 1})
@@ -331,7 +331,7 @@ fn reply_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
     let tree = try_or_1!(parent.tree());
 
     // figure out to what issue we reply
-    let issue = try_or_1!(repo.find_tree_init(&parent)).id();
+    let issue = try_or_1!(repo.issue_with_message(&parent)).id();
 
     // get the references specified on the command line
     let references = try_or_1!(repo.cli_references(matches));

@@ -45,7 +45,7 @@ pub trait RepositoryExt {
     ///
     /// Returns the issue containing the message provided
     ///
-    fn find_tree_init<'a>(&'a self, commit: &Commit<'a>) -> Result<Issue>;
+    fn issue_with_message<'a>(&'a self, message: &Commit<'a>) -> Result<Issue>;
 
     /// Get issue hashes for a prefix
     ///
@@ -117,14 +117,14 @@ impl RepositoryExt for Repository {
             .map(|id| Issue::new(self, id))
     }
 
-    fn find_tree_init<'a>(&'a self, commit: &Commit<'a>) -> Result<Issue> {
+    fn issue_with_message<'a>(&'a self, message: &Commit<'a>) -> Result<Issue> {
         // follow the chain of first parents towards an initial message for
         // which a head exists
-        let cid = commit.id();
+        let cid = message.id();
         // NOTE: The following is this ugly because `Clone` is not implemented
         //       for `git2::Commit`. We take a reference because consuming the
         //       commit doesn't make sense for this function, semantically.
-        for c in FirstParentIter::new(commit.as_object().clone().into_commit().ok().unwrap()) {
+        for c in FirstParentIter::new(message.as_object().clone().into_commit().ok().unwrap()) {
             let issue = self.find_issue(c.id());
             if issue.is_ok() {
                 return issue
