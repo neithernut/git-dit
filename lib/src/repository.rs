@@ -53,13 +53,13 @@ pub trait RepositoryExt {
     /// prefix provided (e.g. all issues for which refs exist under
     /// `<prefix>/dit/`). Provide "refs" as the prefix to get only local issues.
     ///
-    fn get_issue_hashes(&self, prefix: &str) -> Result<HeadRefsToIssuesIter>;
+    fn issues_with_prefix(&self, prefix: &str) -> Result<HeadRefsToIssuesIter>;
 
     /// Get all issue hashes
     ///
     /// This function returns all known issues known to the DIT repo.
     ///
-    fn get_all_issue_hashes(&self) -> Result<HeadRefsToIssuesIter>;
+    fn issues(&self) -> Result<HeadRefsToIssuesIter>;
 
     /// Create a new message
     ///
@@ -133,14 +133,14 @@ impl RepositoryExt for Repository {
         Err(Error::from_kind(EK::NoTreeInitFound(cid)))
     }
 
-    fn get_issue_hashes(&self, prefix: &str) -> Result<HeadRefsToIssuesIter> {
+    fn issues_with_prefix(&self, prefix: &str) -> Result<HeadRefsToIssuesIter> {
         let glob = format!("{}/dit/**/head", prefix);
         self.references_glob(&glob)
             .chain_err(|| EK::CannotGetReferences(glob))
             .map(|refs| HeadRefsToIssuesIter::new(self, refs))
     }
 
-    fn get_all_issue_hashes(&self) -> Result<HeadRefsToIssuesIter> {
+    fn issues(&self) -> Result<HeadRefsToIssuesIter> {
         let glob = "**/dit/**/head";
         self.references_glob(glob)
             .chain_err(|| EK::CannotGetReferences(glob.to_owned()))
