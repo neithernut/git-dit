@@ -169,7 +169,7 @@ fn fetch_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
         // fetch a specific list of issues
         let iter = issues.map(Oid::from_str).abort_on_err();
         if matches.is_present("known") {
-            iter.chain(try_or_1!(repo.get_all_issue_hashes()).abort_on_err())
+            iter.chain(try_or_1!(repo.get_all_issue_hashes()).abort_on_err().map(|issue| issue.id()))
                 .filter_map(|issue| remote.issue_refspec(issue))
                 .collect()
         } else {
@@ -197,7 +197,7 @@ fn list_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
     // get initial commits
     let mut commits : Vec<Commit> = try_or_1!(repo.get_all_issue_hashes())
         .abort_on_err()
-        .map(|oid| repo.find_commit(oid))
+        .map(|issue| repo.find_commit(issue.id()))
         .abort_on_err()
         .collect();
 
@@ -293,8 +293,6 @@ fn push_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
               .collect()
     } else {
         try_or_1!(repo.get_issue_hashes("refs"))
-            .abort_on_err()
-            .map(|issue| repo.find_issue(issue))
             .abort_on_err()
             .map(|issue| issue.local_refs())
             .abort_on_err()

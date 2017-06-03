@@ -12,7 +12,7 @@
 //! This module provides various iterators.
 //!
 
-use git2::{Commit, Oid, Repository, References};
+use git2::{Commit, Repository, References};
 
 use first_parent_iter::FirstParentIter;
 use issue;
@@ -41,7 +41,7 @@ impl<'r> HeadRefsToIssuesIter<'r>
 
 impl<'r> Iterator for HeadRefsToIssuesIter<'r>
 {
-    type Item = Result<Oid>;
+    type Item = Result<issue::Issue<'r>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.inner
@@ -50,7 +50,6 @@ impl<'r> Iterator for HeadRefsToIssuesIter<'r>
                 reference
                     .chain_err(|| EK::CannotGetReference)
                     .and_then(|r| self.repo.issue_by_head_ref(&r))
-                    .map(|issue| issue::Issue::id(&issue))
             })
     }
 }
