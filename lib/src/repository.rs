@@ -135,11 +135,16 @@ impl RepositoryExt for Repository {
 
     fn get_issue_hashes(&self, prefix: &str) -> Result<HeadRefsToIssuesIter> {
         let glob = format!("{}/dit/**/head", prefix);
-        Ok(HeadRefsToIssuesIter::from(try!(self.references_glob(&glob))))
+        self.references_glob(&glob)
+            .chain_err(|| EK::CannotGetReferences(glob))
+            .map(|refs| HeadRefsToIssuesIter::new(self, refs))
     }
 
     fn get_all_issue_hashes(&self) -> Result<HeadRefsToIssuesIter> {
-        Ok(HeadRefsToIssuesIter::from(try!(self.references_glob("**/dit/**/head"))))
+        let glob = "**/dit/**/head";
+        self.references_glob(glob)
+            .chain_err(|| EK::CannotGetReferences(glob.to_owned()))
+            .map(|refs| HeadRefsToIssuesIter::new(self, refs))
     }
 
     fn create_message(&self,

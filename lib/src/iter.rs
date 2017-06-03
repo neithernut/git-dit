@@ -12,8 +12,10 @@
 //! This module provides various iterators.
 //!
 
+use git2::{Commit, Oid, Repository, References};
+
 use first_parent_iter::FirstParentIter;
-use git2::{Commit, Oid, Repository, References, ReferenceNames};
+use issue;
 use repository::RepositoryExt;
 
 use error::*;
@@ -24,43 +26,32 @@ use error::ErrorKind as EK;
 /// This iterator wrapps a `ReferenceNames` iterator and returns issues
 /// associated to the head references returned by the wrapped iterator.
 ///
-pub struct HeadRefsToIssuesIter<'r>(ReferenceNames<'r>);
+pub struct HeadRefsToIssuesIter<'r>
+{
+    inner: References<'r>,
+    repo: &'r Repository
+}
 
-impl<'r> Iterator for HeadRefsToIssuesIter<'r> {
+impl<'r> HeadRefsToIssuesIter<'r>
+{
+    pub fn new(repo: &'r Repository, inner: References<'r>) -> Self {
+        HeadRefsToIssuesIter { inner: inner, repo: repo }
+    }
+}
+
+impl<'r> Iterator for HeadRefsToIssuesIter<'r>
+{
     type Item = Result<Oid>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.0
+        self.inner
             .next()
-            .map(|r_name|  {
-                r_name
-                    .chain_err(|| EK::ReferenceNameError)
-                    .and_then(|name| if name.ends_with("/head") {
-                        name.rsplitn(3, "/")
-                            .nth(1)
-                            .ok_or_else(|| {
-                                Error::from_kind(EK::MalFormedHeadReference(name.to_string()))
-                            })
-                            .and_then(|hash| {
-                                Oid::from_str(hash)
-                                    .chain_err(|| EK::OidFormatError(name.to_string()))
-                            })
-                    } else {
-                        Err(Error::from_kind(EK::MalFormedHeadReference(name.to_string())))
-                    })
+            .map(|reference| {
+                reference
+                    .chain_err(|| EK::CannotGetReference)
+                    .and_then(|r| self.repo.issue_by_head_ref(&r))
+                    .map(|issue| issue::Issue::id(&issue))
             })
-    }
-}
-
-impl<'r> From<References<'r>> for HeadRefsToIssuesIter<'r> {
-    fn from(r: References<'r>) -> HeadRefsToIssuesIter<'r> {
-        HeadRefsToIssuesIter(r.names())
-    }
-}
-
-impl<'r> From<ReferenceNames<'r>> for HeadRefsToIssuesIter<'r> {
-    fn from(r: ReferenceNames<'r>) -> HeadRefsToIssuesIter<'r> {
-        HeadRefsToIssuesIter(r)
     }
 }
 
