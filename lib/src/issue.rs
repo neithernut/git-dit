@@ -39,6 +39,16 @@ impl<'r> Issue<'r> {
     pub fn id(&self) -> Oid {
         self.id
     }
+
+    /// Get reference part unique for this issue
+    ///
+    /// The references associated with an issue reside in paths specific to the
+    /// issue. This function returns the part unique for the issue, e.g. the
+    /// part after the  `dit/`.
+    ///
+    fn unique_ref_part(&self) -> String {
+        self.id.to_string()
+    }
 }
 
 impl<'r> fmt::Display for Issue<'r> {
