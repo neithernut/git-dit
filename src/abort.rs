@@ -64,3 +64,26 @@ impl<I, V, E> IteratorExt<I, V, E> for I
     }
 }
 
+
+/// Extension trait for convenient abortion in case of errors
+///
+pub trait Abortable<V>
+{
+    /// Just like a regular unwrap() except it performs proper logging
+    ///
+    /// Returns the contained value or aborts the program, logging the error.
+    ///
+    fn unwrap_or_abort(self) -> V;
+}
+
+impl<V, E> Abortable<V> for Result<V, E>
+    where E: Debug
+{
+    fn unwrap_or_abort(self) -> V {
+        self.unwrap_or_else(|e| {
+            error!("{:?}", e);
+            exit(1)
+        })
+    }
+}
+
