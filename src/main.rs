@@ -475,7 +475,7 @@ fn tag_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
 
     if matches.is_present("list") {
         // we only list the metadata
-        let trailers = try_or_1!(IssueMessagesIter::new(head_commit, repo))
+        let trailers = try_or_1!(repo.issue_messages_iter(head_commit))
             .abort_on_err()
             .flat_map(|c| c.trailers());
         try_or_1!(io::stdout().consume_lines(trailers));
