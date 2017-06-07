@@ -28,7 +28,7 @@ use chrono::{FixedOffset, TimeZone};
 use clap::App;
 use git2::{Commit, ObjectType, FetchOptions, FetchPrune, Oid, PushOptions, Repository};
 use libgitdit::message::trailer::Trailer;
-use libgitdit::message::{CommitExt, LineIteratorExt};
+use libgitdit::message::{Message, LineIteratorExt};
 use libgitdit::remote::RemoteExt;
 use libgitdit::repository::RepositoryExt;
 use log::LogLevel;
