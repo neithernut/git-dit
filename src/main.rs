@@ -27,7 +27,6 @@ mod write;
 use chrono::{FixedOffset, TimeZone};
 use clap::App;
 use git2::{Commit, ObjectType, FetchOptions, FetchPrune, Oid, PushOptions, Repository};
-use libgitdit::iter::IssueMessagesIter;
 use libgitdit::message::trailer::Trailer;
 use libgitdit::message::{CommitExt, LineIteratorExt};
 use libgitdit::remote::RemoteExt;
