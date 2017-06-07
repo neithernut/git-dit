@@ -46,3 +46,9 @@ pub mod message;
 pub mod remote;
 pub mod repository;
 
+// A selection of types are reexported for more convenient access.
+pub use issue::Issue;
+pub use message::Message;
+pub use remote::RemoteExt;
+pub use repository::RepositoryExt;
+
