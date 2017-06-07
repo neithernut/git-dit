@@ -1,3 +1,4 @@
+#![recursion_limit = "1024"]
 // git-dit - the distributed issue tracker for git
 // Copyright (C) 2016, 2017 Matthias Beyer <mail@beyermatthias.de>
 // Copyright (C) 2016, 2017 Julian Ganz <neither@nut.email>

@@ -102,28 +102,28 @@ impl RepositoryExt for Repository {
     fn get_issue_heads(&self, issue: Oid) -> Result<References> {
         let glob = format!("**/dit/{}/head", issue);
         self.references_glob(&glob)
-            .chain_err(|| EK::WrappedGitError)
+            .chain_err(|| EK::CannotGetReferences(glob))
     }
 
     fn get_local_issue_head(&self, issue: Oid) -> Result<Reference> {
         let glob = format!("refs/dit/{}/head", issue);
         self.references_glob(&glob)
-            .chain_err(|| EK::WrappedGitError)?
+            .chain_err(|| EK::CannotGetReferences(glob))?
             .next()
             .ok_or_else(|| Error::from_kind(EK::CannotFindIssueHead(issue)))
-            .and_then(|reference| reference.chain_err(|| EK::WrappedGitError))
+            .and_then(|reference| reference.chain_err(|| EK::ReferenceNameError))
     }
 
     fn get_issue_leaves(&self, issue: Oid) -> Result<References> {
         let glob = format!("**/dit/{}/leaves/*", issue);
         self.references_glob(&glob)
-            .chain_err(|| EK::WrappedGitError)
+            .chain_err(|| EK::CannotGetReferences(glob))
     }
 
     fn get_issue_refs(&self, issue: Oid) -> Result<References> {
         let glob = format!("refs/dit/{}/**", issue);
         self.references_glob(&glob)
-            .chain_err(|| EK::WrappedGitError)
+            .chain_err(|| EK::CannotGetReferences(glob))
     }
 
     fn get_issue_revwalk(&self, issue: Oid) -> Result<Revwalk> {
@@ -135,7 +135,7 @@ impl RepositoryExt for Repository {
                 revwalk.set_sorting(git2::SORT_TOPOLOGICAL);
                 Ok(revwalk)
             })
-            .chain_err(|| EK::WrappedGitError)
+            .chain_err(|| EK::CannotGetReferences(glob))
     }
 
     fn find_tree_init<'a>(&'a self, commit: &Commit<'a>) -> Result<Commit> {
@@ -193,7 +193,7 @@ impl RepositoryExt for Repository {
         self.treebuilder(None)
             .and_then(|treebuilder| treebuilder.write())
             .and_then(|oid| self.find_tree(oid))
-            .chain_err(|| EK::WrappedGitError)
+            .chain_err(|| EK::CannotBuildTree)
     }
 }
 

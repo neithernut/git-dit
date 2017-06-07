@@ -14,24 +14,39 @@ error_chain! {
     }
 
     errors {
+        CannotOpenRepository {
+            description("Cannot open repository")
+            display("Cannot open repository")
+        }
+
+        CannotGetRepositoryConfig {
+            description("Cannot get repository config")
+            display("Cannot get repository config")
+        }
+
+        CannotGetSignature {
+            description("Cannot get signature")
+            display("Cannot get signature")
+        }
+
         WrappedIOError {
-            description("TODO: Wrapped error")
-            display("TODO: Wrapped error")
+            description("IO Error")
+            display("IO Error")
         }
 
         WrappedParseError {
-            description("TODO: Wrapped error")
-            display("TODO: Wrapped error")
+            description("Parser Error")
+            display("Error while parsing")
         }
 
         WrappedGitError {
-            description("TODO: Wrapped error")
-            display("TODO: Wrapped error")
+            description("Error in git")
+            display("Error in git")
         }
 
         WrappedGitDitError {
-            description("TODO: Wrapped error")
-            display("TODO: Wrapped error")
+            description("Error in libgitdit")
+            display("Error in libgitdit")
         }
 
         ProgramError(program_name: String) {
