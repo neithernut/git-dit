@@ -59,6 +59,15 @@ impl<I, V, E> IteratorExt<I, V, E> for I
     }
 }
 
+impl<I, V, IE, OE> IteratorExt<I, V, IE> for Result<I, OE>
+    where I: Iterator<Item = Result<V, IE>> + Sized,
+          OE: Debug
+{
+    fn abort_on_err(self) -> AbortingIter<I, V, IE> {
+        AbortingIter::from(self.unwrap_or_abort())
+    }
+}
+
 
 /// Extension trait for convenient abortion in case of errors
 ///
