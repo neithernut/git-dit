@@ -18,7 +18,7 @@ use git2::{self, Commit, Oid, Repository, Signature, Tree};
 use issue::Issue;
 use error::*;
 use error::ErrorKind as EK;
-use iter::{self, HeadRefsToIssuesIter};
+use iter;
 
 
 /// Extension trait for Repositories
@@ -52,13 +52,13 @@ pub trait RepositoryExt {
     /// prefix provided (e.g. all issues for which refs exist under
     /// `<prefix>/dit/`). Provide "refs" as the prefix to get only local issues.
     ///
-    fn issues_with_prefix(&self, prefix: &str) -> Result<HeadRefsToIssuesIter>;
+    fn issues_with_prefix(&self, prefix: &str) -> Result<iter::HeadRefsToIssuesIter>;
 
     /// Get all issue hashes
     ///
     /// This function returns all known issues known to the DIT repo.
     ///
-    fn issues(&self) -> Result<HeadRefsToIssuesIter>;
+    fn issues(&self) -> Result<iter::HeadRefsToIssuesIter>;
 
     /// Create a new issue with an initial message
     ///
@@ -139,18 +139,18 @@ impl RepositoryExt for Repository {
         Err(Error::from_kind(EK::NoTreeInitFound(message.id())))
     }
 
-    fn issues_with_prefix(&self, prefix: &str) -> Result<HeadRefsToIssuesIter> {
+    fn issues_with_prefix(&self, prefix: &str) -> Result<iter::HeadRefsToIssuesIter> {
         let glob = format!("{}/dit/**/head", prefix);
         self.references_glob(&glob)
             .chain_err(|| EK::CannotGetReferences(glob))
-            .map(|refs| HeadRefsToIssuesIter::new(self, refs))
+            .map(|refs| iter::HeadRefsToIssuesIter::new(self, refs))
     }
 
-    fn issues(&self) -> Result<HeadRefsToIssuesIter> {
+    fn issues(&self) -> Result<iter::HeadRefsToIssuesIter> {
         let glob = "**/dit/**/head";
         self.references_glob(glob)
             .chain_err(|| EK::CannotGetReferences(glob.to_owned()))
-            .map(|refs| HeadRefsToIssuesIter::new(self, refs))
+            .map(|refs| iter::HeadRefsToIssuesIter::new(self, refs))
     }
 
     fn create_issue<'a, A, I, J>(&self,
