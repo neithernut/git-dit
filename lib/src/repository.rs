@@ -13,7 +13,7 @@
 //! issue handling utilities for repositories.
 //!
 
-use git2::{self, Commit, Oid, Repository, Signature, Tree};
+use git2::{self, Commit, Oid, Signature, Tree};
 
 use issue::Issue;
 use error::*;
@@ -94,7 +94,7 @@ pub trait RepositoryExt {
     fn empty_tree(&self) -> Result<Tree>;
 }
 
-impl RepositoryExt for Repository {
+impl RepositoryExt for git2::Repository {
     fn find_issue(&self, id: Oid) -> Result<Issue> {
         let retval = Issue::new(self, id);
 
