@@ -36,12 +36,7 @@ impl<I, V, E> Iterator for AbortingIter<I, V, E>
     type Item = V;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.0.next().map(|next|
-            next.unwrap_or_else(|e| {
-                error!("{:?}", e);
-                exit(1)
-            })
-        )
+        self.0.next().map(Abortable::unwrap_or_abort)
     }
 }
 
