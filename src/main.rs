@@ -283,7 +283,9 @@ fn push_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
     let refspecs : Vec<String> = if let Some(issues) = matches.values_of("issue") {
         // push a specific list of issues
         issues.map(Oid::from_str).abort_on_err()
-              .map(|issue| repo.get_issue_refs(issue))
+              .map(|issue| repo.find_issue(issue))
+              .abort_on_err()
+              .map(|issue| issue.local_refs())
               .abort_on_err()
               .flat_map(git2::References::names)
               .abort_on_err()
@@ -292,7 +294,9 @@ fn push_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
     } else {
         try_or_1!(repo.get_issue_hashes("refs"))
             .abort_on_err()
-            .map(|issue| repo.get_issue_refs(issue))
+            .map(|issue| repo.find_issue(issue))
+            .abort_on_err()
+            .map(|issue| issue.local_refs())
             .abort_on_err()
             .flat_map(git2::References::names)
             .abort_on_err()
@@ -415,7 +419,8 @@ fn show_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
         if matches.is_present("initial") {
             vec![(TreeGraphElemLine::empty(), try_or_1!(repo.find_commit(issue)))]
         } else {
-            try_or_1!(repo.get_issue_revwalk(issue))
+            try_or_1!(repo.find_issue(issue)
+                          .and_then(|issue| issue.message_revwalk()))
                 .abort_on_err()
                 .map(|oid| repo.find_commit(oid))
                 .abort_on_err()
@@ -466,7 +471,8 @@ fn tag_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
     let issue = try_or_1!(Oid::from_str(matches.value_of("issue-hash").unwrap()));
 
     // get the head for the issue to tag
-    let mut issue_head = try_or_1!(repo.get_local_issue_head(issue));
+    let mut issue_head = try_or_1!(repo.find_issue(issue)
+                                       .and_then(|issue| issue.find_local_head()));
     let mut head_commit = try_or_1!(issue_head.peel(ObjectType::Commit)).into_commit().ok().unwrap();
 
     if matches.is_present("list") {

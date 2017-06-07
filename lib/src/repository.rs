@@ -13,8 +13,9 @@
 //! issue handling utilities for repositories.
 //!
 
-use git2::{self, Commit, Oid, Reference, References, Repository, Revwalk, Signature, Tree};
+use git2::{Commit, Oid, Repository, Signature, Tree};
 
+use issue::Issue;
 use error::*;
 use error::ErrorKind as EK;
 use first_parent_iter::FirstParentIter;
@@ -28,31 +29,11 @@ use iter::HeadRefsToIssuesIter;
 /// for issues, creating messages and finding the initial message of an issue.
 ///
 pub trait RepositoryExt {
-    /// Get possible heads of an issue by its oid
+    /// Retrieve an issue
     ///
-    /// Returns heads from both the local repository and remotes for the issue
-    /// provided.
+    /// Returns the issue with a given id.
     ///
-    fn get_issue_heads(&self, issue: Oid) -> Result<References>;
-
-    /// Get the local issue head for an issue
-    ///
-    fn get_local_issue_head(&self, issue: Oid) -> Result<Reference>;
-
-    /// Get leaf references of an issue by its oid
-    ///
-    /// Returns leaf references from both the local repository and remotes for
-    /// the issue provided.
-    ///
-    fn get_issue_leaves(&self, issue: Oid) -> Result<References>;
-
-    /// Get all references for a specific issue
-    ///
-    fn get_issue_refs(&self, issue: Oid) -> Result<References>;
-
-    /// Get a revwalk for traversing all messages of an issue
-    ///
-    fn get_issue_revwalk(&self, issue: Oid) -> Result<Revwalk>;
+    fn find_issue(&self, id: Oid) -> Result<Issue>;
 
     /// Find the initial message of an issue
     ///
@@ -99,43 +80,16 @@ pub trait RepositoryExt {
 }
 
 impl RepositoryExt for Repository {
-    fn get_issue_heads(&self, issue: Oid) -> Result<References> {
-        let glob = format!("**/dit/{}/head", issue);
-        self.references_glob(&glob)
-            .chain_err(|| EK::CannotGetReferences(glob))
-    }
+    fn find_issue(&self, id: Oid) -> Result<Issue> {
+        let retval = Issue::new(self, id);
 
-    fn get_local_issue_head(&self, issue: Oid) -> Result<Reference> {
-        let glob = format!("refs/dit/{}/head", issue);
-        self.references_glob(&glob)
-            .chain_err(|| EK::CannotGetReferences(glob))?
-            .next()
-            .ok_or_else(|| Error::from_kind(EK::CannotFindIssueHead(issue)))
-            .and_then(|reference| reference.chain_err(|| EK::ReferenceNameError))
-    }
-
-    fn get_issue_leaves(&self, issue: Oid) -> Result<References> {
-        let glob = format!("**/dit/{}/leaves/*", issue);
-        self.references_glob(&glob)
-            .chain_err(|| EK::CannotGetReferences(glob))
-    }
-
-    fn get_issue_refs(&self, issue: Oid) -> Result<References> {
-        let glob = format!("refs/dit/{}/**", issue);
-        self.references_glob(&glob)
-            .chain_err(|| EK::CannotGetReferences(glob))
-    }
-
-    fn get_issue_revwalk(&self, issue: Oid) -> Result<Revwalk> {
-        let glob = format!("**/dit/{}/**", issue);
-        self.revwalk()
-            .and_then(|mut revwalk| {
-                revwalk.push_glob(glob.as_ref())?;
-                revwalk.simplify_first_parent();
-                revwalk.set_sorting(git2::SORT_TOPOLOGICAL);
-                Ok(revwalk)
-            })
-            .chain_err(|| EK::CannotGetReferences(glob))
+        // make sure the id refers to an issue by checking whether an associated
+        // head reference exists
+        if retval.heads()?.next().is_some() {
+            Ok(retval)
+        } else {
+            Err(Error::from_kind(EK::CannotFindIssueHead(id)))
+        }
     }
 
     fn find_tree_init<'a>(&'a self, commit: &Commit<'a>) -> Result<Commit> {
@@ -146,12 +100,8 @@ impl RepositoryExt for Repository {
         //       for `git2::Commit`. We take a reference because consuming the
         //       commit doesn't make sense for this function, semantically.
         for c in FirstParentIter::new(commit.as_object().clone().into_commit().ok().unwrap()) {
-            let head = try!(self
-                            .get_issue_heads(c.id())
-                            .chain_err(|| EK::CannotFindIssueHead(c.id())));
-
-            if head.count() > 0 {
-                return Ok(c);
+            if self.find_issue(c.id()).is_ok() {
+                return Ok(c)
             }
         }
 
