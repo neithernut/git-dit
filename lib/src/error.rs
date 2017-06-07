@@ -15,6 +15,11 @@ error_chain! {
     }
 
     errors {
+        CannotGetCommit {
+            description("Cannot get a commit from the repository")
+            display("Cannot get a specific commit from repository")
+        }
+
         CannotGetCommitForRev(rev: String) {
             description("Cannot get commit from rev")
             display("Cannot get commit from rev '{}'", rev)
