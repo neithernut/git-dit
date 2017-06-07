@@ -18,7 +18,6 @@ use git2::{self, Commit, Oid, Repository, Signature, Tree};
 use issue::Issue;
 use error::*;
 use error::ErrorKind as EK;
-use first_parent_iter::FirstParentIter;
 use iter::HeadRefsToIssuesIter;
 
 
@@ -127,18 +126,14 @@ impl RepositoryExt for Repository {
     fn issue_with_message<'a>(&'a self, message: &Commit<'a>) -> Result<Issue> {
         // follow the chain of first parents towards an initial message for
         // which a head exists
-        let cid = message.id();
-        // NOTE: The following is this ugly because `Clone` is not implemented
-        //       for `git2::Commit`. We take a reference because consuming the
-        //       commit doesn't make sense for this function, semantically.
-        for c in FirstParentIter::new(message.as_object().clone().into_commit().ok().unwrap()) {
-            let issue = self.find_issue(c.id());
+        for id in self.first_parent_revwalk(message.id())? {
+            let issue = self.find_issue(id?);
             if issue.is_ok() {
                 return issue
             }
         }
 
-        Err(Error::from_kind(EK::NoTreeInitFound(cid)))
+        Err(Error::from_kind(EK::NoTreeInitFound(message.id())))
     }
 
     fn issues_with_prefix(&self, prefix: &str) -> Result<HeadRefsToIssuesIter> {
