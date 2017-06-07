@@ -78,6 +78,13 @@ pub trait RepositoryExt {
                       parents: &[&Commit]
                      ) -> Result<Oid>;
 
+    /// Get an revwalk configured as a first parent iterator
+    ///
+    /// This is a convenience function. It returns an iterator over messages in
+    /// reverse order, only following first parents.
+    ///
+    fn first_parent_revwalk(&self, id: Oid) -> Result<git2::Revwalk>;
+
     /// Get an empty tree
     ///
     /// This function returns an empty tree.
@@ -168,6 +175,17 @@ impl RepositoryExt for Repository {
         try!(self.reference(&refname, msg_id, false, &reflogmsg));
 
         Ok(msg_id)
+    }
+
+    fn first_parent_revwalk(&self, id: Oid) -> Result<git2::Revwalk> {
+        self.revwalk()
+            .and_then(|mut revwalk| {
+                revwalk.push(id)?;
+                revwalk.simplify_first_parent();
+                revwalk.set_sorting(git2::SORT_TOPOLOGICAL);
+                Ok(revwalk)
+            })
+            .chain_err(|| EK::CannotGetCommitForRev(id.to_string()))
     }
 
     fn empty_tree(&self) -> Result<Tree> {
