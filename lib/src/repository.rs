@@ -18,7 +18,7 @@ use git2::{self, Commit, Oid, Repository, Signature, Tree};
 use issue::Issue;
 use error::*;
 use error::ErrorKind as EK;
-use iter::HeadRefsToIssuesIter;
+use iter::{self, HeadRefsToIssuesIter};
 
 
 /// Extension trait for Repositories
@@ -83,6 +83,13 @@ pub trait RepositoryExt {
     /// reverse order, only following first parents.
     ///
     fn first_parent_revwalk(&self, id: Oid) -> Result<git2::Revwalk>;
+
+    /// Get an IssueMessagesIter starting at a given commit
+    ///
+    /// The iterator returned will return messages in reverse order, following
+    /// the first parent, starting with the commit supplied.
+    ///
+    fn issue_messages_iter<'a>(&'a self, commit: Commit<'a>) -> Result<iter::IssueMessagesIter<'a>>;
 
     /// Get an empty tree
     ///
@@ -181,6 +188,10 @@ impl RepositoryExt for Repository {
                 Ok(revwalk)
             })
             .chain_err(|| EK::CannotGetCommitForRev(id.to_string()))
+    }
+
+    fn issue_messages_iter<'a>(&'a self, commit: Commit<'a>) -> Result<iter::IssueMessagesIter<'a>> {
+        iter::IssueMessagesIter::new(commit, self)
     }
 
     fn empty_tree(&self) -> Result<Tree> {
