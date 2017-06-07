@@ -30,6 +30,11 @@ error_chain! {
             display("Cannot get references '{}' from repository", glob)
         }
 
+        CannotGetReference {
+            description("Cannot get a reference from repository")
+            display("Cannot get a specific reference from repository")
+        }
+
         CannotBuildTree {
             description("Cannot build Tree")
             display("Cannot build Tree")

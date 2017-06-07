@@ -13,7 +13,7 @@
 //! issue handling utilities for repositories.
 //!
 
-use git2::{Commit, Oid, Repository, Signature, Tree};
+use git2::{self, Commit, Oid, Repository, Signature, Tree};
 
 use issue::Issue;
 use error::*;
@@ -35,11 +35,17 @@ pub trait RepositoryExt {
     ///
     fn find_issue(&self, id: Oid) -> Result<Issue>;
 
-    /// Find the initial message of an issue
+    /// Retrieve an issue by its head ref
     ///
-    /// For a given message of an issue, find the initial message.
+    /// Returns the issue associated with a head reference.
     ///
-    fn find_tree_init<'a>(&'a self, commit: &Commit<'a>) -> Result<Commit>;
+    fn issue_by_head_ref(&self, head_ref: &git2::Reference) -> Result<Issue>;
+
+    /// Find the issue with a given message in it
+    ///
+    /// Returns the issue containing the message provided
+    ///
+    fn issue_with_message<'a>(&'a self, message: &Commit<'a>) -> Result<Issue>;
 
     /// Get issue hashes for a prefix
     ///
@@ -47,13 +53,13 @@ pub trait RepositoryExt {
     /// prefix provided (e.g. all issues for which refs exist under
     /// `<prefix>/dit/`). Provide "refs" as the prefix to get only local issues.
     ///
-    fn get_issue_hashes(&self, prefix: &str) -> Result<HeadRefsToIssuesIter>;
+    fn issues_with_prefix(&self, prefix: &str) -> Result<HeadRefsToIssuesIter>;
 
     /// Get all issue hashes
     ///
     /// This function returns all known issues known to the DIT repo.
     ///
-    fn get_all_issue_hashes(&self) -> Result<HeadRefsToIssuesIter>;
+    fn issues(&self) -> Result<HeadRefsToIssuesIter>;
 
     /// Create a new message
     ///
@@ -92,29 +98,54 @@ impl RepositoryExt for Repository {
         }
     }
 
-    fn find_tree_init<'a>(&'a self, commit: &Commit<'a>) -> Result<Commit> {
+    fn issue_by_head_ref(&self, head_ref: &git2::Reference) -> Result<Issue> {
+        let name = head_ref.name();
+        name.and_then(|name| if name.ends_with("/head") {
+                Some(name)
+            } else {
+                None
+            })
+            .and_then(|name| name.rsplitn(3, "/").nth(1))
+            .ok_or_else(|| {
+                let n = name.unwrap_or_default().to_owned();
+                Error::from_kind(EK::MalFormedHeadReference(n))
+            })
+            .and_then(|hash| {
+               Oid::from_str(hash)
+                   .chain_err(|| EK::OidFormatError(hash.to_string()))
+            })
+            .map(|id| Issue::new(self, id))
+    }
+
+    fn issue_with_message<'a>(&'a self, message: &Commit<'a>) -> Result<Issue> {
         // follow the chain of first parents towards an initial message for
         // which a head exists
-        let cid = commit.id();
+        let cid = message.id();
         // NOTE: The following is this ugly because `Clone` is not implemented
         //       for `git2::Commit`. We take a reference because consuming the
         //       commit doesn't make sense for this function, semantically.
-        for c in FirstParentIter::new(commit.as_object().clone().into_commit().ok().unwrap()) {
-            if self.find_issue(c.id()).is_ok() {
-                return Ok(c)
+        for c in FirstParentIter::new(message.as_object().clone().into_commit().ok().unwrap()) {
+            let issue = self.find_issue(c.id());
+            if issue.is_ok() {
+                return issue
             }
         }
 
         Err(Error::from_kind(EK::NoTreeInitFound(cid)))
     }
 
-    fn get_issue_hashes(&self, prefix: &str) -> Result<HeadRefsToIssuesIter> {
+    fn issues_with_prefix(&self, prefix: &str) -> Result<HeadRefsToIssuesIter> {
         let glob = format!("{}/dit/**/head", prefix);
-        Ok(HeadRefsToIssuesIter::from(try!(self.references_glob(&glob))))
+        self.references_glob(&glob)
+            .chain_err(|| EK::CannotGetReferences(glob))
+            .map(|refs| HeadRefsToIssuesIter::new(self, refs))
     }
 
-    fn get_all_issue_hashes(&self) -> Result<HeadRefsToIssuesIter> {
-        Ok(HeadRefsToIssuesIter::from(try!(self.references_glob("**/dit/**/head"))))
+    fn issues(&self) -> Result<HeadRefsToIssuesIter> {
+        let glob = "**/dit/**/head";
+        self.references_glob(glob)
+            .chain_err(|| EK::CannotGetReferences(glob.to_owned()))
+            .map(|refs| HeadRefsToIssuesIter::new(self, refs))
     }
 
     fn create_message(&self,
