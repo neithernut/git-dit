@@ -137,8 +137,8 @@ fn find_tree_init_hash(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
 ///
 fn get_issue_metadata(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
     // note: "head" is always present since it is a required parameter
-    let commits = try_or_1!(repo.value_to_commit(matches.value_of("head").unwrap())
-                                .map(|commit| IssueMessagesIter::new(commit, repo)));
+    let head = try_or_1!(repo.value_to_commit(matches.value_of("head").unwrap()));
+    let commits = try_or_1!(IssueMessagesIter::new(head, repo)).abort_on_err();
     for trailer in commits.flat_map(|commit| commit.trailers()) {
         println!("{}", trailer);
     }
@@ -475,7 +475,9 @@ fn tag_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
 
     if matches.is_present("list") {
         // we only list the metadata
-        let trailers = IssueMessagesIter::new(head_commit, repo).flat_map(|c| c.trailers());
+        let trailers = try_or_1!(IssueMessagesIter::new(head_commit, repo))
+            .abort_on_err()
+            .flat_map(|c| c.trailers());
         try_or_1!(io::stdout().consume_lines(trailers));
         return 0;
     }
