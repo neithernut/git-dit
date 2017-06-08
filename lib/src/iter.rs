@@ -12,9 +12,8 @@
 //! This module provides various iterators.
 //!
 
-use git2::{Commit, Repository, References};
+use git2::{self, Commit, Repository, References};
 
-use first_parent_iter::FirstParentIter;
 use issue;
 use repository::RepositoryExt;
 
@@ -61,36 +60,38 @@ impl<'r> Iterator for HeadRefsToIssuesIter<'r>
 /// until an initial issue message is encountered, inclusively.
 ///
 pub struct IssueMessagesIter<'r> {
-    inner: FirstParentIter<'r>,
+    inner: git2::Revwalk<'r>,
     repo: &'r Repository,
 }
 
 impl<'r> IssueMessagesIter<'r> {
-    pub fn new<'a>(commit: Commit<'a>, repo: &'a Repository) -> IssueMessagesIter<'a> {
-        IssueMessagesIter {
-            inner: FirstParentIter::new(commit),
-            repo: repo,
+    pub fn new<'a>(repo: &'a Repository, commit: Commit<'a>) -> Result<IssueMessagesIter<'a>> {
+        repo.first_parent_revwalk(commit.id())
+            .map(|revwalk| IssueMessagesIter { inner: revwalk, repo: repo })
+    }
+
+    /// Fuse the iterator is the id refers to an issue
+    ///
+    fn fuse_if_initial(&mut self, id: git2::Oid) {
+        if self.repo.find_issue(id).is_ok() {
+            self.inner.reset();
         }
     }
 }
 
 impl<'r> Iterator for IssueMessagesIter<'r> {
-    type Item = <FirstParentIter<'r> as Iterator>::Item;
+    type Item = Result<Commit<'r>>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let next = self.inner.next();
-
-        // if this was the initial message, we fuse the underlying iterator
-        if next.as_ref()
-               .map(Commit::id)
-               .map(|id| self.repo.find_issue(id))
-               .as_ref()
-               .map(Result::is_ok)
-               .unwrap_or(false) {
-            self.inner.fuse_now();
-        }
-
-        next
+        self.inner
+            .next()
+            .map(|item| item
+                .and_then(|id| {
+                    self.fuse_if_initial(id);
+                    self.repo.find_commit(id)
+                })
+                .chain_err(|| EK::CannotGetCommit)
+            )
     }
 }
 

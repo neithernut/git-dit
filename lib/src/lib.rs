@@ -46,5 +46,3 @@ pub mod message;
 pub mod remote;
 pub mod repository;
 
-mod first_parent_iter;
-

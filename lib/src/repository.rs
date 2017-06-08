@@ -18,8 +18,7 @@ use git2::{self, Commit, Oid, Repository, Signature, Tree};
 use issue::Issue;
 use error::*;
 use error::ErrorKind as EK;
-use first_parent_iter::FirstParentIter;
-use iter::HeadRefsToIssuesIter;
+use iter::{self, HeadRefsToIssuesIter};
 
 
 /// Extension trait for Repositories
@@ -78,6 +77,20 @@ pub trait RepositoryExt {
                       parents: &[&Commit]
                      ) -> Result<Oid>;
 
+    /// Get an revwalk configured as a first parent iterator
+    ///
+    /// This is a convenience function. It returns an iterator over messages in
+    /// reverse order, only following first parents.
+    ///
+    fn first_parent_revwalk(&self, id: Oid) -> Result<git2::Revwalk>;
+
+    /// Get an IssueMessagesIter starting at a given commit
+    ///
+    /// The iterator returned will return messages in reverse order, following
+    /// the first parent, starting with the commit supplied.
+    ///
+    fn issue_messages_iter<'a>(&'a self, commit: Commit<'a>) -> Result<iter::IssueMessagesIter<'a>>;
+
     /// Get an empty tree
     ///
     /// This function returns an empty tree.
@@ -120,18 +133,14 @@ impl RepositoryExt for Repository {
     fn issue_with_message<'a>(&'a self, message: &Commit<'a>) -> Result<Issue> {
         // follow the chain of first parents towards an initial message for
         // which a head exists
-        let cid = message.id();
-        // NOTE: The following is this ugly because `Clone` is not implemented
-        //       for `git2::Commit`. We take a reference because consuming the
-        //       commit doesn't make sense for this function, semantically.
-        for c in FirstParentIter::new(message.as_object().clone().into_commit().ok().unwrap()) {
-            let issue = self.find_issue(c.id());
+        for id in self.first_parent_revwalk(message.id())? {
+            let issue = self.find_issue(id?);
             if issue.is_ok() {
                 return issue
             }
         }
 
-        Err(Error::from_kind(EK::NoTreeInitFound(cid)))
+        Err(Error::from_kind(EK::NoTreeInitFound(message.id())))
     }
 
     fn issues_with_prefix(&self, prefix: &str) -> Result<HeadRefsToIssuesIter> {
@@ -168,6 +177,21 @@ impl RepositoryExt for Repository {
         try!(self.reference(&refname, msg_id, false, &reflogmsg));
 
         Ok(msg_id)
+    }
+
+    fn first_parent_revwalk(&self, id: Oid) -> Result<git2::Revwalk> {
+        self.revwalk()
+            .and_then(|mut revwalk| {
+                revwalk.push(id)?;
+                revwalk.simplify_first_parent();
+                revwalk.set_sorting(git2::SORT_TOPOLOGICAL);
+                Ok(revwalk)
+            })
+            .chain_err(|| EK::CannotGetCommitForRev(id.to_string()))
+    }
+
+    fn issue_messages_iter<'a>(&'a self, commit: Commit<'a>) -> Result<iter::IssueMessagesIter<'a>> {
+        iter::IssueMessagesIter::new(self, commit)
     }
 
     fn empty_tree(&self) -> Result<Tree> {
