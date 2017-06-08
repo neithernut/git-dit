@@ -289,7 +289,7 @@ fn new_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
 ///
 fn push_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
     // note: "remote" is always present since it is a required parameter
-    let mut remote = try_or_1!(repo.find_remote(matches.value_of("remote").unwrap()));
+    let mut remote = repo.find_remote(matches.value_of("remote").unwrap()).unwrap_or_abort();
 
     // accumulate the refspecs to push
     let refspecs : Vec<String> = if let Some(issues) = matches.values_of("issue") {
@@ -304,7 +304,7 @@ fn push_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
               .map(String::from)
               .collect()
     } else {
-        try_or_1!(repo.issues_with_prefix("refs"))
+        repo.issues_with_prefix("refs")
             .abort_on_err()
             .map(|issue| issue.local_refs())
             .abort_on_err()
@@ -319,7 +319,8 @@ fn push_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
     fetch_options.remote_callbacks(callbacks::callbacks());
 
     let refspec_refs : Vec<&str> = refspecs.iter().map(String::as_str).collect();
-    try_or_1!(remote.push(refspec_refs.as_ref(), Some(&mut fetch_options)));
+    remote.push(refspec_refs.as_ref(), Some(&mut fetch_options))
+          .unwrap_or_abort();
     0
 }
 
