@@ -402,7 +402,7 @@ fn reply_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
 /// show subcommand implementation
 ///
 fn show_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
-    let id_len = try_or_1!(repo.abbreviation_length(matches));
+    let id_len = repo.abbreviation_length(matches).unwrap_or_abort();
 
     // translate commit to lines representing the commit
     let commit_lines = |mut commit: Commit| -> Vec<String> {
@@ -431,13 +431,16 @@ fn show_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
 
     // first, get us an iterator over all the commits
     // NOTE: "issue" is a required parameter
-    let issue = try_or_1!(Oid::from_str(matches.value_of("issue").unwrap()));
+    let issue = Oid::from_str(matches.value_of("issue").unwrap()).unwrap_or_abort();
     let mut commits : Vec<(TreeGraphElemLine, Commit)> =
         if matches.is_present("initial") {
-            vec![(TreeGraphElemLine::empty(), try_or_1!(repo.find_commit(issue)))]
+            vec![(
+                TreeGraphElemLine::empty(),
+                repo.find_commit(issue).unwrap_or_abort()
+            )]
         } else {
-            try_or_1!(repo.find_issue(issue)
-                          .and_then(|issue| issue.message_revwalk()))
+            repo.find_issue(issue)
+                .and_then(|issue| issue.message_revwalk())
                 .abort_on_err()
                 .map(|oid| repo.find_commit(oid))
                 .abort_on_err()
@@ -472,13 +475,12 @@ fn show_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
         .map(|line| format!("{} {}", line.0, line.1));
 
     // spawn a pager and write the graph
-    let mut pager = try_or_1!(programs::pager(try_or_1!(repo.config())));
-    try_or_1!(pager.stdin.as_mut().unwrap().consume_lines(graph));
+    let mut pager = programs::pager(repo.config().unwrap_or_abort())
+        .unwrap_or_abort();
+    pager.stdin.as_mut().unwrap().consume_lines(graph).unwrap_or_abort();
 
     // don't trash the shell by exitting with a child still printing to it
-    try_or_1!(pager.wait())
-        .code()
-        .unwrap_or(1)
+    pager.wait().unwrap_or_abort().code().unwrap_or(1)
 }
 
 /// tag subcommand implementation
