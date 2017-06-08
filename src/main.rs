@@ -199,7 +199,7 @@ fn fetch_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
 ///
 fn list_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
     // get initial commits
-    let mut commits : Vec<Commit> = try_or_1!(repo.issues())
+    let mut commits : Vec<Commit> = repo.issues()
         .abort_on_err()
         .map(|issue| repo.find_commit(issue.id()))
         .abort_on_err()
@@ -209,13 +209,14 @@ fn list_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
     commits.sort_by(|a, b| b.time().cmp(&a.time()));
     if let Some(number) = matches.value_of("n") {
         // TODO: better error reporting?
-        commits.truncate(try_or_1!(str::parse(number)));
+        commits.truncate(str::parse(number).unwrap_or_abort());
     }
 
-    let id_len = try_or_1!(repo.abbreviation_length(matches));
+    let id_len = repo.abbreviation_length(matches).unwrap_or_abort();
 
     // spawn a pager
-    let mut pager = try_or_1!(programs::pager(try_or_1!(repo.config())));
+    let mut pager = programs::pager(repo.config().unwrap_or_abort())
+        .unwrap_or_abort();
 
     {
         let mut stream = pager.stdin.as_mut().unwrap();
@@ -227,17 +228,22 @@ fn list_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
                 FixedOffset::east(gtime.offset_minutes()*60).timestamp(gtime.seconds(), 0)
             };
             if long {
-                try_or_1!(write!(stream, "Issue:  {}\nAuthor: {}\nDate:   {}\n\n", id, commit.author(), time.to_rfc3339()));
-                try_or_1!(stream.consume_lines(commit.message_lines()));
-                try_or_1!(write!(stream, "\n\n"));
+                write!(stream, "Issue:  {}\nAuthor: {}\nDate:   {}\n\n", id, commit.author(), time.to_rfc3339())
+                    .unwrap_or_abort();
+                stream.consume_lines(commit.message_lines()).unwrap_or_abort();
+                write!(stream, "\n\n").unwrap_or_abort();
             } else {
-                try_or_1!(writeln!(stream, "{0:.1$} ({2}) {3}", id, id_len, time.format("%c"), commit.summary().unwrap_or("")));
+                writeln!(stream, "{0:.1$} ({2}) {3}", id, id_len, time.format("%c"), commit.summary().unwrap_or(""))
+                    .unwrap_or_abort();
             }
         }
     }
 
     // don't trash the shell by exitting with a child still printing to it
-    try_or_1!(pager.wait()).code().unwrap_or(1)
+    pager.wait()
+         .unwrap_or_abort()
+         .code()
+         .unwrap_or(1)
 }
 
 
