@@ -72,7 +72,7 @@ macro_rules! try_or_1 {
 ///
 fn check_message(matches: &clap::ArgMatches) -> i32 {
     let reader: Box<Read> = match matches.value_of("filename") {
-        Some(filename)  => Box::from(try_or_1!(File::open(filename))),
+        Some(filename)  => Box::from(File::open(filename).unwrap_or_abort()),
         None            => Box::from(io::stdin()),
     };
     BufReader::new(reader).lines()
@@ -80,8 +80,8 @@ fn check_message(matches: &clap::ArgMatches) -> i32 {
                           .skip_while(|l| l.is_empty())
                           .stripped()
                           .check_message_format()
-                          .map(|_| 0)
-                          .unwrap_or_else(|err| {err.log(); 1})
+                          .unwrap_or_abort();
+    0
 }
 
 
