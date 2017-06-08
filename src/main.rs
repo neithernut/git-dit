@@ -250,15 +250,16 @@ fn list_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
 /// new subcommand implementation
 ///
 fn new_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
-    let sig = try_or_1!(repo.signature());
+    let sig = repo.signature().unwrap_or_abort();
 
     // get the message, either from the command line argument or an editor
     let message = if let Some(m) = message_from_args(matches) {
         // the message was supplied via the command line
         m.into_iter()
-         .chain(try_or_1!(repo.prepare_trailers(matches))
-                              .into_iter()
-                              .map(|t| t.to_string()))
+         .chain(repo.prepare_trailers(matches)
+                    .unwrap_or_abort()
+                    .into_iter()
+                    .map(|t| t.to_string()))
          .collect()
     } else {
         // we need an editor
@@ -267,18 +268,19 @@ fn new_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
         let path = repo.commitmsg_edit_path(matches);
 
         { // write
-            let mut file = try_or_1!(File::create(path.as_path()));
-            try_or_1!(file.consume_lines(try_or_1!(repo.prepare_trailers(matches))));
-            try_or_1!(file.flush());
+            let mut file = File::create(path.as_path()).unwrap_or_abort();
+            file.consume_lines(repo.prepare_trailers(matches).unwrap_or_abort()).unwrap_or_abort();
+            file.flush().unwrap_or_abort();
         }
 
-        try_or_1!(repo.get_commit_msg(path))
+        repo.get_commit_msg(path).unwrap_or_abort()
     }.into_iter().collect_string();
 
     // commit the message
-    let tree = try_or_1!(repo.empty_tree());
+    let tree = repo.empty_tree().unwrap_or_abort();
     let parent_refs = Vec::new();
-    println!("[dit][new] {}", try_or_1!(repo.create_message(None, &sig, &sig, message.trim(), &tree, &parent_refs)));
+    let id = repo.create_message(None, &sig, &sig, message.trim(), &tree, &parent_refs).unwrap_or_abort();
+    println!("[dit][new] {}", id);
     0
 }
 
