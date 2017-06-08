@@ -60,6 +60,19 @@ pub trait RepositoryExt {
     ///
     fn issues(&self) -> Result<HeadRefsToIssuesIter>;
 
+    /// Create a new issue with an initial message
+    ///
+    fn create_issue<'a, A, I, J>(&self,
+             author: &Signature,
+             committer: &Signature,
+             message: A,
+             tree: &Tree,
+             parents: I
+    ) -> Result<Issue>
+        where A: AsRef<str>,
+              I: IntoIterator<Item = &'a Commit<'a>, IntoIter = J>,
+              J: Iterator<Item = &'a Commit<'a>>;
+
     /// Create a new message
     ///
     /// This function creates a new issue message as well as an appropriate
@@ -155,6 +168,28 @@ impl RepositoryExt for Repository {
         self.references_glob(glob)
             .chain_err(|| EK::CannotGetReferences(glob.to_owned()))
             .map(|refs| HeadRefsToIssuesIter::new(self, refs))
+    }
+
+    fn create_issue<'a, A, I, J>(&self,
+             author: &Signature,
+             committer: &Signature,
+             message: A,
+             tree: &Tree,
+             parents: I
+    ) -> Result<Issue>
+        where A: AsRef<str>,
+              I: IntoIterator<Item = &'a Commit<'a>, IntoIter = J>,
+              J: Iterator<Item = &'a Commit<'a>>
+    {
+        let parent_vec : Vec<&Commit> = parents.into_iter().collect();
+
+        self.commit(None, author, committer, message.as_ref(), tree, &parent_vec)
+            .chain_err(|| EK::CannotCreateMessage)
+            .map(|id| Issue::new(self, id))
+            .and_then(|issue| {
+                issue.update_head(issue.id())?;
+                Ok(issue)
+            })
     }
 
     fn create_message(&self,
