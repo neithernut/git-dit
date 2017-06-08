@@ -163,14 +163,16 @@ fn get_issue_tree_init_hashes(repo: &Repository, _: &clap::ArgMatches) -> i32 {
 ///
 fn fetch_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
     // note: "remote" is always present since it is a required parameter
-    let mut remote = try_or_1!(repo.find_remote(matches.value_of("remote").unwrap()));
+    let mut remote = repo
+        .find_remote(matches.value_of("remote").unwrap())
+        .unwrap_or_abort();
 
     // accumulate the refspecs to fetch
     let refspecs : Vec<String> = if let Some(issues) = matches.values_of("issue") {
         // fetch a specific list of issues
         let iter = issues.map(Oid::from_str).abort_on_err();
         if matches.is_present("known") {
-            iter.chain(try_or_1!(repo.issues()).abort_on_err().map(|issue| issue.id()))
+            iter.chain(repo.issues().abort_on_err().map(|issue| issue.id()))
                 .filter_map(|issue| remote.issue_refspec(issue))
                 .collect()
         } else {
@@ -187,7 +189,8 @@ fn fetch_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
     fetch_options.remote_callbacks(callbacks::callbacks());
 
     let refspec_refs : Vec<&str> = refspecs.iter().map(String::as_str).collect();
-    try_or_1!(remote.fetch(refspec_refs.as_ref(), Some(&mut fetch_options), None));
+    remote.fetch(refspec_refs.as_ref(), Some(&mut fetch_options), None)
+          .unwrap_or_abort();
     0
 }
 
