@@ -32,6 +32,8 @@ pub mod trailer;
 
 use self::line_processor::{Quoted, StripWhiteSpaceRightIter, WithoutCommentsIter};
 
+pub use self::trailer::Trailer;
+
 
 /// Special iterator extension for messages
 ///
