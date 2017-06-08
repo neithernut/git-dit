@@ -125,6 +125,23 @@ impl<'r> Issue<'r> {
             .chain_err(|| EK::CannotGetReferences(glob))
     }
 
+    /// Update the local head reference of the issue
+    ///
+    /// Updates the local head reference of the issue to the provided message.
+    ///
+    /// # Warnings
+    ///
+    /// The function will update the reference even if it would not be an
+    /// fast-forward update.
+    ///
+    pub fn update_head(&self, message: Oid) -> Result<Reference> {
+        let refname = format!("refs/dit/{}/head", self.ref_part());
+        let reflogmsg = format!("git-dit: set head reference of {} to {}", self, message);
+        self.repo
+            .reference(&refname, message, true, &reflogmsg)
+            .chain_err(|| EK::CannotSetReference(refname))
+    }
+
     /// Get reference part for this issue
     ///
     /// The references associated with an issue reside in paths specific to the
