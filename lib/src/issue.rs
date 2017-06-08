@@ -142,6 +142,18 @@ impl<'r> Issue<'r> {
             .chain_err(|| EK::CannotSetReference(refname))
     }
 
+    /// Add a new leaf reference associated with the issue
+    ///
+    /// Creates a new leaf reference for the message provided in the issue.
+    ///
+    pub fn add_leaf(&self, message: Oid) -> Result<Reference> {
+        let refname = format!("refs/dit/{}/leaves/{}", self.ref_part(), message);
+        let reflogmsg = format!("git-dit: new leaf for {}: {}", self, message);
+        self.repo
+            .reference(&refname, message, false, &reflogmsg)
+            .chain_err(|| EK::CannotSetReference(refname))
+    }
+
     /// Get reference part for this issue
     ///
     /// The references associated with an issue reside in paths specific to the
