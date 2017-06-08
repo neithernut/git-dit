@@ -487,26 +487,34 @@ fn show_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
 ///
 fn tag_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
     // NOTE: the issue-hash is a required parameter
-    let issue = try_or_1!(Oid::from_str(matches.value_of("issue-hash").unwrap()));
+    let issue = Oid::from_str(matches.value_of("issue-hash").unwrap())
+        .unwrap_or_abort();
 
     // get the head for the issue to tag
-    let mut issue_head = try_or_1!(repo.find_issue(issue)
-                                       .and_then(|issue| issue.find_local_head()));
-    let mut head_commit = try_or_1!(issue_head.peel(ObjectType::Commit)).into_commit().ok().unwrap();
+    let mut issue_head = repo
+        .find_issue(issue)
+        .and_then(|issue| issue.find_local_head())
+        .unwrap_or_abort();
+    let mut head_commit = issue_head
+        .peel(ObjectType::Commit)
+        .unwrap_or_abort()
+        .into_commit()
+        .ok()
+        .unwrap();
 
     if matches.is_present("list") {
         // we only list the metadata
-        let trailers = try_or_1!(repo.issue_messages_iter(head_commit))
+        let trailers = repo.issue_messages_iter(head_commit)
             .abort_on_err()
             .flat_map(|c| c.trailers());
-        try_or_1!(io::stdout().consume_lines(trailers));
+        io::stdout().consume_lines(trailers).unwrap_or_abort();
         return 0;
     }
 
     // we produce a commit with status and references
 
     // get references and trailers for the new commit
-    let references = try_or_1!(repo.cli_references(matches));
+    let references = repo.cli_references(matches).unwrap_or_abort();
     let trailers : Vec<Trailer> = matches.values_of("set-status")
                                          .into_iter()
                                          .flat_map(|values| values)
@@ -519,18 +527,21 @@ fn tag_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
     }
 
     // construct the message
-    let sig = try_or_1!(repo.signature());
+    let sig = repo.signature().unwrap_or_abort();
     let message = [head_commit.reply_subject().unwrap_or_default(), String::new()]
         .to_vec()
         .into_iter()
         .chain(trailers.into_iter().map(|t| t.to_string()))
         .collect_string();
-    let tree = try_or_1!(repo.empty_tree());
+    let tree = repo.empty_tree().unwrap_or_abort();
     let parent_refs : Vec<&Commit> = Some(&head_commit).into_iter().chain(references.iter()).collect();
-    let new = try_or_1!(repo.commit(None, &sig, &sig, message.trim(), &tree, &parent_refs));
+    let new = repo
+        .commit(None, &sig, &sig, message.trim(), &tree, &parent_refs)
+        .unwrap_or_abort();
 
     // update the head reference
-    try_or_1!(issue_head.set_target(new, "Issue head updated by git-dit-tag"));
+    issue_head.set_target(new, "Issue head updated by git-dit-tag")
+              .unwrap_or_abort();
     0
 }
 
