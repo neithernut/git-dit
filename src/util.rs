@@ -8,7 +8,7 @@
 //
 
 use clap::{ArgMatches, Values};
-use git2::{Commit, Repository};
+use git2::{self, Commit, Repository};
 use std::fs::File;
 use std::io::BufRead;
 use std::io::BufReader;
@@ -19,6 +19,7 @@ use abort::IteratorExt;
 use error::ErrorKind as EK;
 use error::*;
 use programs::run_editor;
+use libgitdit::{Issue, RepositoryExt};
 use libgitdit::message::LineIteratorExt;
 use libgitdit::message::trailer::Trailer;
 
@@ -53,6 +54,12 @@ pub trait RepositoryUtil<'r> {
     /// This function transforms values to a vector.
     ///
     fn values_to_hashes(&'r self, values: Values) -> Result<Vec<Commit<'r>>>;
+
+    /// Get the issue specified on the command line
+    ///
+    /// This function parses the issue specified via the `"issue"` field.
+    ///
+    fn cli_issue(&'r self, matches: &ArgMatches) -> Result<Issue<'r>>;
 
     /// Retrieve the references from the command line
     ///
@@ -109,6 +116,14 @@ impl<'r> RepositoryUtil<'r> for Repository {
         matches.value_of("tempfile")
                .map(PathBuf::from)
                .unwrap_or_else(|| self.path().join("COMMIT_EDITMSG"))
+    }
+
+    fn cli_issue(&'r self, matches: &ArgMatches) -> Result<Issue<'r>> {
+        matches.value_of("issue")
+               .ok_or_else(|| {
+                   Error::from_kind(EK::ParameterMissing("issue".to_owned()))
+               })
+               .and_then(|value| self.value_to_issue(value))
     }
 
     fn cli_references(&'r self, matches: &ArgMatches) -> Result<Vec<Commit<'r>>> {
