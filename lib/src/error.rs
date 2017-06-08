@@ -15,6 +15,11 @@ error_chain! {
     }
 
     errors {
+        CannotCreateMessage {
+            description("Cannot create message")
+            display("Cannot create a message")
+        }
+
         CannotGetCommit {
             description("Cannot get a commit from the repository")
             display("Cannot get a specific commit from repository")
