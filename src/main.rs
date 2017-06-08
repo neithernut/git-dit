@@ -562,8 +562,9 @@ fn handle_unknown_subcommand(name: &str, matches: &clap::ArgMatches) -> i32 {
     // run the command
     command.spawn()
            .and_then(|mut child| child.wait())
-           .map(|result| result.code().unwrap_or(1))
-           .unwrap_or_else(|err| {err.log(); 1})
+           .unwrap_or_abort()
+           .code()
+           .unwrap_or(1)
 }
 
 
