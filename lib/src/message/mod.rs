@@ -32,6 +32,8 @@ pub mod trailer;
 
 use self::line_processor::{Quoted, StripWhiteSpaceRightIter, WithoutCommentsIter};
 
+pub use self::trailer::Trailer;
+
 
 /// Special iterator extension for messages
 ///
@@ -138,12 +140,12 @@ impl<L, S> LineIteratorExt<S> for L
 pub type BodyLines = Skip<vec::IntoIter<String>>;
 
 
-/// Extension for commit
+/// Message trait
 ///
 /// This extension gives a more convenient access to message functionality via
 /// `git2::Commit`.
 ///
-pub trait CommitExt {
+pub trait Message {
     /// Get the commit message as a sequence of lines
     ///
     /// If the commit has no message, an empty message will be simulated.
@@ -169,7 +171,7 @@ pub trait CommitExt {
     fn reply_subject(&mut self) -> Option<String>;
 }
 
-impl<'c> CommitExt for Commit<'c> {
+impl<'c> Message for Commit<'c> {
     fn message_lines(&self) -> vec::IntoIter<String> {
         let lines : Vec<String> = self.message()
                                       .unwrap_or("")
