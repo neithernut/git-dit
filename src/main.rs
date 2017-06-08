@@ -46,26 +46,6 @@ use util::{RepositoryUtil, message_from_args};
 use write::WriteExt;
 
 
-/// Convenience macro for early returns in subcommands
-///
-/// This macro is similar to the `try!` macro. It evaluates the expression
-/// passed. If the result the expression yields is ok, it will be unwrapped.
-/// Else the error will be printed using the `LoggableError` extension and abort
-/// the function, returning `1`.
-///
-/// Note: using this macro in clauses usually doesn't make sense, since it
-///       aborts the function by returning a numeric value.
-///
-macro_rules! try_or_1 {
-    ($expr: expr) => {
-        match $expr {
-            Ok(v) => v,
-            Err(e)   => {e.log(); return 1},
-        }
-    };
-}
-
-
 // Plumbing subcommand implementations
 
 /// check-message subcommand implementation
