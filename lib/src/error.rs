@@ -50,6 +50,11 @@ error_chain! {
             display("Cannot find issue HEAD for {}", id)
         }
 
+        CannotSetReference(refname: String) {
+            description("Cannot set some reference")
+            display("Cannot update or create reference '{}'", refname)
+        }
+
         NoTreeInitFound(id: Oid) {
             description("Cannot find any tree init")
             display("Cannot find any tree init for {}", id)
