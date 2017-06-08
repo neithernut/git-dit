@@ -576,10 +576,7 @@ fn main() {
         writeln!(io::stderr(), "Could not initialize logger: {}", err).ok();
     }
 
-    let repo = match util::open_dit_repo() {
-        Ok(r) => r,
-        Err(e) => {e.log(); std::process::exit(1)}
-    };
+    let repo = util::open_dit_repo().unwrap_or_abort();
 
     std::process::exit(match matches.subcommand() {
         // Plumbing subcommands
