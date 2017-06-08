@@ -7,7 +7,7 @@
 //   published by the Free Software Foundation.
 //
 
-use std::fmt::Debug;
+use logger::LoggableError;
 use std::process::exit;
 
 /// Aborting iterator
@@ -31,7 +31,7 @@ impl<I, V, E> From<I> for AbortingIter<I, V, E>
 
 impl<I, V, E> Iterator for AbortingIter<I, V, E>
     where I: Iterator<Item = Result<V, E>> + Sized,
-          E: Debug
+          E: LoggableError
 {
     type Item = V;
 
@@ -61,7 +61,7 @@ impl<I, V, E> IteratorExt<I, V, E> for I
 
 impl<I, V, IE, OE> IteratorExt<I, V, IE> for Result<I, OE>
     where I: Iterator<Item = Result<V, IE>> + Sized,
-          OE: Debug
+          OE: LoggableError
 {
     fn abort_on_err(self) -> AbortingIter<I, V, IE> {
         AbortingIter::from(self.unwrap_or_abort())
@@ -81,11 +81,11 @@ pub trait Abortable<V>
 }
 
 impl<V, E> Abortable<V> for Result<V, E>
-    where E: Debug
+    where E: LoggableError
 {
     fn unwrap_or_abort(self) -> V {
         self.unwrap_or_else(|e| {
-            error!("{:?}", e);
+            e.log();
             exit(1)
         })
     }
