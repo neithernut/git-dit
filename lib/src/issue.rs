@@ -43,6 +43,12 @@ impl<'r> Issue<'r> {
         self.id
     }
 
+    /// Get the issue's initial message
+    ///
+    pub fn initial_message(&self) -> Result<git2::Commit> {
+        self.repo.find_commit(self.id).chain_err(|| EK::CannotGetCommit)
+    }
+
     /// Get possible heads of the issue
     ///
     /// Returns the head references from both the local repository and remotes
