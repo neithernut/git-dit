@@ -125,6 +125,31 @@ impl<'r> Issue<'r> {
             .chain_err(|| EK::CannotGetReferences(glob))
     }
 
+    /// Add a new message to the issue
+    ///
+    /// Adds a new message to the issue. Also create a leaf reference for the
+    /// new message. Returns the message.
+    ///
+    pub fn add_message<'a, A, I, J>(&self,
+                                    author: &git2::Signature,
+                                    committer: &git2::Signature,
+                                    message: A,
+                                    tree: &git2::Tree,
+                                    parents: I
+    ) -> Result<Commit>
+        where A: AsRef<str>,
+              I: IntoIterator<Item = &'a Commit<'a>, IntoIter = J>,
+              J: Iterator<Item = &'a Commit<'a>>
+    {
+        let parent_vec : Vec<&Commit> = parents.into_iter().collect();
+
+        self.repo
+            .commit(None, author, committer, message.as_ref(), tree, &parent_vec)
+            .and_then(|id| self.repo.find_commit(id))
+            .chain_err(|| EK::CannotCreateMessage)
+            .and_then(|message| self.add_leaf(message.id()).map(|_| message))
+    }
+
     /// Update the local head reference of the issue
     ///
     /// Updates the local head reference of the issue to the provided message.
