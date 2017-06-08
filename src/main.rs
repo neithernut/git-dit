@@ -328,7 +328,7 @@ fn push_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
 /// reply subcommand implementation
 ///
 fn reply_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
-    let sig = try_or_1!(repo.signature());
+    let sig = repo.signature().unwrap_or_abort();
 
     // NOTE: We want to do a lot of stuff early, because we want to report
     //       errors before a user spent time writing a commit message in her
@@ -337,17 +337,19 @@ fn reply_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
 
     // the unwrap is safe since `parent` is a required value
     // and get all the info from it that we might need
-    let mut parent = try_or_1!(repo.value_to_commit(matches.value_of("parent").unwrap()));
+    let mut parent = repo
+        .value_to_commit(matches.value_of("parent").unwrap())
+        .unwrap_or_abort();
 
     // extract the subject and tree from the parent
     let subject = parent.reply_subject();
-    let tree = try_or_1!(parent.tree());
+    let tree = parent.tree().unwrap_or_abort();
 
     // figure out to what issue we reply
-    let issue = try_or_1!(repo.issue_with_message(&parent)).id();
+    let issue = repo.issue_with_message(&parent).unwrap_or_abort().id();
 
     // get the references specified on the command line
-    let references = try_or_1!(repo.cli_references(matches));
+    let references = repo.cli_references(matches).unwrap_or_abort();
 
     // get the message, either from the command line argument or an editor
     let message = if let Some(m) = message_from_args(matches) {
@@ -357,9 +359,10 @@ fn reply_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
         }
 
         m.into_iter()
-         .chain(try_or_1!(repo.prepare_trailers(matches))
-                              .into_iter()
-                              .map(|t| t.to_string()))
+         .chain(repo.prepare_trailers(matches)
+                    .unwrap_or_abort()
+                    .into_iter()
+                    .map(|t| t.to_string()))
          .collect()
     } else {
         // we need an editor
@@ -368,28 +371,31 @@ fn reply_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
         let path = repo.commitmsg_edit_path(matches);
 
         { // write
-            let mut file = try_or_1!(File::create(path.as_path()));
+            let mut file = File::create(path.as_path()).unwrap_or_abort();
             if let Some(s) = subject {
-                try_or_1!(write!(&mut file, "{}\n\n", s));
+                write!(&mut file, "{}\n\n", s).unwrap_or_abort();
             }
 
             if matches.is_present("quote") {
-                try_or_1!(file.consume_lines(parent.body_lines().quoted()));
-                try_or_1!(write!(&mut file, "\n"));
+                file.consume_lines(parent.body_lines().quoted())
+                    .unwrap_or_abort();
+                write!(&mut file, "\n").unwrap_or_abort();
             }
 
-            try_or_1!(file.consume_lines(try_or_1!(repo.prepare_trailers(matches))));
-            try_or_1!(file.flush());
+            file.consume_lines(repo.prepare_trailers(matches).unwrap_or_abort())
+                .unwrap_or_abort();
+            file.flush().unwrap_or_abort();
         }
 
-        try_or_1!(repo.get_commit_msg(path))
+        repo.get_commit_msg(path).unwrap_or_abort()
     }.into_iter().collect_string();
 
     // construct a vector holding all parents
     let parent_refs : Vec<&Commit> = Some(&parent).into_iter().chain(references.iter()).collect();
 
     // finally, create the message
-    try_or_1!(repo.create_message(Some(&issue), &sig, &sig, message.trim(), &tree, &parent_refs));
+    repo.create_message(Some(&issue), &sig, &sig, message.trim(), &tree, &parent_refs)
+        .unwrap_or_abort();
     0
 }
 
