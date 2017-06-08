@@ -37,7 +37,7 @@ use std::io::{self, BufRead, BufReader, Read, Write};
 use std::process::Command;
 use std::str::FromStr;
 
-use abort::IteratorExt;
+use abort::{Abortable, IteratorExt};
 use error::*;
 use error::ErrorKind as EK;
 use logger::LoggableError;
