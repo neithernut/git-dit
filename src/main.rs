@@ -89,31 +89,33 @@ fn check_message(matches: &clap::ArgMatches) -> i32 {
 ///
 fn create_message(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
     let issue = match matches.value_of("issue") {
-        Some(i) => Some(try_or_1!(Oid::from_str(i))),
+        Some(i) => Some(Oid::from_str(i).unwrap_or_abort()),
         None    => None,
     };
-    let sig = try_or_1!(repo.signature());
+    let sig = repo.signature().unwrap_or_abort();
 
     // Note: The list of parents must live long enough to back the references we
     //       supply to `libgitdit::repository::RepositoryExt::create_message()`.
-    let parents = match matches.values_of("parents")
-                               .map(|p| repo.values_to_hashes(p)) {
-        Some(hashes) => try_or_1!(hashes),
-        _            => Vec::new(),
-    };
+    let parents = matches.values_of("parents")
+                         .map(|p| repo.values_to_hashes(p))
+                         .map(Abortable::unwrap_or_abort)
+                         .unwrap_or_default();
     let parent_refs : Vec<&Commit> = parents.iter().map(|command| command).collect();
 
     // use the first parent's tree if availible
     let tree = match parents.first() {
-        Some(commit) => try_or_1!(commit.tree()),
-        _            => try_or_1!(repo.empty_tree()),
+        Some(commit) => commit.tree().unwrap_or_abort(),
+        _            => repo.empty_tree().unwrap_or_abort(),
     };
 
     // read all from stdin
     let mut message = String::new();
-    try_or_1!(io::stdin().read_to_string(&mut message));
+    io::stdin().read_to_string(&mut message).unwrap_or_abort();
+    let id = repo
+        .create_message(issue.as_ref(), &sig, &sig, &message, &tree, &parent_refs)
+        .unwrap_or_abort();
 
-    println!("{}", try_or_1!(repo.create_message(issue.as_ref(), &sig, &sig, &message, &tree, &parent_refs)));
+    println!("{}", id);
     0
 }
 
