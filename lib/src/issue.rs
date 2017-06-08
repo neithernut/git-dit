@@ -12,7 +12,7 @@
 //! This module provides the `Issue` type and related functionality.
 //!
 
-use git2::{self, Oid, Reference, References};
+use git2::{self, Commit, Oid, Reference, References};
 use std::fmt;
 use std::result::Result as RResult;
 
