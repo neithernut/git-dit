@@ -152,9 +152,7 @@ fn get_issue_metadata(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
 /// find-tree-init-hash subcommand implementation
 ///
 fn get_issue_tree_init_hashes(repo: &Repository, _: &clap::ArgMatches) -> i32 {
-    for hash in try_or_1!(repo.issues()) {
-        println!("{}", try_or_1!(hash));
-    }
+    io::stdout().consume_lines(repo.issues().abort_on_err()).unwrap_or_abort();
     0
 }
 
