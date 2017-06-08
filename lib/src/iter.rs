@@ -65,7 +65,7 @@ pub struct IssueMessagesIter<'r> {
 }
 
 impl<'r> IssueMessagesIter<'r> {
-    pub fn new<'a>(commit: Commit<'a>, repo: &'a Repository) -> Result<IssueMessagesIter<'a>> {
+    pub fn new<'a>(repo: &'a Repository, commit: Commit<'a>) -> Result<IssueMessagesIter<'a>> {
         repo.first_parent_revwalk(commit.id())
             .map(|revwalk| IssueMessagesIter { inner: revwalk, repo: repo })
     }

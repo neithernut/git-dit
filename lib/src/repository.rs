@@ -191,7 +191,7 @@ impl RepositoryExt for Repository {
     }
 
     fn issue_messages_iter<'a>(&'a self, commit: Commit<'a>) -> Result<iter::IssueMessagesIter<'a>> {
-        iter::IssueMessagesIter::new(commit, self)
+        iter::IssueMessagesIter::new(self, commit)
     }
 
     fn empty_tree(&self) -> Result<Tree> {
