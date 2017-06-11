@@ -257,8 +257,9 @@ fn new_impl(repo: &Repository, matches: &clap::ArgMatches) {
 
     // commit the message
     let tree = repo.empty_tree().unwrap_or_abort();
-    let parent_refs = Vec::new();
-    let id = repo.create_message(None, &sig, &sig, message.trim(), &tree, &parent_refs).unwrap_or_abort();
+    let id = repo
+        .create_issue(&sig, &sig, message.trim(), &tree, Vec::new())
+        .unwrap_or_abort();
     println!("[dit][new] {}", id);
 }
 
