@@ -65,7 +65,7 @@ fn check_message(matches: &clap::ArgMatches) {
 ///
 fn create_message(repo: &Repository, matches: &clap::ArgMatches) {
     let issue = match matches.value_of("issue") {
-        Some(i) => Some(Oid::from_str(i).unwrap_or_abort()),
+        Some(i) => Some(repo.value_to_issue(i).unwrap_or_abort()),
         None    => None,
     };
     let sig = repo.signature().unwrap_or_abort();
@@ -88,7 +88,7 @@ fn create_message(repo: &Repository, matches: &clap::ArgMatches) {
     let mut message = String::new();
     io::stdin().read_to_string(&mut message).unwrap_or_abort();
     let id = repo
-        .create_message(issue.as_ref(), &sig, &sig, &message, &tree, &parent_refs)
+        .create_message(issue.map(|i| i.id()).as_ref(), &sig, &sig, &message, &tree, &parent_refs)
         .unwrap_or_abort();
 
     println!("{}", id);
