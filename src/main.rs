@@ -401,17 +401,16 @@ fn show_impl(repo: &Repository, matches: &clap::ArgMatches) {
     };
 
     // first, get us an iterator over all the commits
-    // NOTE: "issue" is a required parameter
-    let issue = Oid::from_str(matches.value_of("issue").unwrap()).unwrap_or_abort();
+    let issue = repo.cli_issue(matches).unwrap_or_abort();
     let mut commits : Vec<(TreeGraphElemLine, Commit)> =
         if matches.is_present("initial") {
             vec![(
                 TreeGraphElemLine::empty(),
-                repo.find_commit(issue).unwrap_or_abort()
+                issue.initial_message().unwrap_or_abort()
             )]
         } else {
-            repo.find_issue(issue)
-                .and_then(|issue| issue.message_revwalk())
+            issue
+                .message_revwalk()
                 .abort_on_err()
                 .map(|oid| repo.find_commit(oid))
                 .abort_on_err()
