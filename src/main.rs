@@ -267,8 +267,7 @@ fn push_impl(repo: &Repository, matches: &clap::ArgMatches) {
     // accumulate the refspecs to push
     let refspecs : Vec<String> = if let Some(issues) = matches.values_of("issue") {
         // push a specific list of issues
-        issues.map(Oid::from_str).abort_on_err()
-              .map(|issue| repo.find_issue(issue))
+        issues.map(|issue| repo.value_to_issue(issue))
               .abort_on_err()
               .map(|issue| issue.local_refs())
               .abort_on_err()
