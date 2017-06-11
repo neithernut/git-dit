@@ -42,6 +42,12 @@ pub trait RepositoryUtil<'r> {
     ///
     fn value_to_commit(&'r self, rev: &str) -> Result<Commit<'r>>;
 
+    /// Get an issue from a string representation
+    ///
+    /// This function returns an issue from a string representation.
+    ///
+    fn value_to_issue(&'r self, value: &str) -> Result<Issue<'r>>;
+
     /// Get a vector of commits from values
     ///
     /// This function transforms values to a vector.
@@ -81,6 +87,14 @@ impl<'r> RepositoryUtil<'r> for Repository {
         self.revparse_single(rev)
             .and_then(|oid| self.find_commit(oid.id()))
             .chain_err(|| EK::WrappedGitDitError)
+    }
+
+    fn value_to_issue(&'r self, value: &str) -> Result<Issue<'r>> {
+        git2::Oid::from_str(value)
+            .chain_err(|| EK::WrappedParseError)
+            .and_then(|id| {
+                self.find_issue(id).chain_err(|| EK::WrappedGitDitError)
+            })
     }
 
     fn values_to_hashes(&'r self, values: Values) -> Result<Vec<Commit<'r>>> {
