@@ -73,23 +73,6 @@ pub trait RepositoryExt {
               I: IntoIterator<Item = &'a Commit<'a>, IntoIter = J>,
               J: Iterator<Item = &'a Commit<'a>>;
 
-    /// Create a new message
-    ///
-    /// This function creates a new issue message as well as an appropriate
-    /// reference. The oid of the new message will be returned.
-    /// The message will be part of the issue supplied by the caller. If no
-    /// issue is provided, a new issue will be initiated with the message.
-    /// In this case, the oid returned is also the oid of the new issue.
-    ///
-    fn create_message(&self,
-                      issue: Option<&Oid>,
-                      author: &Signature,
-                      committer: &Signature,
-                      message: &str,
-                      tree: &Tree,
-                      parents: &[&Commit]
-                     ) -> Result<Oid>;
-
     /// Get an revwalk configured as a first parent iterator
     ///
     /// This is a convenience function. It returns an iterator over messages in
@@ -190,28 +173,6 @@ impl RepositoryExt for Repository {
                 issue.update_head(issue.id())?;
                 Ok(issue)
             })
-    }
-
-    fn create_message(&self,
-                      issue: Option<&Oid>,
-                      author: &Signature,
-                      committer: &Signature,
-                      message: &str,
-                      tree: &Tree,
-                      parents: &[&Commit]
-                     ) -> Result<Oid> {
-        // commit message
-        let msg_id = try!(self.commit(None, author, committer, message, tree, parents));
-
-        // make an apropriate reference
-        let refname =  match issue {
-            Some(hash)  => format!("refs/dit/{}/leaves/{}", hash, msg_id),
-            _           => format!("refs/dit/{}/head", msg_id),
-        };
-        let reflogmsg = format!("new dit message: {}", msg_id);
-        try!(self.reference(&refname, msg_id, false, &reflogmsg));
-
-        Ok(msg_id)
     }
 
     fn first_parent_revwalk(&self, id: Oid) -> Result<git2::Revwalk> {
