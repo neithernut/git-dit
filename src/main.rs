@@ -35,42 +35,21 @@ use std::io::{self, BufRead, BufReader, Read, Write};
 use std::process::Command;
 use std::str::FromStr;
 
-use abort::IteratorExt;
+use abort::{Abortable, IteratorExt};
 use error::*;
 use error::ErrorKind as EK;
-use logger::LoggableError;
 use msgtree::{IntoTreeGraph, TreeGraphElem, TreeGraphElemLine};
 use util::{RepositoryUtil, message_from_args};
 use write::WriteExt;
-
-
-/// Convenience macro for early returns in subcommands
-///
-/// This macro is similar to the `try!` macro. It evaluates the expression
-/// passed. If the result the expression yields is ok, it will be unwrapped.
-/// Else the error will be printed using the `LoggableError` extension and abort
-/// the function, returning `1`.
-///
-/// Note: using this macro in clauses usually doesn't make sense, since it
-///       aborts the function by returning a numeric value.
-///
-macro_rules! try_or_1 {
-    ($expr: expr) => {
-        match $expr {
-            Ok(v) => v,
-            Err(e)   => {e.log(); return 1},
-        }
-    };
-}
 
 
 // Plumbing subcommand implementations
 
 /// check-message subcommand implementation
 ///
-fn check_message(matches: &clap::ArgMatches) -> i32 {
+fn check_message(matches: &clap::ArgMatches) {
     let reader: Box<Read> = match matches.value_of("filename") {
-        Some(filename)  => Box::from(try_or_1!(File::open(filename))),
+        Some(filename)  => Box::from(File::open(filename).unwrap_or_abort()),
         None            => Box::from(io::stdin()),
     };
     BufReader::new(reader).lines()
@@ -78,78 +57,78 @@ fn check_message(matches: &clap::ArgMatches) -> i32 {
                           .skip_while(|l| l.is_empty())
                           .stripped()
                           .check_message_format()
-                          .map(|_| 0)
-                          .unwrap_or_else(|err| {err.log(); 1})
+                          .unwrap_or_abort();
 }
 
 
 /// create-message subcommand implementation
 ///
-fn create_message(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
+fn create_message(repo: &Repository, matches: &clap::ArgMatches) {
     let issue = match matches.value_of("issue") {
-        Some(i) => Some(try_or_1!(Oid::from_str(i))),
+        Some(i) => Some(Oid::from_str(i).unwrap_or_abort()),
         None    => None,
     };
-    let sig = try_or_1!(repo.signature());
+    let sig = repo.signature().unwrap_or_abort();
 
     // Note: The list of parents must live long enough to back the references we
     //       supply to `libgitdit::repository::RepositoryExt::create_message()`.
-    let parents = match matches.values_of("parents")
-                               .map(|p| repo.values_to_hashes(p)) {
-        Some(hashes) => try_or_1!(hashes),
-        _            => Vec::new(),
-    };
+    let parents = matches.values_of("parents")
+                         .map(|p| repo.values_to_hashes(p))
+                         .map(Abortable::unwrap_or_abort)
+                         .unwrap_or_default();
     let parent_refs : Vec<&Commit> = parents.iter().map(|command| command).collect();
 
     // use the first parent's tree if availible
     let tree = match parents.first() {
-        Some(commit) => try_or_1!(commit.tree()),
-        _            => try_or_1!(repo.empty_tree()),
+        Some(commit) => commit.tree().unwrap_or_abort(),
+        _            => repo.empty_tree().unwrap_or_abort(),
     };
 
     // read all from stdin
     let mut message = String::new();
-    try_or_1!(io::stdin().read_to_string(&mut message));
+    io::stdin().read_to_string(&mut message).unwrap_or_abort();
+    let id = repo
+        .create_message(issue.as_ref(), &sig, &sig, &message, &tree, &parent_refs)
+        .unwrap_or_abort();
 
-    println!("{}", try_or_1!(repo.create_message(issue.as_ref(), &sig, &sig, &message, &tree, &parent_refs)));
-    0
+    println!("{}", id);
 }
 
 
 /// find-tree-init-hash subcommand implementation
 ///
-fn find_tree_init_hash(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
+fn find_tree_init_hash(repo: &Repository, matches: &clap::ArgMatches) {
     // note: commit is always present since it is a required parameter
-    repo.value_to_commit(matches.value_of("commit").unwrap())
+    let commit = repo
+        .value_to_commit(matches.value_of("commit").unwrap())
         .and_then(|commit| {
             repo.issue_with_message(&commit)
                 .chain_err(|| EK::WrappedGitDitError)
         })
-        .map(|commit| {println!("{}", commit.id()); 0})
-        .unwrap_or_else(|err| {err.log(); 1})
+        .unwrap_or_abort();
+
+     println!("{}", commit.id());
 }
 
 
 /// get-issue-metadata subcommand implementation
 ///
-fn get_issue_metadata(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
+fn get_issue_metadata(repo: &Repository, matches: &clap::ArgMatches) {
     // note: "head" is always present since it is a required parameter
-    let head = try_or_1!(repo.value_to_commit(matches.value_of("head").unwrap()));
-    let commits = try_or_1!(repo.issue_messages_iter(head)).abort_on_err();
+    let head = repo
+        .value_to_commit(matches.value_of("head").unwrap())
+        .unwrap_or_abort();
+    let commits = repo.issue_messages_iter(head).abort_on_err();
     for trailer in commits.flat_map(|commit| commit.trailers()) {
         println!("{}", trailer);
     }
-    0
 }
 
 
 /// find-tree-init-hash subcommand implementation
 ///
-fn get_issue_tree_init_hashes(repo: &Repository, _: &clap::ArgMatches) -> i32 {
-    for hash in try_or_1!(repo.issues()) {
-        println!("{}", try_or_1!(hash));
-    }
-    0
+fn get_issue_tree_init_hashes(repo: &Repository, _: &clap::ArgMatches) {
+    io::stdout().consume_lines(repo.issues().abort_on_err()).unwrap_or_abort();
 }
 
 
@@ -157,16 +136,18 @@ fn get_issue_tree_init_hashes(repo: &Repository, _: &clap::ArgMatches) -> i32 {
 
 /// fetch subcommand implementation
 ///
-fn fetch_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
+fn fetch_impl(repo: &Repository, matches: &clap::ArgMatches) {
     // note: "remote" is always present since it is a required parameter
-    let mut remote = try_or_1!(repo.find_remote(matches.value_of("remote").unwrap()));
+    let mut remote = repo
+        .find_remote(matches.value_of("remote").unwrap())
+        .unwrap_or_abort();
 
     // accumulate the refspecs to fetch
     let refspecs : Vec<String> = if let Some(issues) = matches.values_of("issue") {
         // fetch a specific list of issues
         let iter = issues.map(Oid::from_str).abort_on_err();
         if matches.is_present("known") {
-            iter.chain(try_or_1!(repo.issues()).abort_on_err().map(|issue| issue.id()))
+            iter.chain(repo.issues().abort_on_err().map(|issue| issue.id()))
                 .filter_map(|issue| remote.issue_refspec(issue))
                 .collect()
         } else {
@@ -183,16 +164,16 @@ fn fetch_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
     fetch_options.remote_callbacks(callbacks::callbacks());
 
     let refspec_refs : Vec<&str> = refspecs.iter().map(String::as_str).collect();
-    try_or_1!(remote.fetch(refspec_refs.as_ref(), Some(&mut fetch_options), None));
-    0
+    remote.fetch(refspec_refs.as_ref(), Some(&mut fetch_options), None)
+          .unwrap_or_abort();
 }
 
 
 /// list subcommand implementation
 ///
-fn list_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
+fn list_impl(repo: &Repository, matches: &clap::ArgMatches) {
     // get initial commits
-    let mut commits : Vec<Commit> = try_or_1!(repo.issues())
+    let mut commits : Vec<Commit> = repo.issues()
         .abort_on_err()
         .map(|issue| repo.find_commit(issue.id()))
         .abort_on_err()
@@ -202,13 +183,14 @@ fn list_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
     commits.sort_by(|a, b| b.time().cmp(&a.time()));
     if let Some(number) = matches.value_of("n") {
         // TODO: better error reporting?
-        commits.truncate(try_or_1!(str::parse(number)));
+        commits.truncate(str::parse(number).unwrap_or_abort());
     }
 
-    let id_len = try_or_1!(repo.abbreviation_length(matches));
+    let id_len = repo.abbreviation_length(matches).unwrap_or_abort();
 
     // spawn a pager
-    let mut pager = try_or_1!(programs::pager(try_or_1!(repo.config())));
+    let mut pager = programs::pager(repo.config().unwrap_or_abort())
+        .unwrap_or_abort();
 
     {
         let mut stream = pager.stdin.as_mut().unwrap();
@@ -220,32 +202,38 @@ fn list_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
                 FixedOffset::east(gtime.offset_minutes()*60).timestamp(gtime.seconds(), 0)
             };
             if long {
-                try_or_1!(write!(stream, "Issue:  {}\nAuthor: {}\nDate:   {}\n\n", id, commit.author(), time.to_rfc3339()));
-                try_or_1!(stream.consume_lines(commit.message_lines()));
-                try_or_1!(write!(stream, "\n\n"));
+                write!(stream, "Issue:  {}\nAuthor: {}\nDate:   {}\n\n", id, commit.author(), time.to_rfc3339())
+                    .unwrap_or_abort();
+                stream.consume_lines(commit.message_lines()).unwrap_or_abort();
+                write!(stream, "\n\n").unwrap_or_abort();
             } else {
-                try_or_1!(writeln!(stream, "{0:.1$} ({2}) {3}", id, id_len, time.format("%c"), commit.summary().unwrap_or("")));
+                writeln!(stream, "{0:.1$} ({2}) {3}", id, id_len, time.format("%c"), commit.summary().unwrap_or(""))
+                    .unwrap_or_abort();
             }
         }
     }
 
     // don't trash the shell by exitting with a child still printing to it
-    try_or_1!(pager.wait()).code().unwrap_or(1)
+    let result = pager.wait().unwrap_or_abort();
+    if !result.success() {
+        std::process::exit(result.code().unwrap_or(1));
+    }
 }
 
 
 /// new subcommand implementation
 ///
-fn new_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
-    let sig = try_or_1!(repo.signature());
+fn new_impl(repo: &Repository, matches: &clap::ArgMatches) {
+    let sig = repo.signature().unwrap_or_abort();
 
     // get the message, either from the command line argument or an editor
     let message = if let Some(m) = message_from_args(matches) {
         // the message was supplied via the command line
         m.into_iter()
-         .chain(try_or_1!(repo.prepare_trailers(matches))
-                              .into_iter()
-                              .map(|t| t.to_string()))
+         .chain(repo.prepare_trailers(matches)
+                    .unwrap_or_abort()
+                    .into_iter()
+                    .map(|t| t.to_string()))
          .collect()
     } else {
         // we need an editor
@@ -254,27 +242,27 @@ fn new_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
         let path = repo.commitmsg_edit_path(matches);
 
         { // write
-            let mut file = try_or_1!(File::create(path.as_path()));
-            try_or_1!(file.consume_lines(try_or_1!(repo.prepare_trailers(matches))));
-            try_or_1!(file.flush());
+            let mut file = File::create(path.as_path()).unwrap_or_abort();
+            file.consume_lines(repo.prepare_trailers(matches).unwrap_or_abort()).unwrap_or_abort();
+            file.flush().unwrap_or_abort();
         }
 
-        try_or_1!(repo.get_commit_msg(path))
+        repo.get_commit_msg(path).unwrap_or_abort()
     }.into_iter().collect_string();
 
     // commit the message
-    let tree = try_or_1!(repo.empty_tree());
+    let tree = repo.empty_tree().unwrap_or_abort();
     let parent_refs = Vec::new();
-    println!("[dit][new] {}", try_or_1!(repo.create_message(None, &sig, &sig, message.trim(), &tree, &parent_refs)));
-    0
+    let id = repo.create_message(None, &sig, &sig, message.trim(), &tree, &parent_refs).unwrap_or_abort();
+    println!("[dit][new] {}", id);
 }
 
 
 /// push subcommand implementation
 ///
-fn push_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
+fn push_impl(repo: &Repository, matches: &clap::ArgMatches) {
     // note: "remote" is always present since it is a required parameter
-    let mut remote = try_or_1!(repo.find_remote(matches.value_of("remote").unwrap()));
+    let mut remote = repo.find_remote(matches.value_of("remote").unwrap()).unwrap_or_abort();
 
     // accumulate the refspecs to push
     let refspecs : Vec<String> = if let Some(issues) = matches.values_of("issue") {
@@ -289,7 +277,7 @@ fn push_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
               .map(String::from)
               .collect()
     } else {
-        try_or_1!(repo.issues_with_prefix("refs"))
+        repo.issues_with_prefix("refs")
             .abort_on_err()
             .map(|issue| issue.local_refs())
             .abort_on_err()
@@ -304,15 +292,15 @@ fn push_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
     fetch_options.remote_callbacks(callbacks::callbacks());
 
     let refspec_refs : Vec<&str> = refspecs.iter().map(String::as_str).collect();
-    try_or_1!(remote.push(refspec_refs.as_ref(), Some(&mut fetch_options)));
-    0
+    remote.push(refspec_refs.as_ref(), Some(&mut fetch_options))
+          .unwrap_or_abort();
 }
 
 
 /// reply subcommand implementation
 ///
-fn reply_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
-    let sig = try_or_1!(repo.signature());
+fn reply_impl(repo: &Repository, matches: &clap::ArgMatches) {
+    let sig = repo.signature().unwrap_or_abort();
 
     // NOTE: We want to do a lot of stuff early, because we want to report
     //       errors before a user spent time writing a commit message in her
@@ -321,17 +309,19 @@ fn reply_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
 
     // the unwrap is safe since `parent` is a required value
     // and get all the info from it that we might need
-    let mut parent = try_or_1!(repo.value_to_commit(matches.value_of("parent").unwrap()));
+    let mut parent = repo
+        .value_to_commit(matches.value_of("parent").unwrap())
+        .unwrap_or_abort();
 
     // extract the subject and tree from the parent
     let subject = parent.reply_subject();
-    let tree = try_or_1!(parent.tree());
+    let tree = parent.tree().unwrap_or_abort();
 
     // figure out to what issue we reply
-    let issue = try_or_1!(repo.issue_with_message(&parent)).id();
+    let issue = repo.issue_with_message(&parent).unwrap_or_abort().id();
 
     // get the references specified on the command line
-    let references = try_or_1!(repo.cli_references(matches));
+    let references = repo.cli_references(matches).unwrap_or_abort();
 
     // get the message, either from the command line argument or an editor
     let message = if let Some(m) = message_from_args(matches) {
@@ -341,9 +331,10 @@ fn reply_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
         }
 
         m.into_iter()
-         .chain(try_or_1!(repo.prepare_trailers(matches))
-                              .into_iter()
-                              .map(|t| t.to_string()))
+         .chain(repo.prepare_trailers(matches)
+                    .unwrap_or_abort()
+                    .into_iter()
+                    .map(|t| t.to_string()))
          .collect()
     } else {
         // we need an editor
@@ -352,35 +343,37 @@ fn reply_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
         let path = repo.commitmsg_edit_path(matches);
 
         { // write
-            let mut file = try_or_1!(File::create(path.as_path()));
+            let mut file = File::create(path.as_path()).unwrap_or_abort();
             if let Some(s) = subject {
-                try_or_1!(write!(&mut file, "{}\n\n", s));
+                write!(&mut file, "{}\n\n", s).unwrap_or_abort();
             }
 
             if matches.is_present("quote") {
-                try_or_1!(file.consume_lines(parent.body_lines().quoted()));
-                try_or_1!(write!(&mut file, "\n"));
+                file.consume_lines(parent.body_lines().quoted())
+                    .unwrap_or_abort();
+                write!(&mut file, "\n").unwrap_or_abort();
             }
 
-            try_or_1!(file.consume_lines(try_or_1!(repo.prepare_trailers(matches))));
-            try_or_1!(file.flush());
+            file.consume_lines(repo.prepare_trailers(matches).unwrap_or_abort())
+                .unwrap_or_abort();
+            file.flush().unwrap_or_abort();
         }
 
-        try_or_1!(repo.get_commit_msg(path))
+        repo.get_commit_msg(path).unwrap_or_abort()
     }.into_iter().collect_string();
 
     // construct a vector holding all parents
     let parent_refs : Vec<&Commit> = Some(&parent).into_iter().chain(references.iter()).collect();
 
     // finally, create the message
-    try_or_1!(repo.create_message(Some(&issue), &sig, &sig, message.trim(), &tree, &parent_refs));
-    0
+    repo.create_message(Some(&issue), &sig, &sig, message.trim(), &tree, &parent_refs)
+        .unwrap_or_abort();
 }
 
 /// show subcommand implementation
 ///
-fn show_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
-    let id_len = try_or_1!(repo.abbreviation_length(matches));
+fn show_impl(repo: &Repository, matches: &clap::ArgMatches) {
+    let id_len = repo.abbreviation_length(matches).unwrap_or_abort();
 
     // translate commit to lines representing the commit
     let commit_lines = |mut commit: Commit| -> Vec<String> {
@@ -409,13 +402,16 @@ fn show_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
 
     // first, get us an iterator over all the commits
     // NOTE: "issue" is a required parameter
-    let issue = try_or_1!(Oid::from_str(matches.value_of("issue").unwrap()));
+    let issue = Oid::from_str(matches.value_of("issue").unwrap()).unwrap_or_abort();
     let mut commits : Vec<(TreeGraphElemLine, Commit)> =
         if matches.is_present("initial") {
-            vec![(TreeGraphElemLine::empty(), try_or_1!(repo.find_commit(issue)))]
+            vec![(
+                TreeGraphElemLine::empty(),
+                repo.find_commit(issue).unwrap_or_abort()
+            )]
         } else {
-            try_or_1!(repo.find_issue(issue)
-                          .and_then(|issue| issue.message_revwalk()))
+            repo.find_issue(issue)
+                .and_then(|issue| issue.message_revwalk())
                 .abort_on_err()
                 .map(|oid| repo.find_commit(oid))
                 .abort_on_err()
@@ -450,39 +446,49 @@ fn show_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
         .map(|line| format!("{} {}", line.0, line.1));
 
     // spawn a pager and write the graph
-    let mut pager = try_or_1!(programs::pager(try_or_1!(repo.config())));
-    try_or_1!(pager.stdin.as_mut().unwrap().consume_lines(graph));
+    let mut pager = programs::pager(repo.config().unwrap_or_abort())
+        .unwrap_or_abort();
+    pager.stdin.as_mut().unwrap().consume_lines(graph).unwrap_or_abort();
 
     // don't trash the shell by exitting with a child still printing to it
-    try_or_1!(pager.wait())
-        .code()
-        .unwrap_or(1)
+    let result = pager.wait().unwrap_or_abort();
+    if !result.success() {
+        std::process::exit(result.code().unwrap_or(1));
+    }
 }
 
 /// tag subcommand implementation
 ///
-fn tag_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
+fn tag_impl(repo: &Repository, matches: &clap::ArgMatches) {
     // NOTE: the issue-hash is a required parameter
-    let issue = try_or_1!(Oid::from_str(matches.value_of("issue-hash").unwrap()));
+    let issue = Oid::from_str(matches.value_of("issue-hash").unwrap())
+        .unwrap_or_abort();
 
     // get the head for the issue to tag
-    let mut issue_head = try_or_1!(repo.find_issue(issue)
-                                       .and_then(|issue| issue.find_local_head()));
-    let mut head_commit = try_or_1!(issue_head.peel(ObjectType::Commit)).into_commit().ok().unwrap();
+    let mut issue_head = repo
+        .find_issue(issue)
+        .and_then(|issue| issue.find_local_head())
+        .unwrap_or_abort();
+    let mut head_commit = issue_head
+        .peel(ObjectType::Commit)
+        .unwrap_or_abort()
+        .into_commit()
+        .ok()
+        .unwrap();
 
     if matches.is_present("list") {
         // we only list the metadata
-        let trailers = try_or_1!(repo.issue_messages_iter(head_commit))
+        let trailers = repo.issue_messages_iter(head_commit)
             .abort_on_err()
             .flat_map(|c| c.trailers());
-        try_or_1!(io::stdout().consume_lines(trailers));
-        return 0;
+        io::stdout().consume_lines(trailers).unwrap_or_abort();
+        return;
     }
 
     // we produce a commit with status and references
 
     // get references and trailers for the new commit
-    let references = try_or_1!(repo.cli_references(matches));
+    let references = repo.cli_references(matches).unwrap_or_abort();
     let trailers : Vec<Trailer> = matches.values_of("set-status")
                                          .into_iter()
                                          .flat_map(|values| values)
@@ -491,23 +497,25 @@ fn tag_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
                                          .collect();
     if references.is_empty() && trailers.is_empty() {
         warn!("No commit was created because no reference or tags were supplied.");
-        return 0;
+        return;
     }
 
     // construct the message
-    let sig = try_or_1!(repo.signature());
+    let sig = repo.signature().unwrap_or_abort();
     let message = [head_commit.reply_subject().unwrap_or_default(), String::new()]
         .to_vec()
         .into_iter()
         .chain(trailers.into_iter().map(|t| t.to_string()))
         .collect_string();
-    let tree = try_or_1!(repo.empty_tree());
+    let tree = repo.empty_tree().unwrap_or_abort();
     let parent_refs : Vec<&Commit> = Some(&head_commit).into_iter().chain(references.iter()).collect();
-    let new = try_or_1!(repo.commit(None, &sig, &sig, message.trim(), &tree, &parent_refs));
+    let new = repo
+        .commit(None, &sig, &sig, message.trim(), &tree, &parent_refs)
+        .unwrap_or_abort();
 
     // update the head reference
-    try_or_1!(issue_head.set_target(new, "Issue head updated by git-dit-tag"));
-    0
+    issue_head.set_target(new, "Issue head updated by git-dit-tag")
+              .unwrap_or_abort();
 }
 
 
@@ -517,7 +525,7 @@ fn tag_impl(repo: &Repository, matches: &clap::ArgMatches) -> i32 {
 ///
 /// Try to invoke an executable matching the name of the subcommand.
 ///
-fn handle_unknown_subcommand(name: &str, matches: &clap::ArgMatches) -> i32 {
+fn handle_unknown_subcommand(name: &str, matches: &clap::ArgMatches) {
     // prepare the command to be invoked
     let mut command = Command::new(format!("git-dit-{}", name));
     if let Some(values) = matches.values_of("") {
@@ -525,10 +533,13 @@ fn handle_unknown_subcommand(name: &str, matches: &clap::ArgMatches) -> i32 {
     }
 
     // run the command
-    command.spawn()
-           .and_then(|mut child| child.wait())
-           .map(|result| result.code().unwrap_or(1))
-           .unwrap_or_else(|err| {err.log(); 1})
+    let result = command
+        .spawn()
+        .and_then(|mut child| child.wait())
+        .unwrap_or_abort();
+    if !result.success() {
+        std::process::exit(result.code().unwrap_or(1));
+    }
 }
 
 
@@ -540,12 +551,9 @@ fn main() {
         writeln!(io::stderr(), "Could not initialize logger: {}", err).ok();
     }
 
-    let repo = match util::open_dit_repo() {
-        Ok(r) => r,
-        Err(e) => {e.log(); std::process::exit(1)}
-    };
+    let repo = util::open_dit_repo().unwrap_or_abort();
 
-    std::process::exit(match matches.subcommand() {
+    match matches.subcommand() {
         // Plumbing subcommands
         ("check-message",               Some(sub_matches)) => check_message(sub_matches),
         ("create-message",              Some(sub_matches)) => create_message(&repo, sub_matches),
@@ -561,10 +569,13 @@ fn main() {
         ("show",    Some(sub_matches)) => show_impl(&repo, sub_matches),
         ("tag",     Some(sub_matches)) => tag_impl(&repo, sub_matches),
         // Unknown subcommands
-        ("", _) => { writeln!(io::stderr(), "{}", matches.usage()).ok(); 1 },
+        ("", _) => {
+            writeln!(io::stderr(), "{}", matches.usage()).ok();
+            std::process::exit(1);
+        },
         (name, sub_matches) => {
             let default = clap::ArgMatches::default();
             handle_unknown_subcommand(name, sub_matches.unwrap_or(&default))
         },
-    })
+    }
 }

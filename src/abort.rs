@@ -7,7 +7,7 @@
 //   published by the Free Software Foundation.
 //
 
-use std::fmt::Debug;
+use logger::LoggableError;
 use std::process::exit;
 
 /// Aborting iterator
@@ -31,17 +31,12 @@ impl<I, V, E> From<I> for AbortingIter<I, V, E>
 
 impl<I, V, E> Iterator for AbortingIter<I, V, E>
     where I: Iterator<Item = Result<V, E>> + Sized,
-          E: Debug
+          E: LoggableError
 {
     type Item = V;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.0.next().map(|next|
-            next.unwrap_or_else(|e| {
-                error!("{:?}", e);
-                exit(1)
-            })
-        )
+        self.0.next().map(Abortable::unwrap_or_abort)
     }
 }
 
@@ -61,6 +56,38 @@ impl<I, V, E> IteratorExt<I, V, E> for I
 {
     fn abort_on_err(self) -> AbortingIter<I, V, E> {
         AbortingIter::from(self)
+    }
+}
+
+impl<I, V, IE, OE> IteratorExt<I, V, IE> for Result<I, OE>
+    where I: Iterator<Item = Result<V, IE>> + Sized,
+          OE: LoggableError
+{
+    fn abort_on_err(self) -> AbortingIter<I, V, IE> {
+        AbortingIter::from(self.unwrap_or_abort())
+    }
+}
+
+
+/// Extension trait for convenient abortion in case of errors
+///
+pub trait Abortable<V>
+{
+    /// Just like a regular unwrap() except it performs proper logging
+    ///
+    /// Returns the contained value or aborts the program, logging the error.
+    ///
+    fn unwrap_or_abort(self) -> V;
+}
+
+impl<V, E> Abortable<V> for Result<V, E>
+    where E: LoggableError
+{
+    fn unwrap_or_abort(self) -> V {
+        self.unwrap_or_else(|e| {
+            e.log();
+            exit(1)
+        })
     }
 }
 
