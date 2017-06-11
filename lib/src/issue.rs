@@ -131,7 +131,7 @@ impl<'r> Issue<'r> {
     /// issue. This function returns the part unique for the issue, e.g. the
     /// part after the  `dit/`.
     ///
-    fn ref_part(&self) -> String {
+    pub fn ref_part(&self) -> String {
         self.id.to_string()
     }
 }
