@@ -76,7 +76,7 @@ fn create_message(repo: &Repository, matches: &clap::ArgMatches) {
                          .map(|p| repo.values_to_hashes(p))
                          .map(Abortable::unwrap_or_abort)
                          .unwrap_or_default();
-    let parent_refs : Vec<&Commit> = parents.iter().map(|command| command).collect();
+    let parent_refs = parents.iter().map(|command| command);
 
     // use the first parent's tree if availible
     let tree = match parents.first() {
@@ -87,9 +87,14 @@ fn create_message(repo: &Repository, matches: &clap::ArgMatches) {
     // read all from stdin
     let mut message = String::new();
     io::stdin().read_to_string(&mut message).unwrap_or_abort();
-    let id = repo
-        .create_message(issue.map(|i| i.id()).as_ref(), &sig, &sig, &message, &tree, &parent_refs)
-        .unwrap_or_abort();
+    let id = match issue {
+        Some(i) => i.add_message(&sig, &sig, message, &tree, parent_refs)
+                    .unwrap_or_abort()
+                    .id(),
+        None => repo.create_issue(&sig, &sig, message, &tree, parent_refs)
+                    .unwrap_or_abort()
+                    .id(),
+    };
 
     println!("{}", id);
 }
