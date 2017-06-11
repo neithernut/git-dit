@@ -323,7 +323,7 @@ fn reply_impl(repo: &Repository, matches: &clap::ArgMatches) {
     let tree = parent.tree().unwrap_or_abort();
 
     // figure out to what issue we reply
-    let issue = repo.issue_with_message(&parent).unwrap_or_abort().id();
+    let issue = repo.issue_with_message(&parent).unwrap_or_abort();
 
     // get the references specified on the command line
     let references = repo.cli_references(matches).unwrap_or_abort();
@@ -368,11 +368,11 @@ fn reply_impl(repo: &Repository, matches: &clap::ArgMatches) {
     }.into_iter().collect_string();
 
     // construct a vector holding all parents
-    let parent_refs : Vec<&Commit> = Some(&parent).into_iter().chain(references.iter()).collect();
+    let parent_refs = Some(&parent).into_iter().chain(references.iter());
 
     // finally, create the message
-    repo.create_message(Some(&issue), &sig, &sig, message.trim(), &tree, &parent_refs)
-        .unwrap_or_abort();
+    issue.add_message(&sig, &sig, message.trim(), &tree, parent_refs)
+         .unwrap_or_abort();
 }
 
 /// show subcommand implementation
