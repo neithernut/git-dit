@@ -55,7 +55,7 @@ impl<'r> Issue<'r> {
     /// for this issue.
     ///
     pub fn heads(&self) -> Result<References<'r>> {
-        let glob = format!("**/dit/{}/head", self.unique_ref_part());
+        let glob = format!("**/dit/{}/head", self.ref_part());
         self.repo
             .references_glob(&glob)
             .chain_err(|| EK::CannotFindIssueHead(self.id))
@@ -67,7 +67,7 @@ impl<'r> Issue<'r> {
     /// present.
     ///
     pub fn find_local_head(&self) -> Result<Reference<'r>> {
-        let refname = format!("refs/dit/{}/head", self.unique_ref_part());
+        let refname = format!("refs/dit/{}/head", self.ref_part());
         self.repo
             .find_reference(&refname)
             .chain_err(|| EK::CannotFindIssueHead(self.id))
@@ -79,7 +79,7 @@ impl<'r> Issue<'r> {
     /// and remotes.
     ///
     pub fn issue_leaves(&self) -> Result<References<'r>> {
-        let glob = format!("**/dit/{}/leaves/*", self.unique_ref_part());
+        let glob = format!("**/dit/{}/leaves/*", self.ref_part());
         self.repo
             .references_glob(&glob)
             .chain_err(|| EK::CannotGetReferences(glob))
@@ -91,7 +91,7 @@ impl<'r> Issue<'r> {
     /// repository.
     ///
     pub fn local_refs(&self) -> Result<References<'r>> {
-        let glob = format!("refs/dit/{}/**", self.unique_ref_part());
+        let glob = format!("refs/dit/{}/**", self.ref_part());
         self.repo
             .references_glob(&glob)
             .chain_err(|| EK::CannotGetReferences(glob))
@@ -102,7 +102,7 @@ impl<'r> Issue<'r> {
     /// The sorting of the revwalk will be set to "topological".
     ///
     pub fn message_revwalk(&self) -> Result<git2::Revwalk<'r>> {
-        let glob = format!("**/dit/{}/**", self.unique_ref_part());
+        let glob = format!("**/dit/{}/**", self.ref_part());
         self.repo
             .revwalk()
             .and_then(|mut revwalk| {
@@ -125,13 +125,13 @@ impl<'r> Issue<'r> {
             .chain_err(|| EK::CannotGetReferences(glob))
     }
 
-    /// Get reference part unique for this issue
+    /// Get reference part for this issue
     ///
     /// The references associated with an issue reside in paths specific to the
     /// issue. This function returns the part unique for the issue, e.g. the
     /// part after the  `dit/`.
     ///
-    fn unique_ref_part(&self) -> String {
+    fn ref_part(&self) -> String {
         self.id.to_string()
     }
 }
