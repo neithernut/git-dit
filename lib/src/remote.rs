@@ -10,7 +10,9 @@
 //! Module providing extension trait for remotes
 //!
 
-use git2::{Oid, Remote};
+use git2::Remote;
+
+use issue::Issue;
 
 
 /// Extension trait for remotes
@@ -20,7 +22,7 @@ pub trait RemoteExt {
     ///
     /// A refspec will only be returned if the remote has a (valid) name.
     ///
-    fn issue_refspec(&self, issue: Oid) -> Option<String>;
+    fn issue_refspec(&self, issue: Issue) -> Option<String>;
 
     /// Get the refspec for all issue for this remote
     ///
@@ -30,9 +32,9 @@ pub trait RemoteExt {
 }
 
 impl<'r> RemoteExt for Remote<'r> {
-    fn issue_refspec(&self, issue: Oid) -> Option<String> {
+    fn issue_refspec(&self, issue: Issue) -> Option<String> {
         self.name()
-            .map(|name| format!("+refs/dit/{1}/*:refs/remotes/{0}/dit/{1}/*", name, issue))
+            .map(|name| format!("+refs/dit/{1}/*:refs/remotes/{0}/dit/{1}/*", name, issue.ref_part()))
     }
 
     fn all_issues_refspec(&self) -> Option<String> {

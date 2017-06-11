@@ -148,10 +148,10 @@ fn fetch_impl(repo: &Repository, matches: &clap::ArgMatches) {
         let iter = issues.map(|issue| repo.value_to_issue(issue)).abort_on_err();
         if matches.is_present("known") {
             iter.chain(repo.issues().abort_on_err())
-                .filter_map(|issue| remote.issue_refspec(issue.id()))
+                .filter_map(|issue| remote.issue_refspec(issue))
                 .collect()
         } else {
-            iter.filter_map(|issue| remote.issue_refspec(issue.id()))
+            iter.filter_map(|issue| remote.issue_refspec(issue))
                 .collect()
         }
     } else {
