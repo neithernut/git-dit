@@ -355,7 +355,7 @@ subcommands:
             - Matthias Beyer <mail@beyermatthias.de>
             - Julian Ganz <neither@nut.email>
         args:
-            - issue-hash:
+            - issue:
                 help: Issue hash
                 index: 1
                 multiple: false

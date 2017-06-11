@@ -459,14 +459,11 @@ fn show_impl(repo: &Repository, matches: &clap::ArgMatches) {
 /// tag subcommand implementation
 ///
 fn tag_impl(repo: &Repository, matches: &clap::ArgMatches) {
-    // NOTE: the issue-hash is a required parameter
-    let issue = Oid::from_str(matches.value_of("issue-hash").unwrap())
-        .unwrap_or_abort();
-
     // get the head for the issue to tag
     let mut issue_head = repo
-        .find_issue(issue)
-        .and_then(|issue| issue.find_local_head())
+        .cli_issue(matches)
+        .unwrap_or_abort()
+        .find_local_head()
         .unwrap_or_abort();
     let mut head_commit = issue_head
         .peel(ObjectType::Commit)
