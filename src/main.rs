@@ -76,7 +76,7 @@ fn create_message(repo: &Repository, matches: &clap::ArgMatches) {
                          .map(|p| repo.values_to_hashes(p))
                          .map(Abortable::unwrap_or_abort)
                          .unwrap_or_default();
-    let parent_refs : Vec<&Commit> = parents.iter().map(|command| command).collect();
+    let parent_refs = parents.iter().map(|command| command);
 
     // use the first parent's tree if availible
     let tree = match parents.first() {
@@ -87,9 +87,14 @@ fn create_message(repo: &Repository, matches: &clap::ArgMatches) {
     // read all from stdin
     let mut message = String::new();
     io::stdin().read_to_string(&mut message).unwrap_or_abort();
-    let id = repo
-        .create_message(issue.map(|i| i.id()).as_ref(), &sig, &sig, &message, &tree, &parent_refs)
-        .unwrap_or_abort();
+    let id = match issue {
+        Some(i) => i.add_message(&sig, &sig, message, &tree, parent_refs)
+                    .unwrap_or_abort()
+                    .id(),
+        None => repo.create_issue(&sig, &sig, message, &tree, parent_refs)
+                    .unwrap_or_abort()
+                    .id(),
+    };
 
     println!("{}", id);
 }
@@ -252,8 +257,9 @@ fn new_impl(repo: &Repository, matches: &clap::ArgMatches) {
 
     // commit the message
     let tree = repo.empty_tree().unwrap_or_abort();
-    let parent_refs = Vec::new();
-    let id = repo.create_message(None, &sig, &sig, message.trim(), &tree, &parent_refs).unwrap_or_abort();
+    let id = repo
+        .create_issue(&sig, &sig, message.trim(), &tree, Vec::new())
+        .unwrap_or_abort();
     println!("[dit][new] {}", id);
 }
 
@@ -317,7 +323,7 @@ fn reply_impl(repo: &Repository, matches: &clap::ArgMatches) {
     let tree = parent.tree().unwrap_or_abort();
 
     // figure out to what issue we reply
-    let issue = repo.issue_with_message(&parent).unwrap_or_abort().id();
+    let issue = repo.issue_with_message(&parent).unwrap_or_abort();
 
     // get the references specified on the command line
     let references = repo.cli_references(matches).unwrap_or_abort();
@@ -362,11 +368,11 @@ fn reply_impl(repo: &Repository, matches: &clap::ArgMatches) {
     }.into_iter().collect_string();
 
     // construct a vector holding all parents
-    let parent_refs : Vec<&Commit> = Some(&parent).into_iter().chain(references.iter()).collect();
+    let parent_refs = Some(&parent).into_iter().chain(references.iter());
 
     // finally, create the message
-    repo.create_message(Some(&issue), &sig, &sig, message.trim(), &tree, &parent_refs)
-        .unwrap_or_abort();
+    issue.add_message(&sig, &sig, message.trim(), &tree, parent_refs)
+         .unwrap_or_abort();
 }
 
 /// show subcommand implementation

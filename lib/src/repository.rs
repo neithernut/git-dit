@@ -60,22 +60,18 @@ pub trait RepositoryExt {
     ///
     fn issues(&self) -> Result<HeadRefsToIssuesIter>;
 
-    /// Create a new message
+    /// Create a new issue with an initial message
     ///
-    /// This function creates a new issue message as well as an appropriate
-    /// reference. The oid of the new message will be returned.
-    /// The message will be part of the issue supplied by the caller. If no
-    /// issue is provided, a new issue will be initiated with the message.
-    /// In this case, the oid returned is also the oid of the new issue.
-    ///
-    fn create_message(&self,
-                      issue: Option<&Oid>,
-                      author: &Signature,
-                      committer: &Signature,
-                      message: &str,
-                      tree: &Tree,
-                      parents: &[&Commit]
-                     ) -> Result<Oid>;
+    fn create_issue<'a, A, I, J>(&self,
+             author: &Signature,
+             committer: &Signature,
+             message: A,
+             tree: &Tree,
+             parents: I
+    ) -> Result<Issue>
+        where A: AsRef<str>,
+              I: IntoIterator<Item = &'a Commit<'a>, IntoIter = J>,
+              J: Iterator<Item = &'a Commit<'a>>;
 
     /// Get an revwalk configured as a first parent iterator
     ///
@@ -157,26 +153,26 @@ impl RepositoryExt for Repository {
             .map(|refs| HeadRefsToIssuesIter::new(self, refs))
     }
 
-    fn create_message(&self,
-                      issue: Option<&Oid>,
-                      author: &Signature,
-                      committer: &Signature,
-                      message: &str,
-                      tree: &Tree,
-                      parents: &[&Commit]
-                     ) -> Result<Oid> {
-        // commit message
-        let msg_id = try!(self.commit(None, author, committer, message, tree, parents));
+    fn create_issue<'a, A, I, J>(&self,
+             author: &Signature,
+             committer: &Signature,
+             message: A,
+             tree: &Tree,
+             parents: I
+    ) -> Result<Issue>
+        where A: AsRef<str>,
+              I: IntoIterator<Item = &'a Commit<'a>, IntoIter = J>,
+              J: Iterator<Item = &'a Commit<'a>>
+    {
+        let parent_vec : Vec<&Commit> = parents.into_iter().collect();
 
-        // make an apropriate reference
-        let refname =  match issue {
-            Some(hash)  => format!("refs/dit/{}/leaves/{}", hash, msg_id),
-            _           => format!("refs/dit/{}/head", msg_id),
-        };
-        let reflogmsg = format!("new dit message: {}", msg_id);
-        try!(self.reference(&refname, msg_id, false, &reflogmsg));
-
-        Ok(msg_id)
+        self.commit(None, author, committer, message.as_ref(), tree, &parent_vec)
+            .chain_err(|| EK::CannotCreateMessage)
+            .map(|id| Issue::new(self, id))
+            .and_then(|issue| {
+                issue.update_head(issue.id())?;
+                Ok(issue)
+            })
     }
 
     fn first_parent_revwalk(&self, id: Oid) -> Result<git2::Revwalk> {

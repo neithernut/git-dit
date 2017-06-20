@@ -15,6 +15,11 @@ error_chain! {
     }
 
     errors {
+        CannotCreateMessage {
+            description("Cannot create message")
+            display("Cannot create a message")
+        }
+
         CannotGetCommit {
             description("Cannot get a commit from the repository")
             display("Cannot get a specific commit from repository")
@@ -48,6 +53,11 @@ error_chain! {
         CannotFindIssueHead(id: Oid) {
             description("Cannot find issue HEAD")
             display("Cannot find issue HEAD for {}", id)
+        }
+
+        CannotSetReference(refname: String) {
+            description("Cannot set some reference")
+            display("Cannot update or create reference '{}'", refname)
         }
 
         NoTreeInitFound(id: Oid) {

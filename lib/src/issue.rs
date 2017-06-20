@@ -12,7 +12,7 @@
 //! This module provides the `Issue` type and related functionality.
 //!
 
-use git2::{self, Oid, Reference, References};
+use git2::{self, Commit, Oid, Reference, References};
 use std::fmt;
 use std::result::Result as RResult;
 
@@ -123,6 +123,60 @@ impl<'r> Issue<'r> {
                 Ok(revwalk)
             })
             .chain_err(|| EK::CannotGetReferences(glob))
+    }
+
+    /// Add a new message to the issue
+    ///
+    /// Adds a new message to the issue. Also create a leaf reference for the
+    /// new message. Returns the message.
+    ///
+    pub fn add_message<'a, A, I, J>(&self,
+                                    author: &git2::Signature,
+                                    committer: &git2::Signature,
+                                    message: A,
+                                    tree: &git2::Tree,
+                                    parents: I
+    ) -> Result<Commit>
+        where A: AsRef<str>,
+              I: IntoIterator<Item = &'a Commit<'a>, IntoIter = J>,
+              J: Iterator<Item = &'a Commit<'a>>
+    {
+        let parent_vec : Vec<&Commit> = parents.into_iter().collect();
+
+        self.repo
+            .commit(None, author, committer, message.as_ref(), tree, &parent_vec)
+            .and_then(|id| self.repo.find_commit(id))
+            .chain_err(|| EK::CannotCreateMessage)
+            .and_then(|message| self.add_leaf(message.id()).map(|_| message))
+    }
+
+    /// Update the local head reference of the issue
+    ///
+    /// Updates the local head reference of the issue to the provided message.
+    ///
+    /// # Warnings
+    ///
+    /// The function will update the reference even if it would not be an
+    /// fast-forward update.
+    ///
+    pub fn update_head(&self, message: Oid) -> Result<Reference> {
+        let refname = format!("refs/dit/{}/head", self.ref_part());
+        let reflogmsg = format!("git-dit: set head reference of {} to {}", self, message);
+        self.repo
+            .reference(&refname, message, true, &reflogmsg)
+            .chain_err(|| EK::CannotSetReference(refname))
+    }
+
+    /// Add a new leaf reference associated with the issue
+    ///
+    /// Creates a new leaf reference for the message provided in the issue.
+    ///
+    pub fn add_leaf(&self, message: Oid) -> Result<Reference> {
+        let refname = format!("refs/dit/{}/leaves/{}", self.ref_part(), message);
+        let reflogmsg = format!("git-dit: new leaf for {}: {}", self, message);
+        self.repo
+            .reference(&refname, message, false, &reflogmsg)
+            .chain_err(|| EK::CannotSetReference(refname))
     }
 
     /// Get reference part for this issue
