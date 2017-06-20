@@ -26,7 +26,7 @@ mod write;
 
 use chrono::{FixedOffset, TimeZone};
 use clap::App;
-use git2::{Commit, ObjectType, FetchOptions, FetchPrune, Oid, PushOptions, Repository};
+use git2::{Commit, ObjectType, FetchOptions, FetchPrune, PushOptions, Repository};
 use libgitdit::message::{LineIteratorExt, Trailer};
 use libgitdit::{Message, RemoteExt, RepositoryExt};
 use log::LogLevel;
@@ -65,7 +65,7 @@ fn check_message(matches: &clap::ArgMatches) {
 ///
 fn create_message(repo: &Repository, matches: &clap::ArgMatches) {
     let issue = match matches.value_of("issue") {
-        Some(i) => Some(Oid::from_str(i).unwrap_or_abort()),
+        Some(i) => Some(repo.value_to_issue(i).unwrap_or_abort()),
         None    => None,
     };
     let sig = repo.signature().unwrap_or_abort();
@@ -88,7 +88,7 @@ fn create_message(repo: &Repository, matches: &clap::ArgMatches) {
     let mut message = String::new();
     io::stdin().read_to_string(&mut message).unwrap_or_abort();
     let id = repo
-        .create_message(issue.as_ref(), &sig, &sig, &message, &tree, &parent_refs)
+        .create_message(issue.map(|i| i.id()).as_ref(), &sig, &sig, &message, &tree, &parent_refs)
         .unwrap_or_abort();
 
     println!("{}", id);
@@ -145,13 +145,13 @@ fn fetch_impl(repo: &Repository, matches: &clap::ArgMatches) {
     // accumulate the refspecs to fetch
     let refspecs : Vec<String> = if let Some(issues) = matches.values_of("issue") {
         // fetch a specific list of issues
-        let iter = issues.map(Oid::from_str).abort_on_err();
+        let iter = issues.map(|issue| repo.value_to_issue(issue)).abort_on_err();
         if matches.is_present("known") {
-            iter.chain(repo.issues().abort_on_err().map(|issue| issue.id()))
-                .filter_map(|issue| remote.issue_refspec(issue))
+            iter.chain(repo.issues().abort_on_err())
+                .filter_map(|issue| remote.issue_refspec(issue.id()))
                 .collect()
         } else {
-            iter.filter_map(|issue| remote.issue_refspec(issue))
+            iter.filter_map(|issue| remote.issue_refspec(issue.id()))
                 .collect()
         }
     } else {
@@ -267,8 +267,7 @@ fn push_impl(repo: &Repository, matches: &clap::ArgMatches) {
     // accumulate the refspecs to push
     let refspecs : Vec<String> = if let Some(issues) = matches.values_of("issue") {
         // push a specific list of issues
-        issues.map(Oid::from_str).abort_on_err()
-              .map(|issue| repo.find_issue(issue))
+        issues.map(|issue| repo.value_to_issue(issue))
               .abort_on_err()
               .map(|issue| issue.local_refs())
               .abort_on_err()
@@ -401,17 +400,16 @@ fn show_impl(repo: &Repository, matches: &clap::ArgMatches) {
     };
 
     // first, get us an iterator over all the commits
-    // NOTE: "issue" is a required parameter
-    let issue = Oid::from_str(matches.value_of("issue").unwrap()).unwrap_or_abort();
+    let issue = repo.cli_issue(matches).unwrap_or_abort();
     let mut commits : Vec<(TreeGraphElemLine, Commit)> =
         if matches.is_present("initial") {
             vec![(
                 TreeGraphElemLine::empty(),
-                repo.find_commit(issue).unwrap_or_abort()
+                issue.initial_message().unwrap_or_abort()
             )]
         } else {
-            repo.find_issue(issue)
-                .and_then(|issue| issue.message_revwalk())
+            issue
+                .message_revwalk()
                 .abort_on_err()
                 .map(|oid| repo.find_commit(oid))
                 .abort_on_err()
@@ -460,14 +458,11 @@ fn show_impl(repo: &Repository, matches: &clap::ArgMatches) {
 /// tag subcommand implementation
 ///
 fn tag_impl(repo: &Repository, matches: &clap::ArgMatches) {
-    // NOTE: the issue-hash is a required parameter
-    let issue = Oid::from_str(matches.value_of("issue-hash").unwrap())
-        .unwrap_or_abort();
-
     // get the head for the issue to tag
     let mut issue_head = repo
-        .find_issue(issue)
-        .and_then(|issue| issue.find_local_head())
+        .cli_issue(matches)
+        .unwrap_or_abort()
+        .find_local_head()
         .unwrap_or_abort();
     let mut head_commit = issue_head
         .peel(ObjectType::Commit)

@@ -29,6 +29,11 @@ error_chain! {
             display("Cannot get signature")
         }
 
+        ParameterMissing(name: String) {
+            description("Missing parameter")
+            display("Missing parameter: {}", name)
+        }
+
         WrappedIOError {
             description("IO Error")
             display("IO Error")
