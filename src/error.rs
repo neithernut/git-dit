@@ -44,11 +44,6 @@ error_chain! {
             display("Error while parsing")
         }
 
-        WrappedGitError {
-            description("Error in git")
-            display("Error in git")
-        }
-
         WrappedGitDitError {
             description("Error in libgitdit")
             display("Error in libgitdit")
