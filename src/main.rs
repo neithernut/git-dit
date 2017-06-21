@@ -26,7 +26,7 @@ mod write;
 
 use chrono::{FixedOffset, TimeZone};
 use clap::App;
-use git2::{Commit, FetchOptions, FetchPrune, PushOptions, Repository};
+use git2::{Commit, PushOptions, Repository};
 use libgitdit::message::{LineIteratorExt, Trailer};
 use libgitdit::{Message, RemoteExt, RepositoryExt};
 use log::LogLevel;
@@ -164,8 +164,12 @@ fn fetch_impl(repo: &Repository, matches: &clap::ArgMatches) {
     };
 
     // set the options for the fetch
-    let mut fetch_options = FetchOptions::new();
-    fetch_options.prune(if matches.is_present("prune") { FetchPrune::On } else { FetchPrune::Unspecified });
+    let mut fetch_options = git2::FetchOptions::new();
+    fetch_options.prune(if matches.is_present("prune") {
+        git2::FetchPrune::On
+    } else {
+        git2::FetchPrune::Unspecified
+    });
     fetch_options.remote_callbacks(callbacks::callbacks());
 
     let refspec_refs : Vec<&str> = refspecs.iter().map(String::as_str).collect();
