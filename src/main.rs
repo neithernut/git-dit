@@ -26,7 +26,7 @@ mod write;
 
 use chrono::{FixedOffset, TimeZone};
 use clap::App;
-use git2::{Commit, PushOptions, Repository};
+use git2::{Commit, Repository};
 use libgitdit::message::{LineIteratorExt, Trailer};
 use libgitdit::{Message, RemoteExt, RepositoryExt};
 use log::LogLevel;
@@ -297,7 +297,7 @@ fn push_impl(repo: &Repository, matches: &clap::ArgMatches) {
     };
 
     // set the options for the push
-    let mut fetch_options = PushOptions::new();
+    let mut fetch_options = git2::PushOptions::new();
     fetch_options.remote_callbacks(callbacks::callbacks());
 
     let refspec_refs : Vec<&str> = refspecs.iter().map(String::as_str).collect();
