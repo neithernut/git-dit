@@ -7,7 +7,7 @@
 //   published by the Free Software Foundation.
 //
 
-use git2::{self, Cred, CredentialType, Error, Oid};
+use git2::{self, Cred, Error, Oid};
 use std::io::{self, Write};
 use std::result::Result as RResult;
 use std::str;
@@ -18,7 +18,7 @@ use logger::LoggableError;
 /// Get credentials from the user
 ///
 #[allow(unused)]
-fn get_creds(url: &str, username: Option<&str>, types: CredentialType) -> RResult<Cred, Error> {
+fn get_creds(url: &str, username: Option<&str>, types: git2::CredentialType) -> RResult<Cred, Error> {
     // TODO: implement other authentication methods
     if types.contains(git2::SSH_KEY) {
         if let Some(user) = username {
