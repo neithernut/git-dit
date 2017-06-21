@@ -1,6 +1,6 @@
 % GIT-DIT(1) User Manuals
 % Matthias Beyer, Julian Ganz
-% January 16, 2017
+% June 22, 2017
 
 # NAME
 
