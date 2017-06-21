@@ -7,7 +7,7 @@
 //   published by the Free Software Foundation.
 //
 
-use log::{self, LogRecord, LogLevel, LogMetadata};
+use log;
 use io::{stderr, Write};
 use std::error::Error;
 use std::result::Result as RResult;
@@ -18,7 +18,7 @@ use std::result::Result as RResult;
 /// This logger will log to stderr
 ///
 pub struct Logger {
-    level: LogLevel,
+    level: log::LogLevel,
 }
 
 impl Logger {
@@ -26,7 +26,7 @@ impl Logger {
     ///
     /// Instantiate a basic logger and make it the main logger.
     ///
-    pub fn init(level: LogLevel) -> RResult<(), log::SetLoggerError> {
+    pub fn init(level: log::LogLevel) -> RResult<(), log::SetLoggerError> {
         log::set_logger(|max_level| {
             max_level.set(level.to_log_level_filter());
             Box::from(Logger { level: level })
@@ -35,11 +35,11 @@ impl Logger {
 }
 
 impl log::Log for Logger {
-    fn enabled(&self, metadata: &LogMetadata) -> bool {
+    fn enabled(&self, metadata: &log::LogMetadata) -> bool {
         metadata.level() <= self.level
     }
 
-    fn log(&self, record: &LogRecord) {
+    fn log(&self, record: &log::LogRecord) {
         if self.enabled(record.metadata()) {
             writeln!(stderr(), "{}", record.args()).ok();
         }
