@@ -13,7 +13,7 @@
 //! issue handling utilities for repositories.
 //!
 
-use git2::{self, Commit, Oid, Signature, Tree};
+use git2::{self, Commit, Oid, Tree};
 
 use issue::Issue;
 use error::*;
@@ -63,8 +63,8 @@ pub trait RepositoryExt {
     /// Create a new issue with an initial message
     ///
     fn create_issue<'a, A, I, J>(&self,
-             author: &Signature,
-             committer: &Signature,
+             author: &git2::Signature,
+             committer: &git2::Signature,
              message: A,
              tree: &Tree,
              parents: I
@@ -154,8 +154,8 @@ impl RepositoryExt for git2::Repository {
     }
 
     fn create_issue<'a, A, I, J>(&self,
-             author: &Signature,
-             committer: &Signature,
+             author: &git2::Signature,
+             committer: &git2::Signature,
              message: A,
              tree: &Tree,
              parents: I
