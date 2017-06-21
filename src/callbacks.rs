@@ -7,7 +7,7 @@
 //   published by the Free Software Foundation.
 //
 
-use git2::{self, Cred, Oid};
+use git2::{self, Cred};
 use std::io::{self, Write};
 use std::result::Result as RResult;
 use std::str;
@@ -46,7 +46,7 @@ fn print_sideband(data: &[u8]) -> bool {
 
 /// Print new and deleted messages
 ///
-fn print_tip_updates(refname: &str, old: Oid, new: Oid) -> bool {
+fn print_tip_updates(refname: &str, old: git2::Oid, new: git2::Oid) -> bool {
     match (old.is_zero(), new.is_zero()) {
         (false, false) => println!("[changed]:  {}", refname),
         (true,  false) => println!("[new]:      {}", refname),
