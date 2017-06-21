@@ -8,8 +8,7 @@
 //
 
 use std::fmt::Display;
-use std::io::Result as RResult;
-use std::io::Write;
+use std::io::{Result as RResult, Write};
 
 pub trait WriteExt {
     fn consume_lines<I, L>(&mut self, lines: I) -> RResult<()>
