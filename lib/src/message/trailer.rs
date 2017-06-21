@@ -14,15 +14,15 @@
 //! uses trailers as storage for issue metadata.
 //!
 
-use message::line::{Line, Lines};
 use regex::Regex;
 use std::collections::VecDeque;
 use std::fmt::{self, Display, Formatter};
 use std::result::Result as RResult;
 use std::str::FromStr;
 
-use error::ErrorKind as EK;
 use error::*;
+use error::ErrorKind as EK;
+use message::line::{Line, Lines};
 
 /// The Key of a Trailer:
 ///
