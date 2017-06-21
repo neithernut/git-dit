@@ -71,8 +71,6 @@ impl TrailerValue {
     /// string.
     ///
     pub fn from_slice(slice: &str) -> TrailerValue {
-        use std::str::FromStr;
-
         match i64::from_str(slice) {
             Ok(i) => TrailerValue::Int(i),
             Err(_) => TrailerValue::String(String::from(slice)),
