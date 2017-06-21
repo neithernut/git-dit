@@ -30,10 +30,18 @@ The following crates are used:
 
 Additionally, for building the man page, `pandoc` is required.
 
-
 # Installing
 
-_TBD_
+Cargo is used for building git-dit. Run
+
+    cargo build
+
+in this directory in order to build `git-dit`. Make sure the `BUILD_GIT_DIT_MAN`
+environment variable is set if you are interested in building the `git-dit` man
+page.
+
+We do not provide any installation scripts. If you intent using or testing
+`git-dit`, make sure to have the binary in your `PATH`.
 
 # Documentation
 
