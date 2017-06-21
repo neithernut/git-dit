@@ -12,7 +12,7 @@
 //! This module provides various iterators.
 //!
 
-use git2::{self, Repository, References};
+use git2::{self, Repository};
 
 use issue;
 use repository::RepositoryExt;
@@ -27,13 +27,13 @@ use error::ErrorKind as EK;
 ///
 pub struct HeadRefsToIssuesIter<'r>
 {
-    inner: References<'r>,
+    inner: git2::References<'r>,
     repo: &'r Repository
 }
 
 impl<'r> HeadRefsToIssuesIter<'r>
 {
-    pub fn new(repo: &'r Repository, inner: References<'r>) -> Self {
+    pub fn new(repo: &'r Repository, inner: git2::References<'r>) -> Self {
         HeadRefsToIssuesIter { inner: inner, repo: repo }
     }
 }
