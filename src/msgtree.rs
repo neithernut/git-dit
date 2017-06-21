@@ -26,7 +26,7 @@
 //!
 
 
-use git2::{Commit, Oid};
+use git2::{self, Commit};
 use std::fmt::{self, Write};
 use std::iter::FromIterator;
 
@@ -172,7 +172,7 @@ pub struct TreeGraphElemLineIterator<'r, I>
     where I: Iterator<Item = Commit<'r>>
 {
     inner: I, // inner iterator over commits for which to display the graph
-    parents: Vec<Option<Oid>>, // currently tracked parents
+    parents: Vec<Option<git2::Oid>>, // currently tracked parents
 }
 
 impl<'r, I> Iterator for TreeGraphElemLineIterator<'r, I>
