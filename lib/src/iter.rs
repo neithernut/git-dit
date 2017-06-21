@@ -12,7 +12,7 @@
 //! This module provides various iterators.
 //!
 
-use git2::{self, Commit, Repository, References};
+use git2::{self, Repository, References};
 
 use issue;
 use repository::RepositoryExt;
@@ -65,7 +65,7 @@ pub struct IssueMessagesIter<'r> {
 }
 
 impl<'r> IssueMessagesIter<'r> {
-    pub fn new<'a>(repo: &'a Repository, commit: Commit<'a>) -> Result<IssueMessagesIter<'a>> {
+    pub fn new<'a>(repo: &'a Repository, commit: git2::Commit<'a>) -> Result<IssueMessagesIter<'a>> {
         repo.first_parent_revwalk(commit.id())
             .map(|revwalk| IssueMessagesIter { inner: revwalk, repo: repo })
     }
@@ -80,7 +80,7 @@ impl<'r> IssueMessagesIter<'r> {
 }
 
 impl<'r> Iterator for IssueMessagesIter<'r> {
-    type Item = Result<Commit<'r>>;
+    type Item = Result<git2::Commit<'r>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.inner
