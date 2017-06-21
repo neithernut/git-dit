@@ -26,7 +26,7 @@ mod write;
 
 use chrono::{FixedOffset, TimeZone};
 use clap::App;
-use git2::{Commit, ObjectType, FetchOptions, FetchPrune, PushOptions, Repository};
+use git2::{Commit, FetchOptions, FetchPrune, PushOptions, Repository};
 use libgitdit::message::{LineIteratorExt, Trailer};
 use libgitdit::{Message, RemoteExt, RepositoryExt};
 use log::LogLevel;
@@ -471,7 +471,7 @@ fn tag_impl(repo: &Repository, matches: &clap::ArgMatches) {
         .find_local_head()
         .unwrap_or_abort();
     let mut head_commit = issue_head
-        .peel(ObjectType::Commit)
+        .peel(git2::ObjectType::Commit)
         .unwrap_or_abort()
         .into_commit()
         .ok()
