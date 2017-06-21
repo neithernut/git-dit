@@ -23,7 +23,6 @@ use error::*;
 use error::ErrorKind as EK;
 use git2::Commit;
 use std::iter::Skip;
-use std::str;
 use std::vec;
 
 pub mod line;
