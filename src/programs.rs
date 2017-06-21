@@ -9,9 +9,7 @@
 
 use std::env::var as env_var;
 use std::path::PathBuf;
-use std::process::Child;
-use std::process::Command;
-use std::process::Stdio;
+use std::process::{Child, Command, Stdio};
 
 use git2::Config;
 
