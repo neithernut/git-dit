@@ -2,6 +2,8 @@ git-dit - the distributed issue tracker for git
 
 **WARNING: This is pre-1.0! Expect bugs and incompatibilities!**
 
+However, we try to avoid breaking changes.
+
 ---
 
 # git-dit features
