@@ -31,7 +31,7 @@ use libgitdit::message::{LineIteratorExt, Trailer};
 use libgitdit::{Message, RemoteExt, RepositoryExt};
 use log::LogLevel;
 use std::fs::File;
-use std::io::{self, BufRead, BufReader, Read, Write};
+use std::io::{self, Read, Write};
 use std::process::Command;
 use std::str::FromStr;
 
@@ -52,12 +52,14 @@ fn check_message(matches: &clap::ArgMatches) {
         Some(filename)  => Box::from(File::open(filename).unwrap_or_abort()),
         None            => Box::from(io::stdin()),
     };
-    BufReader::new(reader).lines()
-                          .abort_on_err()
-                          .skip_while(|l| l.is_empty())
-                          .stripped()
-                          .check_message_format()
-                          .unwrap_or_abort();
+    use io::BufRead;
+    io::BufReader::new(reader)
+        .lines()
+        .abort_on_err()
+        .skip_while(|l| l.is_empty())
+        .stripped()
+        .check_message_format()
+        .unwrap_or_abort();
 }
 
 
