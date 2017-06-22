@@ -7,7 +7,7 @@
 //   published by the Free Software Foundation.
 //
 
-use git2::{self, Cred, CredentialType, Error, Oid};
+use git2::{self, Cred};
 use std::io::{self, Write};
 use std::result::Result as RResult;
 use std::str;
@@ -18,7 +18,7 @@ use logger::LoggableError;
 /// Get credentials from the user
 ///
 #[allow(unused)]
-fn get_creds(url: &str, username: Option<&str>, types: CredentialType) -> RResult<Cred, Error> {
+fn get_creds(url: &str, username: Option<&str>, types: git2::CredentialType) -> RResult<Cred, git2::Error> {
     // TODO: implement other authentication methods
     if types.contains(git2::SSH_KEY) {
         if let Some(user) = username {
@@ -46,7 +46,7 @@ fn print_sideband(data: &[u8]) -> bool {
 
 /// Print new and deleted messages
 ///
-fn print_tip_updates(refname: &str, old: Oid, new: Oid) -> bool {
+fn print_tip_updates(refname: &str, old: git2::Oid, new: git2::Oid) -> bool {
     match (old.is_zero(), new.is_zero()) {
         (false, false) => println!("[changed]:  {}", refname),
         (true,  false) => println!("[new]:      {}", refname),

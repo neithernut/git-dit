@@ -26,12 +26,12 @@ mod write;
 
 use chrono::{FixedOffset, TimeZone};
 use clap::App;
-use git2::{Commit, ObjectType, FetchOptions, FetchPrune, PushOptions, Repository};
+use git2::{Commit, Repository};
 use libgitdit::message::{LineIteratorExt, Trailer};
 use libgitdit::{Message, RemoteExt, RepositoryExt};
 use log::LogLevel;
 use std::fs::File;
-use std::io::{self, BufRead, BufReader, Read, Write};
+use std::io::{self, Read, Write};
 use std::process::Command;
 use std::str::FromStr;
 
@@ -52,12 +52,14 @@ fn check_message(matches: &clap::ArgMatches) {
         Some(filename)  => Box::from(File::open(filename).unwrap_or_abort()),
         None            => Box::from(io::stdin()),
     };
-    BufReader::new(reader).lines()
-                          .abort_on_err()
-                          .skip_while(|l| l.is_empty())
-                          .stripped()
-                          .check_message_format()
-                          .unwrap_or_abort();
+    use io::BufRead;
+    io::BufReader::new(reader)
+        .lines()
+        .abort_on_err()
+        .skip_while(|l| l.is_empty())
+        .stripped()
+        .check_message_format()
+        .unwrap_or_abort();
 }
 
 
@@ -164,8 +166,12 @@ fn fetch_impl(repo: &Repository, matches: &clap::ArgMatches) {
     };
 
     // set the options for the fetch
-    let mut fetch_options = FetchOptions::new();
-    fetch_options.prune(if matches.is_present("prune") { FetchPrune::On } else { FetchPrune::Unspecified });
+    let mut fetch_options = git2::FetchOptions::new();
+    fetch_options.prune(if matches.is_present("prune") {
+        git2::FetchPrune::On
+    } else {
+        git2::FetchPrune::Unspecified
+    });
     fetch_options.remote_callbacks(callbacks::callbacks());
 
     let refspec_refs : Vec<&str> = refspecs.iter().map(String::as_str).collect();
@@ -293,7 +299,7 @@ fn push_impl(repo: &Repository, matches: &clap::ArgMatches) {
     };
 
     // set the options for the push
-    let mut fetch_options = PushOptions::new();
+    let mut fetch_options = git2::PushOptions::new();
     fetch_options.remote_callbacks(callbacks::callbacks());
 
     let refspec_refs : Vec<&str> = refspecs.iter().map(String::as_str).collect();
@@ -471,7 +477,7 @@ fn tag_impl(repo: &Repository, matches: &clap::ArgMatches) {
         .find_local_head()
         .unwrap_or_abort();
     let mut head_commit = issue_head
-        .peel(ObjectType::Commit)
+        .peel(git2::ObjectType::Commit)
         .unwrap_or_abort()
         .into_commit()
         .ok()

@@ -22,9 +22,7 @@
 use error::*;
 use error::ErrorKind as EK;
 use git2::Commit;
-use std::iter::Skip;
-use std::str;
-use std::vec;
+use std;
 
 pub mod line;
 pub mod line_processor;
@@ -137,7 +135,7 @@ impl<L, S> LineIteratorExt<S> for L
 
 /// Type representing the lines composing the body part of a commit message
 ///
-pub type BodyLines = Skip<vec::IntoIter<String>>;
+pub type BodyLines = std::iter::Skip<std::vec::IntoIter<String>>;
 
 
 /// Message trait
@@ -150,7 +148,7 @@ pub trait Message {
     ///
     /// If the commit has no message, an empty message will be simulated.
     ///
-    fn message_lines(&self) -> vec::IntoIter<String>;
+    fn message_lines(&self) -> std::vec::IntoIter<String>;
 
     /// Get the commit message's body as a sequence of lines
     ///
@@ -172,7 +170,7 @@ pub trait Message {
 }
 
 impl<'c> Message for Commit<'c> {
-    fn message_lines(&self) -> vec::IntoIter<String> {
+    fn message_lines(&self) -> std::vec::IntoIter<String> {
         let lines : Vec<String> = self.message()
                                       .unwrap_or("")
                                       .lines()

@@ -14,15 +14,15 @@
 //! uses trailers as storage for issue metadata.
 //!
 
-use message::line::{Line, Lines};
 use regex::Regex;
 use std::collections::VecDeque;
-use std::fmt::{self, Display, Formatter};
+use std::fmt;
 use std::result::Result as RResult;
 use std::str::FromStr;
 
-use error::ErrorKind as EK;
 use error::*;
+use error::ErrorKind as EK;
+use message::line::{Line, Lines};
 
 /// The Key of a Trailer:
 ///
@@ -41,8 +41,8 @@ impl From<String> for TrailerKey {
     }
 }
 
-impl Display for TrailerKey {
-    fn fmt(&self, f: &mut Formatter) -> RResult<(), fmt::Error> {
+impl fmt::Display for TrailerKey {
+    fn fmt(&self, f: &mut fmt::Formatter) -> RResult<(), fmt::Error> {
         write!(f, "{}", self.0)
     }
 }
@@ -71,8 +71,6 @@ impl TrailerValue {
     /// string.
     ///
     pub fn from_slice(slice: &str) -> TrailerValue {
-        use std::str::FromStr;
-
         match i64::from_str(slice) {
             Ok(i) => TrailerValue::Int(i),
             Err(_) => TrailerValue::String(String::from(slice)),
@@ -92,8 +90,8 @@ impl TrailerValue {
     }
 }
 
-impl Display for TrailerValue {
-    fn fmt(&self, f: &mut Formatter) -> RResult<(), fmt::Error> {
+impl fmt::Display for TrailerValue {
+    fn fmt(&self, f: &mut fmt::Formatter) -> RResult<(), fmt::Error> {
         match *self {
             TrailerValue::Int(i)        => write!(f, "{}", i),
             TrailerValue::String(ref s) => write!(f, "{}", s),
@@ -129,8 +127,8 @@ impl Into<(TrailerKey, TrailerValue)> for Trailer {
     }
 }
 
-impl Display for Trailer {
-    fn fmt(&self, f: &mut Formatter) -> RResult<(), fmt::Error> {
+impl fmt::Display for Trailer {
+    fn fmt(&self, f: &mut fmt::Formatter) -> RResult<(), fmt::Error> {
         write!(f, "{}: {}", self.key, self.value)
     }
 }

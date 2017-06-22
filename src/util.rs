@@ -10,8 +10,7 @@
 use clap::{ArgMatches, Values};
 use git2::{self, Commit, Repository};
 use std::fs::File;
-use std::io::BufRead;
-use std::io::BufReader;
+use std::io;
 use std::path::PathBuf;
 use std::str::FromStr;
 
@@ -142,7 +141,8 @@ impl<'r> RepositoryUtil<'r> for Repository {
         }
 
         // read the message back, check for validity
-        let lines : Vec<String> = BufReader::new(File::open(path).chain_err(|| EK::WrappedIOError)?)
+        use io::BufRead;
+        let lines : Vec<String> = io::BufReader::new(File::open(path).chain_err(|| EK::WrappedIOError)?)
             .lines()
             .abort_on_err()
             .stripped()
