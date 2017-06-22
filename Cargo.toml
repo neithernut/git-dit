@@ -1,6 +1,6 @@
 [package]
 name = "git-dit"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Matthias Beyer <mail@beyermatthias.de>",
            "Julian Ganz <neither@nut.email>"]
 
