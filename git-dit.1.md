@@ -106,7 +106,38 @@ git-dit.
 
 ## General setup considerations
 
-TBD
+Project hosting sites often provide exactly one logical issue tracker for each
+project repository.
+As with mailing lists and stand-alone issue tracking web-services, users of
+git-dit are not forced to bind a set of issues to a specific source code
+repository.
+While Git-dit-issues do live in a git repository, it doesn't necessarily need to
+be the same repository used for the source code.
+For example, maintainers may choose to use separate repositories for code and
+issues.
+
+Consider, for example, a big project with several code repositories for
+different components.
+Now consider a user who wants to file a bug.
+In many cases, the user will not be able to correctly assign the bug to a
+specific component.
+With git-dit, maintainers may provide a dedicated issue repository for filing
+bug reports and feature requests.
+
+Contributors and sub-maintainers may add the central issue repository as an
+additional remote to their local clone.
+Optionally, issues assigned to a component may be transferred or copied to a
+component's code repository or an associated specialized issue repository
+(though there is no convenient support for such functionality, yet).
+
+It is also possible to have multiple issue repositories for a single code
+repository.
+Consider for example one of these closed source projects with many change
+requests from difficult customers.
+With git-dit, you can set up a dedicated issue repository for each customer in
+order to accept and share change requests.
+Developers can add each of those issue repositories as remotes, viewing and
+interacting with all of the issues from different customers.
 
 ## Retrieving issues from a remote repository
 
