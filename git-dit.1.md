@@ -21,6 +21,7 @@ commands for end users as well as a low level interface to internals for use in
 scripts or third-party extensions.
 
 For more information, refer to the DISCUSSION section of this manual.
+Additionally, the WORKFLOWS section provides some examples of git-dit usage.
 
 
 # OPTIONS
