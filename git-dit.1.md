@@ -96,5 +96,37 @@ Discussion messages will be created using `git-dit-reply` as empty commits,
 preserving the parent commit's tree.
 
 
+# WORKFLOWS
+
+Git-dit tries not to force a specific work-flow on its users.
+Various workflows are supported either directly or indirectly.
+This section discusses some possible workflows for managing issues using
+git-dit.
+
+## General setup considerations
+
+TBD
+
+## Retrieving issues from a remote repository
+
+TBD
+
+## Reporting an issue
+
+TBD
+
+## Viewing issues
+
+TBD
+
+## Adding information and metadata to an issue
+
+TBD
+
+## Managing the state and other metadata of an issue
+
+TBD
+
+
 # SEE ALSO
 
