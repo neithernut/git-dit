@@ -141,7 +141,30 @@ interacting with all of the issues from different customers.
 
 ## Retrieving issues from a remote repository
 
-TBD
+Naturally, contributors as well as maintainers will want to retrieve issues from
+a remote repository, be it a dedicated issue repository or a repository
+containing both issues and source code.
+Git-dit offers multiple ways for retrieving issues.
+
+Issues may be fetched manually from a remote repository using the `fetch`
+subcommand.
+
+    git dit fetch issue-repo
+
+will fetch all issues from a remote "issue-repo". The subcommand also supports
+fetching only updates of issues explicitly specified or all issues which are
+known to the current repository.
+
+Alternatively, a developer may choose to subscribe to the issues present in a
+remote repository.
+Currently, this has to be done manually through a ref-spec.
+The following refspec, for example, will cause the issues to be fetched from the
+remote "origin" on each `git fetch`.
+
+    refs/dit/*:refs/remotes/origin/dit/*
+
+New issues and issue updates are pushed to a remote using git-dit's "push"
+subcommand.
 
 ## Reporting an issue
 
