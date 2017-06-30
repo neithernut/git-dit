@@ -168,7 +168,28 @@ subcommand.
 
 ## Reporting an issue
 
-TBD
+Issues can be created in the local repository.
+
+    git dit new
+
+will spawn the editor configured for git.
+The usual rules for commit messages also apply to issues: the first line will be
+the subject line and should contain a summary or appropriate title; the second
+line should be blank, followed by paragraphs of texts or blocks of trailers.
+The trailers may be used for transporting metadata.
+Once the message is written and the editor is closed, a new issue will be
+created and git-dit will print the issue's id.
+
+For others to see the issue, the issue has to be pushed to a public repository.
+The command
+
+    git dit push origin <id>
+
+will push the issue with the id provided by the user to the remote "origin".
+Alternatively, all local updates, including new issues, may be pushed to the
+remote "origin" using the command
+
+    git dit push origin
 
 ## Viewing issues
 
