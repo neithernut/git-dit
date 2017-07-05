@@ -215,7 +215,32 @@ message.
 
 ## Adding information and metadata to an issue
 
-TBD
+Users may add information in the form of text and trailers to an issue by
+replying to an issue message.
+The command
+
+    git dit reply <message-id>
+
+spawns an editor for composing a reply to the message provided.
+The message is handled (mostly) like a regular commit message:
+the first line is a subject line;
+the second line should be empty;
+lines starting with a '#' are removed.
+Trailers should go to the end of a message.
+
+After the message is saved and the editor closed, the message will be added to
+the issue.
+It should now be visible via the "show" subcommand.
+
+Currently, the new message only lives in the local repository.
+In order to make it visible to others, users will usually want to push the new
+message using the "push" subcommand.
+
+Note that new metadata, e.g. the sate of an issue, added via a message is not
+immediately adopted.
+Rather it should be considered a proposal for a metadata change.
+The remote repository's maintainer and possibly other moderating parties may
+apply those proposed changes by updating the issue's "head" reference.
 
 ## Managing the state and other metadata of an issue
 
