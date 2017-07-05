@@ -193,7 +193,25 @@ remote "origin" using the command
 
 ## Viewing issues
 
-TBD
+Issues can both be listed and viewed.
+The command
+
+    git dit list
+
+lets the user view the issues known to the repository.
+The list contains each issue's id, which the user may copy, e.g. into her
+clipboard, for further use.
+
+For example, an issue may be shown using a previously obtained id using the
+command
+
+    git dit show <issue-id>
+
+This command displays the messages of an issue.
+Multiple output formats are supported.
+Most of them will contain the messages' ids.
+Again, users may copy a message's id for further use, e.g. for replying to that
+message.
 
 ## Adding information and metadata to an issue
 
