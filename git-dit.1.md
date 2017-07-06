@@ -244,8 +244,69 @@ apply those proposed changes by updating the issue's "head" reference.
 
 ## Managing the state and other metadata of an issue
 
-TBD
+The "head" reference of an issue represents the "upstream state" of an issue.
+The meatadata, e.g. status, of an issue is computed by accumulating the metadata
+of messages from the head reference to the issue's initial message, only
+following the first parent of each message.
 
+Consider a bug-report consisting of the following tree of messages:
+
+    A
+    |
+    B <- head
+    |\
+    C D
+    |
+    E
+    |\
+    F G
+
+with "A" being the issue's initial message.
+
+Now assume that in message "G", a developer volunteered fixing the bug by
+assigning the issue to herself, projecting the changes necessary.
+The maintainer may acknowledge the assignment by moving the head reference from
+"B" to "G".
+
+This change will also incorporate metadata changes performed in "C" and "E"
+while omitting changes in "D" and "F".
+Naturally, a maintainer cannot cherry-pick a single metadata change or
+incorporate concurrent changes (e.g. from both "F" and "G") through mere
+updating of the head reference.
+
+However, a maintainer may maintain a separate branch of messages only
+containing the subject and trailers.
+The messages inspiring the changes may be references as additional parents of
+those metadata-only messages.
+
+This can be achieved using the "tag" subcommand. For example, given the tree
+of messages above, the command
+
+    git dit tag <issue> -s Dit-assignee='Foo Bar <foo.bar@example.com>' -r G
+
+creates a message assigning the person "Foo Bar" to the issue, referencing the
+message "G", and updates the "head" reference of the issue, yielding the
+following DAG:
+
+
+    A
+    |
+    B
+    |\
+    | \
+    | |\
+    | C D
+    | |
+    | E
+    | |\
+    | G F
+    |/
+    H <- head
+
+with the link between "H" and "G" being only an informal reference.
+
+Note that the maintainer may now also incorporate changes from the message "F"
+in a similar way.
 
 # SEE ALSO
 
