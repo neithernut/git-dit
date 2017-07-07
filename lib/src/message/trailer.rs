@@ -250,7 +250,7 @@ impl<I, S> Iterator for Trailers<I, S>
             let mut collector = TrailerCollector::new(&mut self.buf);
             let mut at_end = true;
 
-            'refill: for line in self.lines.next() {
+            'refill: for line in &mut self.lines {
                 at_end = false;
                 collector = match line {
                     Line::Text(_) => collector.dumping(), // block of text
