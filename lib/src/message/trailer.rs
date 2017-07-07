@@ -353,4 +353,49 @@ mod tests {
     fn empty_trailer() {
         assert!(Trailer::from_str("").is_err());
     }
+
+    // Trailers tests
+
+    #[test]
+    fn trailers() {
+        let mut trailers = Trailers::from(vec![
+            "Foo-bar: bar",
+            "",
+            "Space: the final frontier.",
+            "These are the voyages...",
+            "",
+            "And then he",
+            "said: engage!",
+            "",
+            "",
+            "Signed-off-by: Spock",
+            "Dit-status: closed",
+            "Multi-line-trailer: multi",
+            "  line",
+            "  content"
+        ].into_iter());
+
+        {
+            let (key, _) = trailers.next().expect("Failed to parse trailer1").into();
+            assert_eq!(key, TrailerKey("Foo-bar".to_string()));
+        }
+
+        {
+            let (key, _) = trailers.next().expect("Failed to parse trailer2").into();
+            assert_eq!(key, TrailerKey("Signed-off-by".to_string()));
+        }
+
+        {
+            let (key, _) = trailers.next().expect("Failed to parse trailer3").into();
+            assert_eq!(key, TrailerKey("Dit-status".to_string()));
+        }
+
+        {
+            let (key, value) = trailers.next().expect("Failed to parse trailer4").into();
+            assert_eq!(key, TrailerKey("Multi-line-trailer".to_string()));
+            assert_eq!(value, TrailerValue::String("multi  line  content".to_string()));
+        }
+
+        assert!(!trailers.next().is_some())
+    }
 }
