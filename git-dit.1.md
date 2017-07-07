@@ -101,6 +101,13 @@ considered a reference.
 The initial message will not be part of the branch it may refer to at some
 point, and git-dit tools will not advance a branch if a new issue is created.
 
+Each issue has a "head" reference, which references an "upstream" state of an
+issue.
+Metadata, such as assignments and the issue's status, is accumulated from an
+issue's reference towards the issue's initial commit.
+Additionally, a maintainer may use the "head" reference to communicate
+acceptance of some discussion point.
+
 
 # WORKFLOWS
 
