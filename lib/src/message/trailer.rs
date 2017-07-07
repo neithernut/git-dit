@@ -298,3 +298,59 @@ impl<I, S> Iterator for DitTrailers<I, S>
 
 }
 
+
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Trailer tests
+
+    #[test]
+    fn string_trailer() {
+        let (key, value) = Trailer::from_str("foo-bar: test1 test2 test3")
+            .expect("Couldn't parse test string")
+            .into();
+        assert_eq!(key, TrailerKey("foo-bar".to_string()));
+        assert_eq!(value, TrailerValue::String("test1 test2 test3".to_string()));
+    }
+
+    #[test]
+    fn string_numstart_trailer() {
+        let (key, value) = Trailer::from_str("foo-bar: 123test")
+            .expect("Couldn't parse test string")
+            .into();
+        assert_eq!(key, TrailerKey("foo-bar".to_string()));
+        assert_eq!(value, TrailerValue::String("123test".to_string()));
+    }
+
+    #[test]
+    fn numeric_trailer() {
+        let (key, value) = Trailer::from_str("foo-bar: 123")
+            .expect("Couldn't parse test string")
+            .into();
+        assert_eq!(key, TrailerKey("foo-bar".to_string()));
+        assert_eq!(value, TrailerValue::Int(123));
+    }
+
+    #[test]
+    fn faulty_trailer() {
+        assert!(Trailer::from_str("foo-bar 123").is_err());
+    }
+
+    #[test]
+    fn faulty_trailer_2() {
+        assert!(Trailer::from_str("foo-bar").is_err());
+    }
+
+    #[test]
+    fn faulty_trailer_3() {
+        assert!(Trailer::from_str("foo bar: baz").is_err());
+    }
+
+    #[test]
+    fn empty_trailer() {
+        assert!(Trailer::from_str("").is_err());
+    }
+}
