@@ -94,3 +94,35 @@ impl<I, S> Iterator for Lines<I, S>
 }
 
 
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Line tests
+
+    #[test]
+    fn text_line() {
+        match Line::from("Just a line of text") {
+            Line::Text(_) => (),
+            _ => panic!("Line of text misinterpreted"),
+        }
+    }
+
+    #[test]
+    fn trailer_line() {
+        match Line::from("Foo-bar: baz") {
+            Line::Trailer(_) => (),
+            _ => panic!("Trailer misinterpreted"),
+        }
+    }
+
+    #[test]
+    fn blank_line() {
+        match Line::from("") {
+            Line::Blank => (),
+            _ => panic!("Blank line misinterpreted"),
+        }
+    }
+}
