@@ -96,6 +96,11 @@ the former one is especially useful for patch-sets.
 Discussion messages will be created using `git-dit-reply` as empty commits,
 preserving the parent commit's tree.
 
+Note that in any case the parentship of an initial message should only be
+considered a reference.
+The initial message will not be part of the branch it may refer to at some
+point, and git-dit tools will not advance a branch if a new issue is created.
+
 
 # WORKFLOWS
 
