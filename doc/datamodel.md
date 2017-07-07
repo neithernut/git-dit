@@ -48,8 +48,8 @@ usual rules for commit messages: it must consist of at least a subject line and
 the second line of a message shall be empty. Issues should always have a message
 body providing some details.
 
-A message may contain metadata in the form of git-tags. The following tags are
-currently used:
+A message may contain metadata "tags" in the form of trailers. The following
+tags are currently used:
 
  * Dit-status
  * Dit-type
