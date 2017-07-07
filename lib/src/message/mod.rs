@@ -202,3 +202,38 @@ impl<'c> Message for Commit<'c> {
     }
 }
 
+
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // LineIteratorExt tests
+
+    #[test]
+    fn empty_message_format_check() {
+        let vec : Vec<&str> = Vec::new();
+        assert!(vec.into_iter().check_message_format().is_err());
+    }
+
+    #[test]
+    fn empty_message_format_check2() {
+        assert!(vec![""].into_iter().check_message_format().is_err());
+    }
+
+    #[test]
+    fn oneline_message_format_check() {
+        vec!["Foo bar"].into_iter().check_message_format().unwrap();
+    }
+
+    #[test]
+    fn malformed_message_format_check() {
+        assert!(vec!["Foo bar", "Baz"].into_iter().check_message_format().is_err());
+    }
+
+    #[test]
+    fn multiline_message_format_check() {
+        vec!["Foo bar", "", "Baz"].into_iter().check_message_format().unwrap();
+    }
+}
