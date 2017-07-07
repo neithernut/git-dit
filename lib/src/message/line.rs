@@ -125,4 +125,53 @@ mod tests {
             _ => panic!("Blank line misinterpreted"),
         }
     }
+
+    // Lines tests
+
+    #[test]
+    fn lines_test() {
+        let mut lines = Lines::from(vec![
+            "Mary had a little lamb",
+            "Foo-bar: baz",
+            "More text",
+            "",
+            "Multi: line",
+            "  trailer"
+        ].into_iter());
+
+        match lines.next() {
+            Some(Line::Text(_)) => (),
+            Some(_) => panic!("Expected line of text"),
+            None => panic!("premature end of input"),
+        }
+
+        match lines.next() {
+            Some(Line::Trailer(_)) => (),
+            Some(_) => panic!("Expected trailer"),
+            None => panic!("premature end of input"),
+        }
+
+        match lines.next() {
+            Some(Line::Text(_)) => (),
+            Some(_) => panic!("Expected line of text"),
+            None => panic!("premature end of input"),
+        }
+
+        match lines.next() {
+            Some(Line::Blank) => (),
+            Some(_) => panic!("Expected blank line"),
+            None => panic!("premature end of input"),
+        }
+
+        match lines.next() {
+            Some(Line::Trailer(_)) => (),
+            Some(_) => panic!("Expected trailer"),
+            None => panic!("premature end of input"),
+        }
+
+        match lines.next() {
+            None => (),
+            Some(_) => panic!("Expected end of input")
+        }
+    }
 }
