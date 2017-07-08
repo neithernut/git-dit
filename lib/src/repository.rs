@@ -198,3 +198,177 @@ impl RepositoryExt for git2::Repository {
     }
 }
 
+
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use test_utils::TestingRepo;
+
+    // RepositoryExt tests
+
+    #[test]
+    fn find_issue() {
+        let mut testing_repo = TestingRepo::new("find_issue");
+        let repo = testing_repo.repo();
+
+        let sig = git2::Signature::now("Foo Bar", "foo.bar@example.com")
+            .expect("Could not create signature");
+        let empty_tree = repo
+            .empty_tree()
+            .expect("Could not create empty tree");
+        let issue = repo
+            .create_issue(&sig, &sig, "Test message 1", &empty_tree, vec![])
+            .expect("Could not create issue");
+
+        repo.find_issue(issue.id())
+            .expect("Could not tretrieve issue by id");
+    }
+
+    #[test]
+    fn issue_by_head_ref() {
+        let mut testing_repo = TestingRepo::new("issue_by_head_ref");
+        let repo = testing_repo.repo();
+
+        let sig = git2::Signature::now("Foo Bar", "foo.bar@example.com")
+            .expect("Could not create signature");
+        let empty_tree = repo
+            .empty_tree()
+            .expect("Could not create empty tree");
+        let issue = repo
+            .create_issue(&sig, &sig, "Test message 1", &empty_tree, vec![])
+            .expect("Could not create issue");
+
+        let local_head = issue
+            .find_local_head()
+            .expect("Could not retrieve local head reference");
+        let retrieved_issue = repo
+            .issue_by_head_ref(&local_head)
+            .expect("Could not retrieve issue");
+        assert_eq!(issue.id(), retrieved_issue.id());
+    }
+
+    #[test]
+    fn issue_with_message() {
+        let mut testing_repo = TestingRepo::new("issue_with_message");
+        let repo = testing_repo.repo();
+
+        let sig = git2::Signature::now("Foo Bar", "foo.bar@example.com")
+            .expect("Could not create signature");
+        let empty_tree = repo
+            .empty_tree()
+            .expect("Could not create empty tree");
+        let issue = repo
+            .create_issue(&sig, &sig, "Test message 1", &empty_tree, vec![])
+            .expect("Could not create issue");
+        let initial_message = issue
+            .initial_message()
+            .expect("Could not retrieve initial message");
+        let message = issue
+            .add_message(&sig, &sig, "Test message 2", &empty_tree, vec![&initial_message])
+            .expect("Could not add message");
+
+        let retrieved_issue = repo
+            .issue_with_message(&message)
+            .expect("Could not retrieve issue");
+        assert_eq!(retrieved_issue.id(), issue.id());
+    }
+
+    #[test]
+    fn issues() {
+        let mut testing_repo = TestingRepo::new("issues");
+        let repo = testing_repo.repo();
+
+        let sig = git2::Signature::now("Foo Bar", "foo.bar@example.com")
+            .expect("Could not create signature");
+        let empty_tree = repo
+            .empty_tree()
+            .expect("Could not create empty tree");
+        let issue = repo
+            .create_issue(&sig, &sig, "Test message 1", &empty_tree, vec![])
+            .expect("Could not create issue");
+
+        let mut issues = repo
+            .issues()
+            .expect("Could not retrieve issues");
+        let retrieved_issue = issues
+            .next()
+            .expect("Could not find issue")
+            .expect("Could not retrieve issue");
+        assert_eq!(retrieved_issue.id(), issue.id());
+        assert!(issues.next().is_none());
+    }
+
+    #[test]
+    fn first_parent_revwalk() {
+        let mut testing_repo = TestingRepo::new("first_parent_revwalk");
+        let repo = testing_repo.repo();
+
+        let sig = git2::Signature::now("Foo Bar", "foo.bar@example.com")
+            .expect("Could not create signature");
+        let empty_tree = repo
+            .empty_tree()
+            .expect("Could not create empty tree");
+        let issue = repo
+            .create_issue(&sig, &sig, "Test message 1", &empty_tree, vec![])
+            .expect("Could not create issue");
+        let initial_message = issue
+            .initial_message()
+            .expect("Could not retrieve initial message");
+        let message = issue
+            .add_message(&sig, &sig, "Test message 2", &empty_tree, vec![&initial_message])
+            .expect("Could not add message");
+
+        let mut iter = repo
+            .first_parent_revwalk(message.id())
+            .expect("Could not create first parent iterator");
+        assert_eq!(iter.next().unwrap().unwrap(), message.id());
+        assert_eq!(iter.next().unwrap().unwrap(), issue.id());
+        assert!(iter.next().is_none());
+    }
+
+    #[test]
+    fn issue_messages_iter() {
+        let mut testing_repo = TestingRepo::new("issue_messages_iter");
+        let repo = testing_repo.repo();
+
+        let sig = git2::Signature::now("Foo Bar", "foo.bar@example.com")
+            .expect("Could not create signature");
+        let empty_tree = repo
+            .empty_tree()
+            .expect("Could not create empty tree");
+
+        let issue1 = repo
+            .create_issue(&sig, &sig, "Test message 1", &empty_tree, vec![])
+            .expect("Could not create issue");
+        let initial_message1 = issue1
+            .initial_message()
+            .expect("Could not retrieve initial message");
+
+        let issue2 = repo
+            .create_issue(&sig, &sig, "Test message 2", &empty_tree, vec![&initial_message1])
+            .expect("Could not create issue");
+        let initial_message2 = issue2
+            .initial_message()
+            .expect("Could not retrieve initial message");
+        let message = issue2
+            .add_message(&sig, &sig, "Test message 3", &empty_tree, vec![&initial_message2])
+            .expect("Could not add message");
+        let message_id = message.id();
+
+        let mut iter1 = repo
+            .issue_messages_iter(initial_message1)
+            .expect("Could not create issue messages iterator");
+        assert_eq!(iter1.next().unwrap().unwrap().id(), issue1.id());
+        assert!(iter1.next().is_none());
+
+        let mut iter2 = repo
+            .issue_messages_iter(message)
+            .expect("Could not create issue messages iterator");
+        assert_eq!(iter2.next().unwrap().unwrap().id(), message_id);
+        assert_eq!(iter2.next().unwrap().unwrap().id(), issue2.id());
+        assert!(iter2.next().is_none());
+    }
+}
+
