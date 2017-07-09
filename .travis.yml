@@ -6,6 +6,10 @@ rust:
 matrix:
   allow_failures:
     - rust: nightly
+script:
+  - cargo build --verbose
+  - cargo test --verbose --package git-dit
+  - cargo test --verbose --package libgitdit
 addons:
   apt:
     sources:
