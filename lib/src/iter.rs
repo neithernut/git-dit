@@ -189,6 +189,17 @@ impl<'r> RefsReferringTo<'r> {
         self.refs.entry(id).or_insert_with(Vec::new).push(reference);
         Ok(())
     }
+
+    /// Start watching a number of references
+    ///
+    pub fn watch_refs<I>(&mut self, references: I) -> Result<()>
+        where I: IntoIterator<Item = git2::Reference<'r>>
+    {
+        for reference in references.into_iter() {
+            self.watch_ref(reference)?;
+        }
+        Ok(())
+    }
 }
 
 impl<'r> Iterator for RefsReferringTo<'r> {
