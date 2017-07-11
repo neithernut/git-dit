@@ -13,6 +13,7 @@
 //!
 
 use git2::{self, Repository};
+use std::collections::HashMap;
 
 use issue;
 use repository::RepositoryExt;
@@ -148,6 +149,80 @@ impl<'r> Iterator for IssueMessagesIter<'r> {
                 }
                 item
             })
+    }
+}
+
+
+/// Iterator over references referring to any of a number of commits
+///
+/// This iterator wraps a `git2::Revwalk`. It will iterate over the commits
+/// provided by the wrapped iterator. If one of those commits is referred to
+/// by any of the whatched references, that references will be returned.
+///
+/// Only "watched" references are returned, e.g. they need to be supplied
+/// through the `watch_ref()` function. Each reference will only be returned
+/// once.
+///
+pub struct RefsReferringTo<'r> {
+    refs: HashMap<git2::Oid, Vec<git2::Reference<'r>>>,
+    inner: git2::Revwalk<'r>,
+    current_refs: Vec<git2::Reference<'r>>,
+}
+
+impl<'r> RefsReferringTo<'r> {
+    /// Create a new iterator iterating over the messages supplied
+    ///
+    pub fn new(messages: git2::Revwalk<'r>) -> Self
+    {
+        Self { refs: HashMap::new(), inner: messages, current_refs: Vec::new() }
+    }
+
+    /// Start watching a reference
+    ///
+    /// A watched reference may be returned by the iterator.
+    ///
+    pub fn watch_ref(&mut self, reference: git2::Reference<'r>) -> Result<()> {
+        let id = reference
+            .peel(git2::ObjectType::Any)
+            .chain_err(|| EK::CannotGetCommitForRev(reference.name().unwrap_or_default().to_string()))?
+            .id();
+        self.refs.entry(id).or_insert_with(Vec::new).push(reference);
+        Ok(())
+    }
+}
+
+impl<'r> Iterator for RefsReferringTo<'r> {
+    type Item = Result<git2::Reference<'r>>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        'outer: loop {
+            if let Some(reference) = self.current_refs.pop() {
+                // get one of the references for the current commit
+                return Some(Ok(reference));
+            }
+
+            // Refills may be rather expensive. Let's check whether we have any
+            // refs left, first.
+            if self.refs.is_empty() {
+                return None;
+            }
+
+            // refill the stash of references for the next commit
+            'refill: for item in &mut self.inner {
+                match item.chain_err(|| EK::CannotGetCommit) {
+                    Ok(id) => if let Some(new_refs) = self.refs.remove(&id) {
+                        // NOTE: should new_refs be empty, we just loop once
+                        //       more through the 'outer loop
+                        self.current_refs = new_refs;
+                        continue 'outer;
+                    },
+                    Err(err) => return Some(Err(err)),
+                }
+            }
+
+            // We depleted the inner iterator.
+            return None;
+        }
     }
 }
 
