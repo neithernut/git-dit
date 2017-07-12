@@ -116,6 +116,18 @@ impl<'r> Issue<'r> {
             .chain_err(|| EK::CannotGetReferences(glob))
     }
 
+    /// Get remote references for the issue
+    ///
+    /// Return all references of a specific type associated with the issue from
+    /// all remote repositories.
+    ///
+    pub fn remote_refs(&self, ref_type: IssueRefType) -> Result<References<'r>> {
+        let glob = format!("refs/remotes/*/dit/{}/{}", self.ref_part(), ref_type.glob_part());
+        self.repo
+            .references_glob(&glob)
+            .chain_err(|| EK::CannotGetReferences(glob))
+    }
+
     /// Get a revwalk for traversing all messages of the issue
     ///
     /// The sorting of the revwalk will be set to "topological".
