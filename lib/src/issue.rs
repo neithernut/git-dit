@@ -20,6 +20,25 @@ use error::*;
 use error::ErrorKind as EK;
 
 
+pub enum IssueRefType {
+    Any,
+    Head,
+    Leaf,
+}
+
+impl IssueRefType {
+    /// Get the part of a glob specific to the type
+    ///
+    pub fn glob_part(&self) -> &'static str {
+        match *self {
+            IssueRefType::Any   => "**",
+            IssueRefType::Head  => "head",
+            IssueRefType::Leaf  => "leaves/*",
+        }
+    }
+}
+
+
 /// Issue handle
 ///
 /// Instances of this type represent single issues. Issues reside in
