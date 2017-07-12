@@ -237,3 +237,59 @@ impl<'r> Iterator for RefsReferringTo<'r> {
     }
 }
 
+
+/// Iterator for deleting references
+///
+/// This iterator wraps an iterator over references. All of the references
+/// returned by the wrapped iterator are deleted. The `ReferenceDeletingIter`
+/// itself returns (only) the errors encountered. Sucessful deletions are not
+/// reported, e.g. no items will be returned.
+///
+/// Use this iterator if you want to remove references from a repository but
+/// also want to delegate the decision what to do if an error is encountered.
+///
+pub struct ReferenceDeletingIter<'r, I>
+    where I: Iterator<Item = git2::Reference<'r>>
+{
+    inner: I
+}
+
+impl<'r, I> ReferenceDeletingIter<'r, I>
+    where I: Iterator<Item = git2::Reference<'r>>
+{
+    /// Delete, ignoring errors
+    ///
+    /// Delete all references returned by the wrapped iterator, ignoring all
+    /// errors.
+    ///
+    pub fn delete_ignoring(self) {
+        for _ in self {}
+    }
+}
+
+impl<'r, I, J> From<J> for ReferenceDeletingIter<'r, I>
+    where I: Iterator<Item = git2::Reference<'r>>,
+          J: IntoIterator<Item = git2::Reference<'r>, IntoIter = I>
+{
+    fn from(items: J) -> Self {
+        ReferenceDeletingIter { inner: items.into_iter() }
+    }
+}
+
+impl<'r, I> Iterator for ReferenceDeletingIter<'r, I>
+    where I: Iterator<Item = git2::Reference<'r>>
+{
+    type Item = Error;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.inner
+            .by_ref()
+            .filter_map(|mut r| r
+                .delete()
+                .chain_err(|| EK::CannotDeleteReference(r.name().unwrap_or_default().to_string()))
+                .err()
+            )
+            .next()
+    }
+}
+
