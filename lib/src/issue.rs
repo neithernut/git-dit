@@ -66,7 +66,7 @@ impl<'r> Issue<'r> {
     /// Returns the head reference of the issue from the local repository, if
     /// present.
     ///
-    pub fn find_local_head(&self) -> Result<Reference<'r>> {
+    pub fn local_head(&self) -> Result<Reference<'r>> {
         let refname = format!("refs/dit/{}/head", self.ref_part());
         self.repo
             .find_reference(&refname)

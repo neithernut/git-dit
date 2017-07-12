@@ -474,7 +474,7 @@ fn tag_impl(repo: &Repository, matches: &clap::ArgMatches) {
     let mut issue_head = repo
         .cli_issue(matches)
         .unwrap_or_abort()
-        .find_local_head()
+        .local_head()
         .unwrap_or_abort();
     let mut head_commit = issue_head
         .peel(git2::ObjectType::Commit)
