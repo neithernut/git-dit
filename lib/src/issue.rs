@@ -92,18 +92,6 @@ impl<'r> Issue<'r> {
             .chain_err(|| EK::CannotFindIssueHead(self.id))
     }
 
-    /// Get the leaf references for the issue
-    ///
-    /// Returns the leaf references for the issue from both the local repository
-    /// and remotes.
-    ///
-    pub fn issue_leaves(&self) -> Result<References<'r>> {
-        let glob = format!("**/dit/{}/leaves/*", self.ref_part());
-        self.repo
-            .references_glob(&glob)
-            .chain_err(|| EK::CannotGetReferences(glob))
-    }
-
     /// Get local references for the issue
     ///
     /// Return all references of a specific type associated with the issue from
