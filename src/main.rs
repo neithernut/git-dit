@@ -27,6 +27,7 @@ mod write;
 use chrono::{FixedOffset, TimeZone};
 use clap::App;
 use git2::{Commit, Repository};
+use libgitdit::issue::IssueRefType;
 use libgitdit::message::{LineIteratorExt, Trailer};
 use libgitdit::{Message, RemoteExt, RepositoryExt};
 use log::LogLevel;
@@ -281,7 +282,7 @@ fn push_impl(repo: &Repository, matches: &clap::ArgMatches) {
         // push a specific list of issues
         issues.map(|issue| repo.value_to_issue(issue))
               .abort_on_err()
-              .map(|issue| issue.local_refs())
+              .map(|issue| issue.local_refs(IssueRefType::Any))
               .abort_on_err()
               .flat_map(git2::References::names)
               .abort_on_err()
@@ -290,7 +291,7 @@ fn push_impl(repo: &Repository, matches: &clap::ArgMatches) {
     } else {
         repo.issues_with_prefix("refs")
             .abort_on_err()
-            .map(|issue| issue.local_refs())
+            .map(|issue| issue.local_refs(IssueRefType::Any))
             .abort_on_err()
             .flat_map(git2::References::names)
             .abort_on_err()

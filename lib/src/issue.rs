@@ -104,13 +104,13 @@ impl<'r> Issue<'r> {
             .chain_err(|| EK::CannotGetReferences(glob))
     }
 
-    /// Get all local references for the issue
+    /// Get local references for the issue
     ///
-    /// Return all references associated with the issue from the local
-    /// repository.
+    /// Return all references of a specific type associated with the issue from
+    /// the local repository.
     ///
-    pub fn local_refs(&self) -> Result<References<'r>> {
-        let glob = format!("refs/dit/{}/**", self.ref_part());
+    pub fn local_refs(&self, ref_type: IssueRefType) -> Result<References<'r>> {
+        let glob = format!("refs/dit/{}/{}", self.ref_part(), ref_type.glob_part());
         self.repo
             .references_glob(&glob)
             .chain_err(|| EK::CannotGetReferences(glob))
