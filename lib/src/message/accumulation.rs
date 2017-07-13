@@ -168,3 +168,40 @@ impl Into<ValueAccumulator> for SingleAccumulator {
     }
 }
 
+
+pub struct SingleKeyTrailerAssemblyIterator<I>
+    where I: Iterator<Item = TrailerValue>
+{
+    key: String,
+    inner: I,
+}
+
+impl<I> SingleKeyTrailerAssemblyIterator<I>
+    where I: Iterator<Item = TrailerValue>
+{
+    fn new(key: String, inner: I) -> Self {
+        SingleKeyTrailerAssemblyIterator { key: key, inner: inner }
+    }
+}
+
+impl<I> Iterator for SingleKeyTrailerAssemblyIterator<I>
+    where I: Iterator<Item = TrailerValue>
+{
+    type Item = (String, TrailerValue);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.inner
+            .next()
+            .map(|value| (self.key.clone(), value))
+    }
+}
+
+impl IntoIterator for SingleAccumulator {
+    type Item = (String, TrailerValue);
+    type IntoIter = SingleKeyTrailerAssemblyIterator<<ValueAccumulator as IntoIterator>::IntoIter>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        SingleKeyTrailerAssemblyIterator::new(self.key, self.acc.into_iter())
+    }
+}
+
