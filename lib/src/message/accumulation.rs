@@ -122,3 +122,49 @@ impl Accumulator for collections::BTreeMap<String, ValueAccumulator> {
     }
 }
 
+
+/// Accumulator for a single piece of metadata
+///
+/// Use this accumulator if you only want a single item, e.g. the assignee of
+/// an issue.
+///
+pub struct SingleAccumulator {
+    key: String,
+    acc: ValueAccumulator,
+}
+
+impl SingleAccumulator {
+    /// Create a new accumulator for trailers with the key specified
+    ///
+    pub fn new(key: String, policy: AccumulationPolicy) -> Self {
+        SingleAccumulator { key: key, acc: ValueAccumulator::from(policy) }
+    }
+
+    /// Convert into an iterator over the accumulated values
+    ///
+    pub fn into_values(self) -> <ValueAccumulator as IntoIterator>::IntoIter {
+        self.acc.into_iter()
+    }
+}
+
+impl Accumulator for SingleAccumulator {
+    fn process(&mut self, trailer: Trailer) {
+        let (key, value) = trailer.into();
+        if *key.as_ref() == self.key {
+            self.acc.process(value);
+        }
+    }
+}
+
+impl Into<(String, ValueAccumulator)> for SingleAccumulator {
+    fn into(self) -> (String, ValueAccumulator) {
+        (self.key, self.acc)
+    }
+}
+
+impl Into<ValueAccumulator> for SingleAccumulator {
+    fn into(self) -> ValueAccumulator {
+        self.acc
+    }
+}
+
