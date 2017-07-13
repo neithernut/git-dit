@@ -211,7 +211,7 @@ impl IntoIterator for SingleAccumulator {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use message::trailer::TrailerValue;
+    use message::trailer::{Trailer, TrailerValue};
 
     // ValueAccumulator tests
 
@@ -236,6 +236,57 @@ mod tests {
         assert_eq!(values.next().expect("Could not retrieve value").to_string(), "foo-bar");
         assert_eq!(values.next().expect("Could not retrieve value").to_string(), "baz");
         assert_eq!(values.next(), None);
+    }
+
+    // Accumulator tests
+
+    #[test]
+    fn btree_map_accumulator() {
+        use std::iter::FromIterator;
+
+        let val_accs = vec![
+            (String::from("Assignee"), AccumulationPolicy::Latest),
+            (String::from("Foo-bar"), AccumulationPolicy::List),
+        ]
+            .into_iter()
+            .map(|(k, v)| (k, ValueAccumulator::from(v)));
+        let mut acc = ::std::collections::BTreeMap::from_iter(val_accs);
+
+        acc.process(Trailer::new("Foo-bar", "baz"));
+        acc.process(Trailer::new("Assignee", "Foo Bar <foo.bar@example.com>"));
+        acc.process(Trailer::new("Status", "Red alert"));
+        acc.process(Trailer::new("Foo-bar", "bam"));
+        acc.process(Trailer::new("Assignee", "Mee Seeks <meeseeks@rm.com>"));
+
+        {
+            let mut vals = acc
+                .remove(&String::from("Assignee"))
+                .expect("Could not retrieve value from map")
+                .into_iter();
+            assert_eq!(
+                vals.next().expect("Could not retrieve value from iterator").to_string(),
+                "Foo Bar <foo.bar@example.com>"
+            );
+            assert_eq!(vals.next(), None);
+        }
+
+        {
+            let mut vals = acc
+                .remove(&String::from("Foo-bar"))
+                .expect("Could not retrieve value from map")
+                .into_iter();
+            assert_eq!(
+                vals.next().expect("Could not retrieve value from iterator").to_string(),
+                "baz"
+            );
+            assert_eq!(
+                vals.next().expect("Could not retrieve value from iterator").to_string(),
+                "bam"
+            );
+            assert_eq!(vals.next(), None);
+        }
+
+        assert!(acc.is_empty());
     }
 }
 
