@@ -59,3 +59,15 @@ impl From<AccumulationPolicy> for ValueAccumulator {
     }
 }
 
+impl IntoIterator for ValueAccumulator {
+    type Item = TrailerValue;
+    type IntoIter = Box<Iterator<Item = Self::Item>>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        match self {
+            ValueAccumulator::Latest(value) => Box::new(value.into_iter()),
+            ValueAccumulator::List(values)  => Box::new(values.into_iter()),
+        }
+    }
+}
+
