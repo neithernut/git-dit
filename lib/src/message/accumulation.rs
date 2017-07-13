@@ -71,3 +71,9 @@ impl IntoIterator for ValueAccumulator {
     }
 }
 
+impl Default for ValueAccumulator {
+    fn default() -> Self {
+        ValueAccumulator::Latest(None)
+    }
+}
+
