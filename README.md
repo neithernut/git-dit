@@ -38,9 +38,12 @@ Cargo is used for building git-dit. Run
 
     cargo build
 
-in this directory in order to build `git-dit`. Make sure the `BUILD_GIT_DIT_MAN`
-environment variable is set if you are interested in building the `git-dit` man
-page.
+in this directory in order to build `git-dit`. Building the `git-dit` man page
+is enabled through the "manpage" feature of the Cargo package. E.g. run
+
+    cargo build --features manpage
+
+instead.
 
 We do not provide any installation scripts. If you intent using or testing
 `git-dit`, make sure to have the binary in your `PATH`.
