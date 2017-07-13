@@ -14,7 +14,10 @@
 //! metadata.
 //!
 
-use message::trailer::TrailerValue;
+use std::collections;
+use std::hash::BuildHasher;
+
+use message::trailer::{Trailer, TrailerValue};
 
 /// Policy for accumulating trailers
 ///
@@ -74,6 +77,48 @@ impl IntoIterator for ValueAccumulator {
 impl Default for ValueAccumulator {
     fn default() -> Self {
         ValueAccumulator::Latest(None)
+    }
+}
+
+
+/// Accumulation trait for trailers
+///
+pub trait Accumulator {
+    /// Process a new trailer
+    ///
+    /// Retrieve the trailer's key. If the key matches a registered trailer,
+    /// process its value.
+    ///
+    fn process(&mut self, trailer: Trailer);
+
+    /// Process all trailers provided by some iterator
+    ///
+    fn process_all<I>(&mut self, iter: I)
+        where I: IntoIterator<Item = Trailer>
+    {
+        for trailer in iter.into_iter() {
+            self.process(trailer);
+        }
+    }
+}
+
+// TODO: consolidate the implementation for map types, should there ever be an
+//       appropriate map trait in `std`.
+impl<S> Accumulator for collections::HashMap<String, ValueAccumulator, S>
+    where S: BuildHasher
+{
+    fn process(&mut self, trailer: Trailer) {
+        let (key, value) = trailer.into();
+        self.get_mut(key.as_ref())
+            .map(|ref mut acc| acc.process(value));
+    }
+}
+
+impl Accumulator for collections::BTreeMap<String, ValueAccumulator> {
+    fn process(&mut self, trailer: Trailer) {
+        let (key, value) = trailer.into();
+        self.get_mut(key.as_ref())
+            .map(|ref mut acc| acc.process(value));
     }
 }
 
