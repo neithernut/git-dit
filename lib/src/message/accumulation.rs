@@ -288,5 +288,32 @@ mod tests {
 
         assert!(acc.is_empty());
     }
+
+    #[test]
+    fn single_accumulator_latest() {
+        let mut acc = SingleAccumulator::new(String::from("Foo-bar"), AccumulationPolicy::Latest);
+        acc.process(Trailer::new("Foo-bar", "baz"));
+        acc.process(Trailer::new("Assignee", "Foo Bar <foo.bar@example.com>"));
+        acc.process(Trailer::new("Foo-bar", "bam"));
+        acc.process(Trailer::new("Assignee", "Mee Seeks <meeseeks@rm.com>"));
+
+        let mut vals = acc.into_iter();
+        assert_eq!(vals.next().expect("Could not retrieve value").1.to_string(), "baz");
+        assert_eq!(vals.next(), None);
+    }
+
+    #[test]
+    fn single_accumulator_list() {
+        let mut acc = SingleAccumulator::new(String::from("Foo-bar"), AccumulationPolicy::List);
+        acc.process(Trailer::new("Foo-bar", "baz"));
+        acc.process(Trailer::new("Assignee", "Foo Bar <foo.bar@example.com>"));
+        acc.process(Trailer::new("Foo-bar", "bam"));
+        acc.process(Trailer::new("Assignee", "Mee Seeks <meeseeks@rm.com>"));
+
+        let mut vals = acc.into_iter();
+        assert_eq!(vals.next().expect("Could not retrieve value").1.to_string(), "baz");
+        assert_eq!(vals.next().expect("Could not retrieve value").1.to_string(), "bam");
+        assert_eq!(vals.next(), None);
+    }
 }
 
