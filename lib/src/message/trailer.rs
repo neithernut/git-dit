@@ -41,6 +41,12 @@ impl From<String> for TrailerKey {
     }
 }
 
+impl AsRef<String> for TrailerKey {
+    fn as_ref(&self) -> &String {
+        &self.0
+    }
+}
+
 impl fmt::Display for TrailerKey {
     fn fmt(&self, f: &mut fmt::Formatter) -> RResult<(), fmt::Error> {
         write!(f, "{}", self.0)
