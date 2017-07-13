@@ -205,3 +205,37 @@ impl IntoIterator for SingleAccumulator {
     }
 }
 
+
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use message::trailer::TrailerValue;
+
+    // ValueAccumulator tests
+
+    #[test]
+    fn accumulate_latest() {
+        let mut acc = ValueAccumulator::from(AccumulationPolicy::Latest);
+        acc.process(TrailerValue::from_slice("foo-bar"));
+        acc.process(TrailerValue::from_slice("baz"));
+
+        let mut values = acc.into_iter();
+        assert_eq!(values.next().expect("Could not retrieve value").to_string(), "foo-bar");
+        assert_eq!(values.next(), None);
+    }
+
+    #[test]
+    fn accumulate_list() {
+        let mut acc = ValueAccumulator::from(AccumulationPolicy::List);
+        acc.process(TrailerValue::from_slice("foo-bar"));
+        acc.process(TrailerValue::from_slice("baz"));
+
+        let mut values = acc.into_iter();
+        assert_eq!(values.next().expect("Could not retrieve value").to_string(), "foo-bar");
+        assert_eq!(values.next().expect("Could not retrieve value").to_string(), "baz");
+        assert_eq!(values.next(), None);
+    }
+}
+
