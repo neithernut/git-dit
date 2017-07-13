@@ -1,7 +1,7 @@
 use std::process::Command;
 
 fn main() {
-    if std::env::var("BUILD_GIT_DIT_MAN").is_ok() {
+    if cfg!(feature = "manpage") {
         assert!(Command::new("pandoc")
             .arg("-s")
             .arg("-S")
