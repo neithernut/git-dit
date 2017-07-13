@@ -14,6 +14,7 @@
 //! metadata.
 //!
 
+use message::trailer::TrailerValue;
 
 /// Policy for accumulating trailers
 ///
@@ -23,5 +24,38 @@
 pub enum AccumulationPolicy {
     Latest,
     List,
+}
+
+
+/// Accumulation helper for trailer values
+///
+/// This type encapsulates the task of accumulating trailers in an appropriate
+/// data structure.
+///
+pub enum ValueAccumulator {
+    Latest(Option<TrailerValue>),
+    List(Vec<TrailerValue>),
+}
+
+impl ValueAccumulator {
+    /// Process a new trailer value
+    ///
+    pub fn process(&mut self, new_value: TrailerValue) {
+        match self {
+            &mut ValueAccumulator::Latest(ref mut value) => if value.is_none() {
+                *value = Some(new_value);
+            },
+            &mut ValueAccumulator::List(ref mut values)  => values.push(new_value),
+        }
+    }
+}
+
+impl From<AccumulationPolicy> for ValueAccumulator {
+    fn from(policy: AccumulationPolicy) -> Self {
+        match policy {
+            AccumulationPolicy::Latest  => ValueAccumulator::Latest(None),
+            AccumulationPolicy::List    => ValueAccumulator::List(Vec::new()),
+        }
+    }
 }
 
