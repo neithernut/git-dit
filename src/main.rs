@@ -28,6 +28,8 @@ use chrono::{FixedOffset, TimeZone};
 use clap::App;
 use git2::{Commit, Repository};
 use libgitdit::issue::IssueRefType;
+use libgitdit::message::accumulation::{self, Accumulator};
+use libgitdit::message::trailer::PairsToTrailers;
 use libgitdit::message::{LineIteratorExt, Trailer};
 use libgitdit::{Message, RemoteExt, RepositoryExt};
 use log::LogLevel;
@@ -126,9 +128,24 @@ fn get_issue_metadata(repo: &Repository, matches: &clap::ArgMatches) {
     let head = repo
         .value_to_commit(matches.value_of("head").unwrap())
         .unwrap_or_abort();
-    let commits = repo.issue_messages_iter(head).abort_on_err();
-    for trailer in commits.flat_map(|commit| commit.trailers()) {
-        println!("{}", trailer);
+    let trailers = repo
+        .issue_messages_iter(head)
+        .abort_on_err()
+        .flat_map(|commit| commit.trailers());
+
+    if let Some(key) = matches.value_of("key") {
+        let policy = if matches.is_present("accumulate-latest") {
+            accumulation::AccumulationPolicy::Latest
+        } else if matches.is_present("accumulate-list") {
+            accumulation::AccumulationPolicy::List
+        } else {
+            accumulation::AccumulationPolicy::List
+        };
+        let mut acc = accumulation::SingleAccumulator::new(key.to_owned(), policy);
+        acc.process_all(trailers);
+        io::stdout().consume_lines(PairsToTrailers::from(acc)).unwrap_or_abort();
+    } else {
+        io::stdout().consume_lines(trailers).unwrap_or_abort();
     }
 }
 
