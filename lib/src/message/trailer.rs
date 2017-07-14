@@ -250,7 +250,7 @@ impl<I, S> Iterator for Trailers<I, S>
             let mut collector = TrailerCollector::new(&mut self.buf);
             let mut at_end = true;
 
-            'refill: for line in self.lines.next() {
+            'refill: for line in &mut self.lines {
                 at_end = false;
                 collector = match line {
                     Line::Text(_) => collector.dumping(), // block of text
@@ -298,3 +298,104 @@ impl<I, S> Iterator for DitTrailers<I, S>
 
 }
 
+
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Trailer tests
+
+    #[test]
+    fn string_trailer() {
+        let (key, value) = Trailer::from_str("foo-bar: test1 test2 test3")
+            .expect("Couldn't parse test string")
+            .into();
+        assert_eq!(key, TrailerKey("foo-bar".to_string()));
+        assert_eq!(value, TrailerValue::String("test1 test2 test3".to_string()));
+    }
+
+    #[test]
+    fn string_numstart_trailer() {
+        let (key, value) = Trailer::from_str("foo-bar: 123test")
+            .expect("Couldn't parse test string")
+            .into();
+        assert_eq!(key, TrailerKey("foo-bar".to_string()));
+        assert_eq!(value, TrailerValue::String("123test".to_string()));
+    }
+
+    #[test]
+    fn numeric_trailer() {
+        let (key, value) = Trailer::from_str("foo-bar: 123")
+            .expect("Couldn't parse test string")
+            .into();
+        assert_eq!(key, TrailerKey("foo-bar".to_string()));
+        assert_eq!(value, TrailerValue::Int(123));
+    }
+
+    #[test]
+    fn faulty_trailer() {
+        assert!(Trailer::from_str("foo-bar 123").is_err());
+    }
+
+    #[test]
+    fn faulty_trailer_2() {
+        assert!(Trailer::from_str("foo-bar").is_err());
+    }
+
+    #[test]
+    fn faulty_trailer_3() {
+        assert!(Trailer::from_str("foo bar: baz").is_err());
+    }
+
+    #[test]
+    fn empty_trailer() {
+        assert!(Trailer::from_str("").is_err());
+    }
+
+    // Trailers tests
+
+    #[test]
+    fn trailers() {
+        let mut trailers = Trailers::from(vec![
+            "Foo-bar: bar",
+            "",
+            "Space: the final frontier.",
+            "These are the voyages...",
+            "",
+            "And then he",
+            "said: engage!",
+            "",
+            "",
+            "Signed-off-by: Spock",
+            "Dit-status: closed",
+            "Multi-line-trailer: multi",
+            "  line",
+            "  content"
+        ].into_iter());
+
+        {
+            let (key, _) = trailers.next().expect("Failed to parse trailer1").into();
+            assert_eq!(key, TrailerKey("Foo-bar".to_string()));
+        }
+
+        {
+            let (key, _) = trailers.next().expect("Failed to parse trailer2").into();
+            assert_eq!(key, TrailerKey("Signed-off-by".to_string()));
+        }
+
+        {
+            let (key, _) = trailers.next().expect("Failed to parse trailer3").into();
+            assert_eq!(key, TrailerKey("Dit-status".to_string()));
+        }
+
+        {
+            let (key, value) = trailers.next().expect("Failed to parse trailer4").into();
+            assert_eq!(key, TrailerKey("Multi-line-trailer".to_string()));
+            assert_eq!(value, TrailerValue::String("multi  line  content".to_string()));
+        }
+
+        assert!(!trailers.next().is_some())
+    }
+}

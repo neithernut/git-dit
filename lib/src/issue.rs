@@ -196,3 +196,178 @@ impl<'r> fmt::Display for Issue<'r> {
     }
 }
 
+
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use test_utils::TestingRepo;
+
+    use repository::RepositoryExt;
+
+    // Issue tests
+
+    #[test]
+    fn issue_leaves() {
+        let mut testing_repo = TestingRepo::new("issue_leaves");
+        let repo = testing_repo.repo();
+
+        let sig = git2::Signature::now("Foo Bar", "foo.bar@example.com")
+            .expect("Could not create signature");
+        let empty_tree = repo
+            .empty_tree()
+            .expect("Could not create empty tree");
+
+        {
+            // messages we're not supposed to see
+            let issue = repo
+                .create_issue(&sig, &sig, "Test message 1", &empty_tree, vec![])
+                .expect("Could not create issue");
+            let initial_message = issue
+                .initial_message()
+                .expect("Could not retrieve initial message");
+            issue.add_message(&sig, &sig, "Test message 2", &empty_tree, vec![&initial_message])
+                .expect("Could not add message");
+        }
+
+        let issue = repo
+            .create_issue(&sig, &sig, "Test message 3", &empty_tree, vec![])
+            .expect("Could not create issue");
+        let initial_message = issue
+            .initial_message()
+            .expect("Could not retrieve initial message");
+        let message = issue
+            .add_message(&sig, &sig, "Test message 4", &empty_tree, vec![&initial_message])
+            .expect("Could not add message");
+
+        let mut leaves = issue
+            .issue_leaves()
+            .expect("Could not retrieve issue leaves");
+        let leaf = leaves
+            .next()
+            .expect("Could not find leaf reference")
+            .expect("Could not retrieve leaf reference")
+            .target()
+            .expect("Could not determine the target of the leaf reference");
+        assert_eq!(leaf, message.id());
+        assert!(leaves.next().is_none());
+    }
+
+    #[test]
+    fn local_refs() {
+        let mut testing_repo = TestingRepo::new("local_refs");
+        let repo = testing_repo.repo();
+
+        let sig = git2::Signature::now("Foo Bar", "foo.bar@example.com")
+            .expect("Could not create signature");
+        let empty_tree = repo
+            .empty_tree()
+            .expect("Could not create empty tree");
+
+        {
+            // messages we're not supposed to see
+            let issue = repo
+                .create_issue(&sig, &sig, "Test message 1", &empty_tree, vec![])
+                .expect("Could not create issue");
+            let initial_message = issue
+                .initial_message()
+                .expect("Could not retrieve initial message");
+            issue.add_message(&sig, &sig, "Test message 3", &empty_tree, vec![&initial_message])
+                .expect("Could not add message");
+        }
+
+        let issue = repo
+            .create_issue(&sig, &sig, "Test message 2", &empty_tree, vec![])
+            .expect("Could not create issue");
+        let initial_message = issue
+            .initial_message()
+            .expect("Could not retrieve initial message");
+        let message = issue
+            .add_message(&sig, &sig, "Test message 3", &empty_tree, vec![&initial_message])
+            .expect("Could not add message");
+
+        let mut ids = vec![issue.id(), message.id()];
+        ids.sort();
+        let mut ref_ids: Vec<Oid> = issue
+            .local_refs()
+            .expect("Could not retrieve local refs")
+            .map(|reference| reference.unwrap().target().unwrap())
+            .collect();
+        ref_ids.sort();
+        assert_eq!(ref_ids, ids);
+    }
+
+    #[test]
+    fn message_revwalk() {
+        let mut testing_repo = TestingRepo::new("message_revwalk");
+        let repo = testing_repo.repo();
+
+        let sig = git2::Signature::now("Foo Bar", "foo.bar@example.com")
+            .expect("Could not create signature");
+        let empty_tree = repo
+            .empty_tree()
+            .expect("Could not create empty tree");
+
+        let issue1 = repo
+            .create_issue(&sig, &sig, "Test message 1", &empty_tree, vec![])
+            .expect("Could not create issue");
+        let initial_message1 = issue1
+            .initial_message()
+            .expect("Could not retrieve initial message");
+
+        let issue2 = repo
+            .create_issue(&sig, &sig, "Test message 2", &empty_tree, vec![&initial_message1])
+            .expect("Could not create issue");
+        let initial_message2 = issue2
+            .initial_message()
+            .expect("Could not retrieve initial message");
+        let message = issue2
+            .add_message(&sig, &sig, "Test message 3", &empty_tree, vec![&initial_message2])
+            .expect("Could not add message");
+        let message_id = message.id();
+
+        let mut iter1 = issue1
+            .message_revwalk()
+            .expect("Could not create message revwalk iterator");
+        assert_eq!(iter1.next().unwrap().unwrap(), issue1.id());
+        assert!(iter1.next().is_none());
+
+        let mut iter2 = issue2
+            .message_revwalk()
+            .expect("Could not create message revwalk iterator");
+        assert_eq!(iter2.next().unwrap().unwrap(), message_id);
+        assert_eq!(iter2.next().unwrap().unwrap(), issue2.id());
+        assert!(iter2.next().is_none());
+    }
+
+    #[test]
+    fn update_head() {
+        let mut testing_repo = TestingRepo::new("update_head");
+        let repo = testing_repo.repo();
+
+        let sig = git2::Signature::now("Foo Bar", "foo.bar@example.com")
+            .expect("Could not create signature");
+        let empty_tree = repo
+            .empty_tree()
+            .expect("Could not create empty tree");
+
+        let issue = repo
+            .create_issue(&sig, &sig, "Test message 2", &empty_tree, vec![])
+            .expect("Could not create issue");
+        let initial_message = issue
+            .initial_message()
+            .expect("Could not retrieve initial message");
+        let message = issue
+            .add_message(&sig, &sig, "Test message 3", &empty_tree, vec![&initial_message])
+            .expect("Could not add message");
+
+        assert_eq!(issue.find_local_head().unwrap().target().unwrap(), issue.id());
+
+        issue
+            .update_head(message.id())
+            .expect("Could not update head reference");
+        assert_eq!(issue.find_local_head().unwrap().target().unwrap(), message.id());
+    }
+}
+

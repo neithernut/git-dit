@@ -46,6 +46,9 @@ pub mod message;
 pub mod remote;
 pub mod repository;
 
+#[cfg(test)]
+mod test_utils;
+
 // A selection of types are reexported for more convenient access.
 pub use issue::Issue;
 pub use message::Message;

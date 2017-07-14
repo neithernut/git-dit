@@ -139,3 +139,49 @@ impl<I, S> Iterator for WithoutCommentsIter<I, S>
         None
     }
 }
+
+
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn quoted_lines() {
+        let mut lines = Quoted::from(vec!["foo", "bar", "", "baz"].into_iter());
+        assert_eq!(lines.next().expect("Premature end of input"), "> foo");
+        assert_eq!(lines.next().expect("Premature end of input"), "> bar");
+        assert_eq!(lines.next().expect("Premature end of input"), ">");
+        assert_eq!(lines.next().expect("Premature end of input"), "> baz");
+        assert!(!lines.next().is_some());
+    }
+
+    #[test]
+    fn left_stripped_lines() {
+        let mut lines = StripWhiteSpaceLeftIter::from(vec!["foo  ", "  bar", "  ", ""].into_iter());
+        assert_eq!(lines.next().expect("Premature end of input"), "foo  ");
+        assert_eq!(lines.next().expect("Premature end of input"), "bar");
+        assert_eq!(lines.next().expect("Premature end of input"), "");
+        assert_eq!(lines.next().expect("Premature end of input"), "");
+        assert!(!lines.next().is_some());
+    }
+
+    #[test]
+    fn right_stripped_lines() {
+        let mut lines = StripWhiteSpaceRightIter::from(vec!["foo  ", "  bar", "  ", ""].into_iter());
+        assert_eq!(lines.next().expect("Premature end of input"), "foo");
+        assert_eq!(lines.next().expect("Premature end of input"), "  bar");
+        assert_eq!(lines.next().expect("Premature end of input"), "");
+        assert_eq!(lines.next().expect("Premature end of input"), "");
+        assert!(!lines.next().is_some());
+    }
+
+    #[test]
+    fn lines_without_comments() {
+        let mut lines = WithoutCommentsIter::from(vec!["foo", "# bar", "#", ""].into_iter());
+        assert_eq!(lines.next().expect("Premature end of input"), "foo");
+        assert_eq!(lines.next().expect("Premature end of input"), "");
+        assert!(!lines.next().is_some());
+    }
+}
