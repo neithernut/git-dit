@@ -273,7 +273,7 @@ mod tests {
             .expect("Could not add message");
 
         let mut leaves = issue
-            .issue_leaves()
+            .local_refs(IssueRefType::Leaf)
             .expect("Could not retrieve issue leaves");
         let leaf = leaves
             .next()
@@ -321,7 +321,7 @@ mod tests {
         let mut ids = vec![issue.id(), message.id()];
         ids.sort();
         let mut ref_ids: Vec<Oid> = issue
-            .local_refs()
+            .local_refs(IssueRefType::Any)
             .expect("Could not retrieve local refs")
             .map(|reference| reference.unwrap().target().unwrap())
             .collect();
@@ -393,12 +393,12 @@ mod tests {
             .add_message(&sig, &sig, "Test message 3", &empty_tree, vec![&initial_message])
             .expect("Could not add message");
 
-        assert_eq!(issue.find_local_head().unwrap().target().unwrap(), issue.id());
+        assert_eq!(issue.local_head().unwrap().target().unwrap(), issue.id());
 
         issue
             .update_head(message.id())
             .expect("Could not update head reference");
-        assert_eq!(issue.find_local_head().unwrap().target().unwrap(), message.id());
+        assert_eq!(issue.local_head().unwrap().target().unwrap(), message.id());
     }
 }
 
