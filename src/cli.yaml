@@ -108,6 +108,10 @@ subcommands:
             - accumulate-list:
                 long: list
                 help: Print a list of occurances
+            - values-only:
+                long: values-only
+                help: only print values, not the trailer keys
+                requires: key
 
     - get-issue-tree-init-hashes:
         about: Lists all SHA1 hashes of all issues (introducing commit)

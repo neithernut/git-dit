@@ -143,7 +143,11 @@ fn get_issue_metadata(repo: &Repository, matches: &clap::ArgMatches) {
         };
         let mut acc = accumulation::SingleAccumulator::new(key.to_owned(), policy);
         acc.process_all(trailers);
-        io::stdout().consume_lines(PairsToTrailers::from(acc)).unwrap_or_abort();
+        if matches.is_present("values-only") {
+            io::stdout().consume_lines(acc.into_values()).unwrap_or_abort();
+        } else {
+            io::stdout().consume_lines(PairsToTrailers::from(acc)).unwrap_or_abort();
+        }
     } else {
         io::stdout().consume_lines(trailers).unwrap_or_abort();
     }
