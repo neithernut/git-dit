@@ -1,5 +1,18 @@
 # git-dit ChangeLog
 
+## v0.2.1 (2017-07-16)
+
+Changes:
+ * Add WORKFLOWS section to the man page
+ * Clarify implementation of metadata "tags" in the documentation
+ * Clarify membership of initial issue messages to branches in man page
+ * Fix punktuation issues in the man page
+
+Bug-fixes:
+ * Fix bug in `Trailers` iterator which caused emission of trailers even if they
+   are embedded in a block of text.
+
+
 ## v0.2 (2017-06-22)
 
 Changes:
