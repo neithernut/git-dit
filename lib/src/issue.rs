@@ -20,6 +20,25 @@ use error::*;
 use error::ErrorKind as EK;
 
 
+pub enum IssueRefType {
+    Any,
+    Head,
+    Leaf,
+}
+
+impl IssueRefType {
+    /// Get the part of a glob specific to the type
+    ///
+    pub fn glob_part(&self) -> &'static str {
+        match *self {
+            IssueRefType::Any   => "**",
+            IssueRefType::Head  => "head",
+            IssueRefType::Leaf  => "leaves/*",
+        }
+    }
+}
+
+
 /// Issue handle
 ///
 /// Instances of this type represent single issues. Issues reside in
@@ -66,32 +85,44 @@ impl<'r> Issue<'r> {
     /// Returns the head reference of the issue from the local repository, if
     /// present.
     ///
-    pub fn find_local_head(&self) -> Result<Reference<'r>> {
+    pub fn local_head(&self) -> Result<Reference<'r>> {
         let refname = format!("refs/dit/{}/head", self.ref_part());
         self.repo
             .find_reference(&refname)
             .chain_err(|| EK::CannotFindIssueHead(self.id))
     }
 
-    /// Get the leaf references for the issue
+    /// Get local references for the issue
     ///
-    /// Returns the leaf references for the issue from both the local repository
-    /// and remotes.
+    /// Return all references of a specific type associated with the issue from
+    /// the local repository.
     ///
-    pub fn issue_leaves(&self) -> Result<References<'r>> {
-        let glob = format!("**/dit/{}/leaves/*", self.ref_part());
+    pub fn local_refs(&self, ref_type: IssueRefType) -> Result<References<'r>> {
+        let glob = format!("refs/dit/{}/{}", self.ref_part(), ref_type.glob_part());
         self.repo
             .references_glob(&glob)
             .chain_err(|| EK::CannotGetReferences(glob))
     }
 
-    /// Get all local references for the issue
+    /// Get remote references for the issue
     ///
-    /// Return all references associated with the issue from the local
-    /// repository.
+    /// Return all references of a specific type associated with the issue from
+    /// all remote repositories.
     ///
-    pub fn local_refs(&self) -> Result<References<'r>> {
-        let glob = format!("refs/dit/{}/**", self.ref_part());
+    pub fn remote_refs(&self, ref_type: IssueRefType) -> Result<References<'r>> {
+        let glob = format!("refs/remotes/*/dit/{}/{}", self.ref_part(), ref_type.glob_part());
+        self.repo
+            .references_glob(&glob)
+            .chain_err(|| EK::CannotGetReferences(glob))
+    }
+
+    /// Get references for the issue
+    ///
+    /// Return all references of a specific type associated with the issue from
+    /// both the local and remote repositories.
+    ///
+    pub fn all_refs(&self, ref_type: IssueRefType) -> Result<References<'r>> {
+        let glob = format!("**/dit/{}/{}", self.ref_part(), ref_type.glob_part());
         self.repo
             .references_glob(&glob)
             .chain_err(|| EK::CannotGetReferences(glob))
@@ -242,7 +273,7 @@ mod tests {
             .expect("Could not add message");
 
         let mut leaves = issue
-            .issue_leaves()
+            .local_refs(IssueRefType::Leaf)
             .expect("Could not retrieve issue leaves");
         let leaf = leaves
             .next()
@@ -290,7 +321,7 @@ mod tests {
         let mut ids = vec![issue.id(), message.id()];
         ids.sort();
         let mut ref_ids: Vec<Oid> = issue
-            .local_refs()
+            .local_refs(IssueRefType::Any)
             .expect("Could not retrieve local refs")
             .map(|reference| reference.unwrap().target().unwrap())
             .collect();
@@ -362,12 +393,12 @@ mod tests {
             .add_message(&sig, &sig, "Test message 3", &empty_tree, vec![&initial_message])
             .expect("Could not add message");
 
-        assert_eq!(issue.find_local_head().unwrap().target().unwrap(), issue.id());
+        assert_eq!(issue.local_head().unwrap().target().unwrap(), issue.id());
 
         issue
             .update_head(message.id())
             .expect("Could not update head reference");
-        assert_eq!(issue.find_local_head().unwrap().target().unwrap(), message.id());
+        assert_eq!(issue.local_head().unwrap().target().unwrap(), message.id());
     }
 }
 

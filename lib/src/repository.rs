@@ -241,7 +241,7 @@ mod tests {
             .expect("Could not create issue");
 
         let local_head = issue
-            .find_local_head()
+            .local_head()
             .expect("Could not retrieve local head reference");
         let retrieved_issue = repo
             .issue_by_head_ref(&local_head)
