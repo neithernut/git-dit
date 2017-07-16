@@ -6,6 +6,9 @@ authors = ["Matthias Beyer <mail@beyermatthias.de>",
 
 build = "mkmanpage.rs"
 
+[features]
+manpage = []
+
 [workspace]
 members = [
     "lib"

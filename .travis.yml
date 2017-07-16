@@ -7,7 +7,7 @@ matrix:
   allow_failures:
     - rust: nightly
 script:
-  - cargo build --verbose
+  - cargo build --verbose --features manpage
   - cargo test --verbose --package git-dit
   - cargo test --verbose --package libgitdit
 addons:
@@ -18,5 +18,3 @@ addons:
       - cmake
       - cmake-data
       - pandoc
-env:
-  - BUILD_GIT_DIT_MAN=1
