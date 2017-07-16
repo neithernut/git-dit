@@ -41,6 +41,12 @@ impl From<String> for TrailerKey {
     }
 }
 
+impl AsRef<String> for TrailerKey {
+    fn as_ref(&self) -> &String {
+        &self.0
+    }
+}
+
 impl fmt::Display for TrailerKey {
     fn fmt(&self, f: &mut fmt::Formatter) -> RResult<(), fmt::Error> {
         write!(f, "{}", self.0)
@@ -265,6 +271,42 @@ impl<I, S> Iterator for Trailers<I, S>
         }
     }
 
+}
+
+
+/// Iterator assembling trailers from key-value pairs
+///
+/// This iterator wraps an iterator returning key-value pairs. The pairs
+/// returned by the wrapped iterator are assembled to `Trailer`s.
+///
+pub struct PairsToTrailers<K, I>
+    where K: Into<TrailerKey>,
+          I: Iterator<Item = (K, TrailerValue)>
+{
+    inner: I
+}
+
+impl<K, I, J> From<J> for PairsToTrailers<K, I>
+    where K: Into<TrailerKey>,
+          I: Iterator<Item = (K, TrailerValue)>,
+          J: IntoIterator<Item = (K, TrailerValue), IntoIter = I>
+{
+    fn from(iter: J) -> Self {
+        PairsToTrailers { inner: iter.into_iter() }
+    }
+}
+
+impl<K, I> Iterator for PairsToTrailers<K, I>
+    where K: Into<TrailerKey>,
+          I: Iterator<Item = (K, TrailerValue)>
+{
+    type Item = Trailer;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.inner
+            .next()
+            .map(|(k, v)| Trailer { key: k.into(), value: v })
+    }
 }
 
 

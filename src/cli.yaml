@@ -82,12 +82,36 @@ subcommands:
         authors:
             - Matthias Beyer <mail@beyermatthias.de>
             - Julian Ganz <neither@nut.email>
+        groups:
+            - accumulation:
+                requires: key
+                required: false
+                multiple: false
+                args:
+                    - accumulate-list
+                    - accumulate-latest
         args:
             - head:
                 help: The head for which to collect the metadata
                 index: 1
                 multiple: false
                 required: true
+            - key:
+                short: k
+                long: key
+                help: Retrieve only the trailers with the specified key
+                takes_value: true
+                multiple: false
+            - accumulate-latest:
+                long: latest
+                help: Print only the latest occurance
+            - accumulate-list:
+                long: list
+                help: Print a list of occurances
+            - values-only:
+                long: values-only
+                help: only print values, not the trailer keys
+                requires: key
 
     - get-issue-tree-init-hashes:
         about: Lists all SHA1 hashes of all issues (introducing commit)
