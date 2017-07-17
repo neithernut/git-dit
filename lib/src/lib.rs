@@ -46,6 +46,8 @@ pub mod message;
 pub mod remote;
 pub mod repository;
 
+mod utils;
+
 #[cfg(test)]
 mod test_utils;
 
