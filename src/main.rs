@@ -238,6 +238,38 @@ fn fetch_impl(matches: &clap::ArgMatches) {
 }
 
 
+/// gc subcommand implementation
+///
+fn gc_impl(matches: &clap::ArgMatches) {
+    use libgitdit::gc::{ReferenceCollectionSpec, ReferenceCollector};
+
+    let repo = util::open_dit_repo().unwrap_or_abort();
+
+    let collect_heads = if matches.is_present("collect-heads") {
+        ReferenceCollectionSpec::BackedByRemoteHead
+    } else {
+        ReferenceCollectionSpec::Never
+    };
+
+    let refs = repo
+        .collectable_refs()
+        .unwrap_or_abort()
+        .consider_remote_refs(matches.is_present("consider-remote"))
+        .collect_heads(collect_heads)
+        .into_refs()
+        .unwrap_or_abort();
+
+    if matches.is_present("dry-run") {
+        let printable_refs = refs
+            .into_iter()
+            .map(|r| r.name().unwrap_or("Unknown ref").to_owned());
+        io::stdout().consume_lines(printable_refs).unwrap_or_abort();
+    } else {
+        io::stderr().consume_lines(ReferenceCollector::from(refs)).unwrap_or_abort();
+    }
+}
+
+
 /// list subcommand implementation
 ///
 fn list_impl(matches: &clap::ArgMatches) {
@@ -639,6 +671,7 @@ fn main() {
         ("get-issue-tree-init-hashes",  Some(sub_matches)) => get_issue_tree_init_hashes(sub_matches),
         // Porcelain subcommands
         ("fetch",   Some(sub_matches)) => fetch_impl(sub_matches),
+        ("gc",      Some(sub_matches)) => gc_impl(sub_matches),
         ("list",    Some(sub_matches)) => list_impl(sub_matches),
         ("new",     Some(sub_matches)) => new_impl(sub_matches),
         ("push",    Some(sub_matches)) => push_impl(sub_matches),
