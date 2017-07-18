@@ -61,6 +61,9 @@ and low level ("plumbing") commands.
 ## git-dit-push
     Push issues to a remote repository.
 
+## git-dit-gc
+    Collect and delete references which are no longer required.
+
 
 # LOW LEVEL COMMANDS (PLUMBING)
 
