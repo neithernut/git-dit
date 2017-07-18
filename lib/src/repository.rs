@@ -15,10 +15,18 @@
 
 use git2::{self, Commit, Oid, Tree};
 
+use gc;
 use issue::Issue;
+use iter;
+use utils::ResultIterExt;
+
 use error::*;
 use error::ErrorKind as EK;
-use iter;
+
+
+/// Convenience alias for easier use of the CollectableRefs type
+///
+type CollectableRefs<'a> = gc::CollectableRefs<'a, <Vec<Issue<'a>> as IntoIterator>::IntoIter>;
 
 
 /// Extension trait for Repositories
@@ -86,6 +94,10 @@ pub trait RepositoryExt {
     /// the first parent, starting with the commit supplied.
     ///
     fn issue_messages_iter<'a>(&'a self, commit: Commit<'a>) -> Result<iter::IssueMessagesIter<'a>>;
+
+    /// Produce a CollectableRefs for all issues known to the repository
+    ///
+    fn collectable_refs<'a>(&'a self) -> Result<CollectableRefs<'a>>;
 
     /// Get an empty tree
     ///
@@ -184,6 +196,12 @@ impl RepositoryExt for git2::Repository {
                 Ok(messages)
             })
             .chain_err(|| EK::CannotGetCommitForRev(id.to_string()))
+    }
+
+    fn collectable_refs<'a>(&'a self) -> Result<CollectableRefs<'a>> {
+        self.issues()?
+            .collect_result()
+            .map(|issues| gc::CollectableRefs::new(self, issues))
     }
 
     fn issue_messages_iter<'a>(&'a self, commit: Commit<'a>) -> Result<iter::IssueMessagesIter<'a>> {
