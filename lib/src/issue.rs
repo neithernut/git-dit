@@ -91,6 +91,16 @@ impl IssueRefType {
     }
 }
 
+impl fmt::Debug for IssueRefType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> RResult<(), fmt::Error> {
+        f.write_str(match self {
+            &IssueRefType::Any   => "Any ref",
+            &IssueRefType::Head  => "Head ref",
+            &IssueRefType::Leaf  => "Leaf ref",
+        })
+    }
+}
+
 
 /// Issue handle
 ///
