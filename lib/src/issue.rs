@@ -300,6 +300,32 @@ mod tests {
 
     use repository::RepositoryExt;
 
+    // IssueRefType tests
+
+    #[test]
+    fn ref_identification() {
+        {
+            let (id, reftype) = IssueRefType::of_ref("refs/dit/65b56706fdc3501749d008750c61a1f24b888f72/head")
+                .expect("Expected valid issue id and ref type");
+            assert_eq!(id.to_string(), "65b56706fdc3501749d008750c61a1f24b888f72");
+            assert_eq!(reftype, IssueRefType::Head);
+        }
+        {
+            let (id, reftype) = IssueRefType::of_ref("refs/dit/65b56706fdc3501749d008750c61a1f24b888f72/leaves/f6bd121bdc2ba5906e412da19191a2eaf2025755")
+                .expect("Expected valid issue id and ref type");
+            assert_eq!(id.to_string(), "65b56706fdc3501749d008750c61a1f24b888f72");
+            assert_eq!(reftype, IssueRefType::Leaf);
+        }
+
+        assert!(IssueRefType::of_ref("refs/dit/65b56706fdc3501749d008750c61a1f24b888f72/foo/f6bd121bdc2ba5906e412da19191a2eaf2025755").is_none());
+        assert!(IssueRefType::of_ref("refs/dit/65b56706fdc3501749d008750c61a1f24b888f72/head/foo").is_none());
+        assert!(IssueRefType::of_ref("refs/dit/65b56706fdc3501749d008750c61a1f24b888f72/leaves/foo").is_none());
+        assert!(IssueRefType::of_ref("refs/dit/foo/leaves/f6bd121bdc2ba5906e412da19191a2eaf2025755").is_none());
+        assert!(IssueRefType::of_ref("refs/dit/foo/head").is_none());
+        assert!(IssueRefType::of_ref("refs/foo/65b56706fdc3501749d008750c61a1f24b888f72/head").is_none());
+        assert!(IssueRefType::of_ref("refs/foo/65b56706fdc3501749d008750c61a1f24b888f72/leaves/f6bd121bdc2ba5906e412da19191a2eaf2025755").is_none());
+    }
+
     // Issue tests
 
     #[test]
