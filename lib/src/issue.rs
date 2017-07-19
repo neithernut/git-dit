@@ -36,6 +36,58 @@ impl IssueRefType {
             IssueRefType::Leaf  => "leaves/*",
         }
     }
+
+    /// Get the issue ref type assiciated with a reference
+    ///
+    /// This functio ndetermines the issue ref type and returns th type as well
+    /// as the issue id as a bonus. If the type of reference could not be
+    /// determined or the ref doesn't appear to belong into the dit context,
+    /// this function returns `None`.
+    ///
+    pub fn of_ref(refname: &str) -> Option<(Oid, IssueRefType)> {
+        let mut parts = refname.rsplit('/');
+
+        // The ref type is denominated by the last few elements.
+        let preliminary_ref_type = match parts.next() {
+            Some("head") => IssueRefType::Head,
+            Some(part) => if Self::id_from_str(part).is_some() {
+                // The last element might be an id, in which case the second
+                // last part should tell us the meaning of the id.
+                match parts.next() {
+                    Some("leaves") => IssueRefType::Leaf,
+                    _ => return None,
+                }
+            } else {
+                return None
+            },
+            None => return None,
+        };
+
+        // The denominating end of the reference is preceeded by an issue id of
+        // some sort.
+        if let Some(id) = parts.next().and_then(Self::id_from_str) {
+            // A dit reference also has to contain a "dit" denominator at some
+            // point.
+            if parts.any(|part| part == "dit") {
+                return Some((id, preliminary_ref_type));
+            }
+        }
+
+        None
+    }
+
+    /// Create an Oid from a full 40-character representation
+    ///
+    /// If the number of characters is not exactly 40 or the string is not an
+    /// Oid-representation, `None` is returned.
+    ///
+    fn id_from_str(id: &str) -> Option<Oid> {
+        if id.len() == 40 {
+            Oid::from_str(id).ok()
+        } else {
+            None
+        }
+    }
 }
 
 
