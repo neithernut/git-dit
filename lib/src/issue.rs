@@ -20,6 +20,7 @@ use error::*;
 use error::ErrorKind as EK;
 
 
+#[derive(PartialEq)]
 pub enum IssueRefType {
     Any,
     Head,
