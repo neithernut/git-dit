@@ -67,6 +67,9 @@ and low level ("plumbing") commands.
 ## git-dit-check-message
     Check whether the format of an issue message is valid.
 
+## git-dit-check-refname
+    Check whether a reference is a dit reference of a known type, by name.
+
 ## git-dit-create-message
     Create a bare message.
 
