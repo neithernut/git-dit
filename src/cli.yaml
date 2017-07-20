@@ -34,6 +34,31 @@ subcommands:
                 takes_value: true
                 multiple: false
 
+    - check-refname:
+        about: Checks whether a reference is a dit reference of a known type, by name
+        version: 0.2.1
+        authors:
+            - Matthias Beyer <mail@beyermatthias.de>
+            - Julian Ganz <neither@nut.email>
+        args:
+            - refname:
+                help: Reference name to check
+                index: 1
+                required: true
+                multiple: false
+            - issue-id:
+                short: i
+                long: issue-id
+                help: Print the id of the (supposed) issue corresponding to the reference
+                multiple: false
+                takes_value: false
+            - reftype:
+                short: t
+                long: reftype
+                help: Print the type of reference (e.g. "head" or "leaf")
+                multiple: false
+                takes_value: false
+
     - create-message:
         about: >
                  Create a new message. The parents provided will be the parents of the new
