@@ -66,6 +66,31 @@ fn check_message(matches: &clap::ArgMatches) {
 }
 
 
+/// check-message subcommand implementation
+///
+fn check_refname(matches: &clap::ArgMatches) {
+    // NOTE: check-refname is always present since it is a required parameter
+    let refdata = IssueRefType::of_ref(matches.value_of("refname").unwrap());
+    if let Some((id, reftype)) = refdata {
+        // The reference is a valid dit reference. We may now answer questions
+        // about it.
+        if matches.is_present("issue-id") {
+            println!("{}", id);
+        }
+        if matches.is_present("reftype") {
+            println!("{}", match reftype {
+                IssueRefType::Head => "head",
+                IssueRefType::Leaf => "leaf",
+                _ => "unknown",
+            });
+        }
+    } else {
+        use std::process::exit;
+        exit(1);
+    }
+}
+
+
 /// create-message subcommand implementation
 ///
 fn create_message(repo: &Repository, matches: &clap::ArgMatches) {
@@ -585,6 +610,7 @@ fn main() {
     match matches.subcommand() {
         // Plumbing subcommands
         ("check-message",               Some(sub_matches)) => check_message(sub_matches),
+        ("check-refname",               Some(sub_matches)) => check_refname(sub_matches),
         ("create-message",              Some(sub_matches)) => create_message(&repo, sub_matches),
         ("find-tree-init-hash",         Some(sub_matches)) => find_tree_init_hash(&repo, sub_matches),
         ("get-issue-metadata",          Some(sub_matches)) => get_issue_metadata(&repo, sub_matches),
