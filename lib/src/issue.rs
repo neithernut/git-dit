@@ -265,7 +265,7 @@ impl<'r> Issue<'r> {
     ///
     /// Creates a new leaf reference for the message provided in the issue.
     ///
-    pub fn add_leaf(&self, message: Oid) -> Result<Reference> {
+    pub fn add_leaf(&self, message: Oid) -> Result<Reference<'r>> {
         let refname = format!("refs/dit/{}/leaves/{}", self.ref_part(), message);
         let reflogmsg = format!("git-dit: new leaf for {}: {}", self, message);
         self.repo
