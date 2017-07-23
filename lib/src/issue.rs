@@ -253,7 +253,7 @@ impl<'r> Issue<'r> {
     /// The function will update the reference even if it would not be an
     /// fast-forward update.
     ///
-    pub fn update_head(&self, message: Oid) -> Result<Reference> {
+    pub fn update_head(&self, message: Oid) -> Result<Reference<'r>> {
         let refname = format!("refs/dit/{}/head", self.ref_part());
         let reflogmsg = format!("git-dit: set head reference of {} to {}", self, message);
         self.repo
