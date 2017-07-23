@@ -293,3 +293,104 @@ impl<'r, I> Iterator for ReferenceDeletingIter<'r, I>
     }
 }
 
+
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use test_utils::TestingRepo;
+
+    use repository::RepositoryExt;
+
+    // RefsReferringTo tests
+
+    #[test]
+    fn referred_refs() {
+        let mut testing_repo = TestingRepo::new("referred_refs");
+        let repo = testing_repo.repo();
+
+        let sig = git2::Signature::now("Foo Bar", "foo.bar@example.com")
+            .expect("Could not create signature");
+        let empty_tree = repo
+            .empty_tree()
+            .expect("Could not create empty tree");
+        let empty_parents: Vec<&git2::Commit> = vec![];
+
+        let mut commits = repo.revwalk().expect("Could not create revwalk");
+        let mut refs_to_watch = Vec::new();
+        let mut refs_to_report = Vec::new();
+
+        {
+            let commit = repo
+                .commit(None, &sig, &sig, "Test message 1", &empty_tree, &empty_parents)
+                .expect("Could not create commit");
+            let refa = repo
+                .reference("refs/test/1a", commit, false, "create test ref 1a")
+                .expect("Could not create reference");
+            let refb = repo
+                .reference("refs/test/1b", commit, false, "create test ref 1b")
+                .expect("Could not create reference");
+            commits.push(commit).expect("Could not push commit onto revwalk");
+            refs_to_report.push(refa.name().expect("Could not retrieve name").to_string());
+            refs_to_report.push(refb.name().expect("Could not retrieve name").to_string());
+            refs_to_watch.push(refa);
+            refs_to_watch.push(refb);
+        }
+
+        {
+            let commit = repo
+                .commit(None, &sig, &sig, "Test message 2", &empty_tree, &empty_parents)
+                .expect("Could not create commit");
+            let refa = repo
+                .reference("refs/test/2a", commit, false, "create test ref 2a")
+                .expect("Could not create reference");
+            repo.reference("refs/test/2b", commit, false, "create test ref 2b")
+                .expect("Could not create reference");
+            commits.push(commit).expect("Could not push commit onto revwalk");
+            refs_to_report.push(refa.name().expect("Could not retrieve name").to_string());
+            refs_to_watch.push(refa);
+        }
+
+        {
+            let commit = repo
+                .commit(None, &sig, &sig, "Test message 3", &empty_tree, &empty_parents)
+                .expect("Could not create commit");
+            repo.reference("refs/test/3a", commit, false, "create test ref 3a")
+                .expect("Could not create reference");
+            repo.reference("refs/test/3b", commit, false, "create test ref 3b")
+                .expect("Could not create reference");
+            commits.push(commit).expect("Could not push commit onto revwalk");
+        }
+
+        {
+            let commit = repo
+                .commit(None, &sig, &sig, "Test message 4", &empty_tree, &empty_parents)
+                .expect("Could not create commit");
+            let refa = repo
+                .reference("refs/test/4a", commit, false, "create test ref 4a")
+                .expect("Could not create reference");
+            let refb = repo
+                .reference("refs/test/4b", commit, false, "create test ref 4b")
+                .expect("Could not create reference");
+            refs_to_watch.push(refa);
+            refs_to_watch.push(refb);
+        }
+
+        let mut referred = RefsReferringTo::new(commits);
+        referred.watch_refs(refs_to_watch).expect("Could not watch refs");
+
+        let mut reported: Vec<_> = referred
+            .map(|item| item
+                .expect("Error during iterating over refs")
+                .name()
+                .expect("Could not retrieve name")
+                .to_string()
+            )
+            .collect();
+        reported.sort();
+        refs_to_report.sort();
+        assert_eq!(reported, refs_to_report);
+    }
+}
+
