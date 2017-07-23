@@ -127,7 +127,7 @@ impl<'r> Issue<'r> {
 
     /// Get the issue's initial message
     ///
-    pub fn initial_message(&self) -> Result<git2::Commit> {
+    pub fn initial_message(&self) -> Result<git2::Commit<'r>> {
         self.repo.find_commit(self.id).chain_err(|| EK::CannotGetCommit)
     }
 
