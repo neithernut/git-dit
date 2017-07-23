@@ -230,7 +230,7 @@ impl<'r> Issue<'r> {
                                     message: A,
                                     tree: &git2::Tree,
                                     parents: I
-    ) -> Result<Commit>
+    ) -> Result<Commit<'r>>
         where A: AsRef<str>,
               I: IntoIterator<Item = &'a Commit<'a>, IntoIter = J>,
               J: Iterator<Item = &'a Commit<'a>>
