@@ -171,10 +171,6 @@ pub trait Message {
     ///
     fn body_blocks(&self) -> block::Blocks<BodyLines, String>;
 
-    /// Get the commit message's body as a sequence of categorized lines
-    ///
-    fn categorized_body(&self) -> line::Lines<BodyLines, String>;
-
     /// Get an iterator over all the trailers in the commit message's body
     ///
     fn trailers(&self) -> trailer::Trailers<BodyLines, String>;
@@ -202,10 +198,6 @@ impl<'c> Message for Commit<'c> {
 
     fn body_blocks(&self) -> block::Blocks<BodyLines, String> {
         self.body_lines().line_blocks()
-    }
-
-    fn categorized_body(&self) -> line::Lines<BodyLines, String> {
-        self.body_lines().categorized_lines()
     }
 
     fn trailers(&self) -> trailer::Trailers<BodyLines, String> {
