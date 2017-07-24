@@ -72,12 +72,6 @@ pub trait LineIteratorExt<S>
     ///
     fn quoted(self) -> Quoted<Self::Iter, S>;
 
-    /// Create an iterator for categorizing lines
-    ///
-    /// The iterator returned by this function will return categorized lines.
-    ///
-    fn categorized_lines(self) -> line::Lines<Self::Iter, S>;
-
     /// Create an iterator over categorized blocks
     ///
     /// The iterator returned by this function provides a line-block oriented
@@ -122,10 +116,6 @@ impl<L, S> LineIteratorExt<S> for L
 
     fn quoted(self) -> Quoted<Self::Iter, S> {
         Quoted::from(self)
-    }
-
-    fn categorized_lines(self) -> line::Lines<Self::Iter, S> {
-        line::Lines::from(self)
     }
 
     fn line_blocks(self) -> block::Blocks<Self::Iter, S> {
