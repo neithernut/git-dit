@@ -117,3 +117,99 @@ impl<I, S> Iterator for Blocks<I, S>
     }
 }
 
+
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use message::trailer::{TrailerKey, TrailerValue};
+
+    // Blocks test
+
+    #[test]
+    fn trailers() {
+        let mut blocks = Blocks::from(vec![
+            "Foo-bar: bar",
+            "",
+            "Space: the final frontier.",
+            "These are the voyages...",
+            "",
+            "And then he",
+            "said: engage!",
+            "",
+            "And now",
+            "for something completely different.",
+            "",
+            "",
+            "Signed-off-by: Spock",
+            "Dit-status: closed",
+            "Multi-line-trailer: multi",
+            "  line",
+            "  content"
+        ].into_iter());
+
+        match blocks.next().expect("Failed to retrieve block 1") {
+            Block::Trailer(trailers) => {
+                let mut iter = trailers.iter();
+
+                let trailer = iter.next().expect("Failed to parse trailer 1");
+                assert_eq!(trailer.key, TrailerKey::from("Foo-bar".to_string()));
+                assert!(iter.next().is_none());
+            },
+            _ => panic!("Wrong type for block 1")
+        }
+
+        match blocks.next().expect("Failed to retrieve block 2") {
+            Block::Text(lines) => assert_eq!(lines, vec![
+                "Space: the final frontier.",
+                "These are the voyages..."
+            ]),
+            _ => panic!("Wrong type for block 2")
+        }
+
+        match blocks.next().expect("Failed to retrieve block 3") {
+            Block::Text(lines) => assert_eq!(lines, vec![
+                "And then he",
+                "said: engage!",
+            ]),
+            _ => panic!("Wrong type for block 3")
+        }
+
+        match blocks.next().expect("Failed to retrieve block 4") {
+            Block::Text(lines) => assert_eq!(lines, vec![
+                "And now",
+                "for something completely different.",
+            ]),
+            _ => panic!("Wrong type for block 4")
+        }
+
+        match blocks.next().expect("Failed to retrieve block 5") {
+            Block::Trailer(trailers) => {
+                let mut iter = trailers.iter();
+
+                {
+                    let trailer = iter.next().expect("Failed to parse trailer 2");
+                    assert_eq!(trailer.key, TrailerKey::from("Signed-off-by".to_string()));
+                }
+
+                {
+                    let trailer = iter.next().expect("Failed to parse trailer 3");
+                    assert_eq!(trailer.key, TrailerKey::from("Dit-status".to_string()));
+                }
+
+                {
+                    let trailer = iter.next().expect("Failed to parse trailer 4");
+                    assert_eq!(trailer.key, TrailerKey::from("Multi-line-trailer".to_string()));
+                    assert_eq!(trailer.value, TrailerValue::String("multi  line  content".to_string()));
+                }
+
+                assert!(iter.next().is_none());
+            },
+            _ => panic!("Wrong type for block 5")
+        }
+
+        assert!(!blocks.next().is_some())
+    }
+}
