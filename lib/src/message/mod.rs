@@ -78,6 +78,13 @@ pub trait LineIteratorExt<S>
     ///
     fn categorized_lines(self) -> line::Lines<Self::Iter, S>;
 
+    /// Create an iterator over categorized blocks
+    ///
+    /// The iterator returned by this function provides a line-block oriented
+    /// view.
+    ///
+    fn line_blocks(self) -> block::Blocks<Self::Iter, S>;
+
     /// Create an iterator for extracting trailers
     ///
     /// Ths iterator returned will only yield trailers in the message. Strings
@@ -119,6 +126,10 @@ impl<L, S> LineIteratorExt<S> for L
 
     fn categorized_lines(self) -> line::Lines<Self::Iter, S> {
         line::Lines::from(self)
+    }
+
+    fn line_blocks(self) -> block::Blocks<Self::Iter, S> {
+        block::Blocks::from(self)
     }
 
     fn trailers(self) -> trailer::Trailers<Self::Iter, S> {
