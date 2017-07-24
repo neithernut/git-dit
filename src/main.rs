@@ -31,7 +31,7 @@ use libgitdit::issue::IssueRefType;
 use libgitdit::message::accumulation::{self, Accumulator};
 use libgitdit::message::trailer::PairsToTrailers;
 use libgitdit::message::{LineIteratorExt, Trailer};
-use libgitdit::{Message, RemoteExt, RepositoryExt};
+use libgitdit::{Issue, Message, RemoteExt, RepositoryExt};
 use log::LogLevel;
 use std::fs::File;
 use std::io::{self, Read, Write};
@@ -231,17 +231,19 @@ fn fetch_impl(repo: &Repository, matches: &clap::ArgMatches) {
 ///
 fn list_impl(repo: &Repository, matches: &clap::ArgMatches) {
     // get initial commits
-    let mut commits : Vec<Commit> = repo.issues()
-        .abort_on_err()
-        .map(|issue| repo.find_commit(issue.id()))
-        .abort_on_err()
-        .collect();
+    let mut issues : Vec<Issue> = repo.issues().abort_on_err().collect();
 
-    // descending order, maybe limited to some number specified by the user
-    commits.sort_by(|a, b| b.time().cmp(&a.time()));
+    // descending order
+    let mut sort_key : Box<FnMut(&Issue) -> git2::Time> = Box::new(|ref issue| issue
+        .initial_message()
+        .unwrap_or_abort()
+        .time());
+    issues.sort_by(|a, b| sort_key(b).cmp(&sort_key(a)));
+
+    // optionally limit to some number specified by the user
     if let Some(number) = matches.value_of("n") {
         // TODO: better error reporting?
-        commits.truncate(str::parse(number).unwrap_or_abort());
+        issues.truncate(str::parse(number).unwrap_or_abort());
     }
 
     let id_len = repo.abbreviation_length(matches).unwrap_or_abort();
@@ -253,8 +255,9 @@ fn list_impl(repo: &Repository, matches: &clap::ArgMatches) {
     {
         let mut stream = pager.stdin.as_mut().unwrap();
         let long = matches.is_present("long");
-        for mut commit in commits {
-            let id = commit.id();
+        for issue in issues {
+            let id = issue.id();
+            let mut commit = issue.initial_message().unwrap_or_abort();
             let time = {
                 let gtime = commit.time();
                 FixedOffset::east(gtime.offset_minutes()*60).timestamp(gtime.seconds(), 0)
