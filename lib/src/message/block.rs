@@ -41,6 +41,15 @@ pub struct Blocks<I, S>(I)
     where I: Iterator<Item = S>,
           S: AsRef<str>;
 
+impl<I, S> From<I> for Blocks<I, S>
+    where I: Iterator<Item = S>,
+          S: AsRef<str>
+{
+    fn from(iter: I) -> Self {
+        Blocks(iter)
+    }
+}
+
 impl<I, S> Iterator for Blocks<I, S>
     where I: Iterator<Item = S>,
           S: AsRef<str>
