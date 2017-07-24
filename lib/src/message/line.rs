@@ -83,7 +83,7 @@ impl<I, S> Iterator for Lines<I, S>
                 // TODO: also respect other whitespace
                 while self.0.peek().map_or(false, |l| l.as_ref().starts_with(" ")) {
                     // we have to consume the line we peeked at
-                    trailer.value = trailer.value.append(self.0.next().unwrap().as_ref());
+                    trailer.value.append(self.0.next().unwrap().as_ref());
                 }
 
                 Some(Line::Trailer(trailer))
