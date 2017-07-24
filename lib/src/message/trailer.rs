@@ -22,7 +22,7 @@ use std::str::FromStr;
 
 use error::*;
 use error::ErrorKind as EK;
-use message::line::{Line, Lines};
+use message::block::Blocks;
 
 /// The Key of a Trailer:
 ///
@@ -215,7 +215,7 @@ pub struct Trailers<I, S>
     where I: Iterator<Item = S>,
           S: AsRef<str>
 {
-    lines: Lines<I, S>,
+    blocks: Blocks<I, S>,
     buf: VecDeque<Trailer>,
 }
 
@@ -234,7 +234,7 @@ impl<I, S> From<I> for Trailers<I, S>
 {
     fn from(lines: I) -> Self {
         Trailers {
-            lines: Lines::from(lines),
+            blocks: Blocks::from(lines),
             buf: VecDeque::new(),
         }
     }
@@ -247,26 +247,17 @@ impl<I, S> Iterator for Trailers<I, S>
     type Item = Trailer;
 
     fn next(&mut self) -> Option<Self::Item> {
-        'outer: loop {
+        use message::block::Block;
+
+        loop {
             if let Some(trailer) = self.buf.pop_front() {
                 return Some(trailer);
             }
 
-            // refill buffer from next block
-            let mut collector = TrailerCollector::new(&mut self.buf);
-            let mut at_end = true;
-
-            'refill: for line in &mut self.lines {
-                at_end = false;
-                collector = match line {
-                    Line::Text(_) => collector.dumping(), // block of text
-                    Line::Trailer(t) => collector.push(t),
-                    Line::Blank => continue 'outer, // end of block
-                }
-            }
-
-            if at_end {
-                return None;
+            match self.blocks.next() {
+                Some(Block::Trailer(trailers)) => self.buf = VecDeque::from(trailers),
+                None => return None,
+                _ => {},
             }
         }
     }
