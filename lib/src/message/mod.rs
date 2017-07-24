@@ -25,6 +25,7 @@ use git2::Commit;
 use std;
 
 pub mod accumulation;
+pub mod block;
 pub mod line;
 pub mod line_processor;
 pub mod trailer;
