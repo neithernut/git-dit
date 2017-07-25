@@ -27,6 +27,7 @@ use std;
 pub mod accumulation;
 pub mod line;
 pub mod line_processor;
+pub mod metadata;
 pub mod trailer;
 
 use self::line_processor::{Quoted, StripWhiteSpaceRightIter, WithoutCommentsIter};
