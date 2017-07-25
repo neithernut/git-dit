@@ -93,7 +93,9 @@ fn check_refname(matches: &clap::ArgMatches) {
 
 /// create-message subcommand implementation
 ///
-fn create_message(repo: &Repository, matches: &clap::ArgMatches) {
+fn create_message(matches: &clap::ArgMatches) {
+    let repo = util::open_dit_repo().unwrap_or_abort();
+
     let issue = match matches.value_of("issue") {
         Some(i) => Some(repo.value_to_issue(i).unwrap_or_abort()),
         None    => None,
@@ -132,7 +134,9 @@ fn create_message(repo: &Repository, matches: &clap::ArgMatches) {
 
 /// find-tree-init-hash subcommand implementation
 ///
-fn find_tree_init_hash(repo: &Repository, matches: &clap::ArgMatches) {
+fn find_tree_init_hash(matches: &clap::ArgMatches) {
+    let repo = util::open_dit_repo().unwrap_or_abort();
+
     // note: commit is always present since it is a required parameter
     let commit = repo
         .value_to_commit(matches.value_of("commit").unwrap())
@@ -148,7 +152,9 @@ fn find_tree_init_hash(repo: &Repository, matches: &clap::ArgMatches) {
 
 /// get-issue-metadata subcommand implementation
 ///
-fn get_issue_metadata(repo: &Repository, matches: &clap::ArgMatches) {
+fn get_issue_metadata(matches: &clap::ArgMatches) {
+    let repo = util::open_dit_repo().unwrap_or_abort();
+
     // note: "head" is always present since it is a required parameter
     let head = repo
         .value_to_commit(matches.value_of("head").unwrap())
@@ -181,7 +187,9 @@ fn get_issue_metadata(repo: &Repository, matches: &clap::ArgMatches) {
 
 /// find-tree-init-hash subcommand implementation
 ///
-fn get_issue_tree_init_hashes(repo: &Repository, _: &clap::ArgMatches) {
+fn get_issue_tree_init_hashes(_: &clap::ArgMatches) {
+    let repo = util::open_dit_repo().unwrap_or_abort();
+
     io::stdout().consume_lines(repo.issues().abort_on_err()).unwrap_or_abort();
 }
 
@@ -190,7 +198,9 @@ fn get_issue_tree_init_hashes(repo: &Repository, _: &clap::ArgMatches) {
 
 /// fetch subcommand implementation
 ///
-fn fetch_impl(repo: &Repository, matches: &clap::ArgMatches) {
+fn fetch_impl(matches: &clap::ArgMatches) {
+    let repo = util::open_dit_repo().unwrap_or_abort();
+
     // note: "remote" is always present since it is a required parameter
     let mut remote = repo
         .find_remote(matches.value_of("remote").unwrap())
@@ -229,7 +239,9 @@ fn fetch_impl(repo: &Repository, matches: &clap::ArgMatches) {
 
 /// list subcommand implementation
 ///
-fn list_impl(repo: &Repository, matches: &clap::ArgMatches) {
+fn list_impl(matches: &clap::ArgMatches) {
+    let repo = util::open_dit_repo().unwrap_or_abort();
+
     // get initial commits
     let mut commits : Vec<Commit> = repo.issues()
         .abort_on_err()
@@ -281,7 +293,9 @@ fn list_impl(repo: &Repository, matches: &clap::ArgMatches) {
 
 /// new subcommand implementation
 ///
-fn new_impl(repo: &Repository, matches: &clap::ArgMatches) {
+fn new_impl(matches: &clap::ArgMatches) {
+    let repo = util::open_dit_repo().unwrap_or_abort();
+
     let sig = repo.signature().unwrap_or_abort();
 
     // get the message, either from the command line argument or an editor
@@ -319,7 +333,9 @@ fn new_impl(repo: &Repository, matches: &clap::ArgMatches) {
 
 /// push subcommand implementation
 ///
-fn push_impl(repo: &Repository, matches: &clap::ArgMatches) {
+fn push_impl(matches: &clap::ArgMatches) {
+    let repo = util::open_dit_repo().unwrap_or_abort();
+
     // note: "remote" is always present since it is a required parameter
     let mut remote = repo.find_remote(matches.value_of("remote").unwrap()).unwrap_or_abort();
 
@@ -357,7 +373,9 @@ fn push_impl(repo: &Repository, matches: &clap::ArgMatches) {
 
 /// reply subcommand implementation
 ///
-fn reply_impl(repo: &Repository, matches: &clap::ArgMatches) {
+fn reply_impl(matches: &clap::ArgMatches) {
+    let repo = util::open_dit_repo().unwrap_or_abort();
+
     let sig = repo.signature().unwrap_or_abort();
 
     // NOTE: We want to do a lot of stuff early, because we want to report
@@ -430,7 +448,9 @@ fn reply_impl(repo: &Repository, matches: &clap::ArgMatches) {
 
 /// show subcommand implementation
 ///
-fn show_impl(repo: &Repository, matches: &clap::ArgMatches) {
+fn show_impl(matches: &clap::ArgMatches) {
+    let repo = util::open_dit_repo().unwrap_or_abort();
+
     let id_len = repo.abbreviation_length(matches).unwrap_or_abort();
 
     // translate commit to lines representing the commit
@@ -516,7 +536,9 @@ fn show_impl(repo: &Repository, matches: &clap::ArgMatches) {
 
 /// tag subcommand implementation
 ///
-fn tag_impl(repo: &Repository, matches: &clap::ArgMatches) {
+fn tag_impl(matches: &clap::ArgMatches) {
+    let repo = util::open_dit_repo().unwrap_or_abort();
+
     // get the head for the issue to tag
     let mut issue_head = repo
         .cli_issue(matches)
@@ -611,18 +633,18 @@ fn main() {
         // Plumbing subcommands
         ("check-message",               Some(sub_matches)) => check_message(sub_matches),
         ("check-refname",               Some(sub_matches)) => check_refname(sub_matches),
-        ("create-message",              Some(sub_matches)) => create_message(&repo, sub_matches),
-        ("find-tree-init-hash",         Some(sub_matches)) => find_tree_init_hash(&repo, sub_matches),
-        ("get-issue-metadata",          Some(sub_matches)) => get_issue_metadata(&repo, sub_matches),
-        ("get-issue-tree-init-hashes",  Some(sub_matches)) => get_issue_tree_init_hashes(&repo, sub_matches),
+        ("create-message",              Some(sub_matches)) => create_message(sub_matches),
+        ("find-tree-init-hash",         Some(sub_matches)) => find_tree_init_hash(sub_matches),
+        ("get-issue-metadata",          Some(sub_matches)) => get_issue_metadata(sub_matches),
+        ("get-issue-tree-init-hashes",  Some(sub_matches)) => get_issue_tree_init_hashes(sub_matches),
         // Porcelain subcommands
-        ("fetch",   Some(sub_matches)) => fetch_impl(&repo, sub_matches),
-        ("list",    Some(sub_matches)) => list_impl(&repo, sub_matches),
-        ("new",     Some(sub_matches)) => new_impl(&repo, sub_matches),
-        ("push",    Some(sub_matches)) => push_impl(&repo, sub_matches),
-        ("reply",   Some(sub_matches)) => reply_impl(&repo, sub_matches),
-        ("show",    Some(sub_matches)) => show_impl(&repo, sub_matches),
-        ("tag",     Some(sub_matches)) => tag_impl(&repo, sub_matches),
+        ("fetch",   Some(sub_matches)) => fetch_impl(sub_matches),
+        ("list",    Some(sub_matches)) => list_impl(sub_matches),
+        ("new",     Some(sub_matches)) => new_impl(sub_matches),
+        ("push",    Some(sub_matches)) => push_impl(sub_matches),
+        ("reply",   Some(sub_matches)) => reply_impl(sub_matches),
+        ("show",    Some(sub_matches)) => show_impl(sub_matches),
+        ("tag",     Some(sub_matches)) => tag_impl(sub_matches),
         // Unknown subcommands
         ("", _) => {
             writeln!(io::stderr(), "{}", matches.usage()).ok();
