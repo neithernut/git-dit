@@ -26,7 +26,7 @@ mod write;
 
 use chrono::{FixedOffset, TimeZone};
 use clap::App;
-use git2::{Commit, Repository};
+use git2::Commit;
 use libgitdit::issue::IssueRefType;
 use libgitdit::message::accumulation::{self, Accumulator};
 use libgitdit::message::trailer::PairsToTrailers;
