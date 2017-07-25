@@ -27,3 +27,18 @@ pub struct MetadataSpecification<'k> {
     pub accumulation: AccumulationPolicy,
 }
 
+
+/// Metadata specification for an issue's type
+///
+pub const ISSUE_TYPE_SPEC: MetadataSpecification = MetadataSpecification {
+    key: "Dit-type",
+    accumulation: AccumulationPolicy::Latest,
+};
+
+/// Metadata specification for an issue's status
+///
+pub const ISSUE_STATUS_SPEC: MetadataSpecification = MetadataSpecification {
+    key: "Dit-status",
+    accumulation: AccumulationPolicy::Latest,
+};
+
