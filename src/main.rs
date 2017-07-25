@@ -627,8 +627,6 @@ fn main() {
         writeln!(io::stderr(), "Could not initialize logger: {}", err).ok();
     }
 
-    let repo = util::open_dit_repo().unwrap_or_abort();
-
     match matches.subcommand() {
         // Plumbing subcommands
         ("check-message",               Some(sub_matches)) => check_message(sub_matches),
