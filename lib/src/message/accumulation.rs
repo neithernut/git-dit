@@ -24,6 +24,7 @@ use message::trailer::{Trailer, TrailerValue};
 /// These enum values represent accumulation policies for trailers, e.g. how
 /// trailer values are accumulated.
 ///
+#[derive(Clone)]
 pub enum AccumulationPolicy {
     Latest,
     List,
