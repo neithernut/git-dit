@@ -13,7 +13,10 @@
 //! well as specifications for some dit metadata tags.
 //!
 
-use message::accumulation::{AccumulationPolicy, SingleAccumulator};
+use std::borrow::Borrow;
+use std::iter::FromIterator;
+
+use message::accumulation::{AccumulationPolicy, SingleAccumulator, ValueAccumulator};
 
 
 /// Metadata specification
@@ -49,4 +52,35 @@ pub const ISSUE_STATUS_SPEC: MetadataSpecification = MetadataSpecification {
     key: "Dit-status",
     accumulation: AccumulationPolicy::Latest,
 };
+
+
+/// Construct an accumulation map from a set of MetadataSpecifications
+///
+/// This trait enables construction of maps from collections of
+/// `MetadataSpecification` instances. Use this trait if you want to construct
+/// a map-like `Accumulator` (e.g. a `HashMap` or a `BTreeMap`) from a set of
+/// specifications in a convenient way.
+///
+pub trait ToMap {
+    /// Construct an accumulation map
+    ///
+    fn into_map<M>(self) -> M
+        where M: FromIterator<(String, ValueAccumulator)>;
+}
+
+impl<'s, I, J> ToMap for I
+    where I: IntoIterator<Item = J>,
+          J: Borrow<MetadataSpecification<'s>>
+{
+    fn into_map<M>(self) -> M
+        where M: FromIterator<(String, ValueAccumulator)>
+    {
+        self.into_iter()
+            .map(|spec| {
+                let s = spec.borrow();
+                (s.key.to_string(), ValueAccumulator::from(s.accumulation.clone()))
+            })
+            .collect()
+    }
+}
 
