@@ -8,6 +8,7 @@
 //
 
 use git2::Reference;
+use std::borrow::Borrow;
 
 
 /// Extension trait for references
@@ -82,3 +83,20 @@ impl<'a> From<&'a str> for RemotePriorization {
     }
 }
 
+
+/// Extension trait for iterators over references
+///
+pub trait ReferrencesExt<'r> {
+    /// Select the reference with the highest priority
+    ///
+    fn select_ref(self, prios: RemotePriorization) -> Option<Reference<'r>>;
+}
+
+impl<'r, I> ReferrencesExt<'r> for I
+    where I: IntoIterator<Item = Reference<'r>>,
+{
+    fn select_ref(self, prios: RemotePriorization) -> Option<Reference<'r>> {
+        self.into_iter()
+            .min_by_key(|reference| prios.priority_for_ref(reference.borrow()))
+    }
+}
