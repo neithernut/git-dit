@@ -13,7 +13,7 @@
 //! well as specifications for some dit metadata tags.
 //!
 
-use message::accumulation::AccumulationPolicy;
+use message::accumulation::{AccumulationPolicy, SingleAccumulator};
 
 
 /// Metadata specification
@@ -25,6 +25,14 @@ use message::accumulation::AccumulationPolicy;
 pub struct MetadataSpecification<'k> {
     pub key: &'k str,
     pub accumulation: AccumulationPolicy,
+}
+
+impl<'k> MetadataSpecification<'k> {
+    /// Create a SingleAccumulator from the specification
+    ///
+    pub fn single_accumulator(&self) -> SingleAccumulator {
+        SingleAccumulator::new(self.key.to_string(), self.accumulation.clone())
+    }
 }
 
 
