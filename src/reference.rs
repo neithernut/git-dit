@@ -40,3 +40,45 @@ impl<'r> ReferrenceExt for Reference<'r> {
     }
 }
 
+
+/// Expression of priorization of remotes
+///
+/// Use this type for querying the priority of a remote, represented as a
+/// numerical value. A lower numerical value indicates a higher priority.
+///
+pub struct RemotePriorization(Vec<String>);
+
+impl RemotePriorization {
+    /// Query the priority for a remote
+    ///
+    /// If the remote's name is not found, the lowest possible priority is
+    /// returned.
+    ///
+    pub fn priority_for_remote(&self, remote: &str) -> usize {
+        self.0
+            .iter()
+            .position(|item| *item == remote)
+            .map(|pos| pos + 1)
+            .unwrap_or(usize::max_value())
+    }
+
+    /// Query the priority of a reference
+    ///
+    /// This function returns the priority of the remote assiciated with a
+    /// reference. If the reference does not appear to be a remote, the highest
+    /// possible priority is returned.
+    ///
+    pub fn priority_for_ref(&self, reference: &Reference) -> usize {
+        reference
+            .remote()
+            .map(|name| self.priority_for_remote(name))
+            .unwrap_or(0)
+    }
+}
+
+impl<'a> From<&'a str> for RemotePriorization {
+    fn from(list: &'a str) -> Self {
+        RemotePriorization(list.split(',').map(String::from).collect())
+    }
+}
+
