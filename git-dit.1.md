@@ -112,6 +112,11 @@ Additionally, a maintainer may use the "head" reference to communicate
 acceptance of some discussion point.
 
 
+# CONFIGURATION
+
+The following git-dit-specific configuration options are available:
+
+
 # WORKFLOWS
 
 Git-dit tries not to force a specific work-flow on its users.
