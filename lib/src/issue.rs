@@ -127,7 +127,7 @@ impl<'r> Issue<'r> {
 
     /// Get the issue's initial message
     ///
-    pub fn initial_message(&self) -> Result<git2::Commit> {
+    pub fn initial_message(&self) -> Result<git2::Commit<'r>> {
         self.repo.find_commit(self.id).chain_err(|| EK::CannotGetCommit)
     }
 
@@ -230,7 +230,7 @@ impl<'r> Issue<'r> {
                                     message: A,
                                     tree: &git2::Tree,
                                     parents: I
-    ) -> Result<Commit>
+    ) -> Result<Commit<'r>>
         where A: AsRef<str>,
               I: IntoIterator<Item = &'a Commit<'a>, IntoIter = J>,
               J: Iterator<Item = &'a Commit<'a>>
@@ -253,7 +253,7 @@ impl<'r> Issue<'r> {
     /// The function will update the reference even if it would not be an
     /// fast-forward update.
     ///
-    pub fn update_head(&self, message: Oid) -> Result<Reference> {
+    pub fn update_head(&self, message: Oid) -> Result<Reference<'r>> {
         let refname = format!("refs/dit/{}/head", self.ref_part());
         let reflogmsg = format!("git-dit: set head reference of {} to {}", self, message);
         self.repo
@@ -265,7 +265,7 @@ impl<'r> Issue<'r> {
     ///
     /// Creates a new leaf reference for the message provided in the issue.
     ///
-    pub fn add_leaf(&self, message: Oid) -> Result<Reference> {
+    pub fn add_leaf(&self, message: Oid) -> Result<Reference<'r>> {
         let refname = format!("refs/dit/{}/leaves/{}", self.ref_part(), message);
         let reflogmsg = format!("git-dit: new leaf for {}: {}", self, message);
         self.repo
