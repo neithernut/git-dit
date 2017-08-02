@@ -21,6 +21,7 @@ mod error;
 mod logger;
 mod msgtree;
 mod programs;
+mod reference;
 mod util;
 mod write;
 

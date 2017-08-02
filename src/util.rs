@@ -14,13 +14,15 @@ use std::io;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use abort::IteratorExt;
-use error::ErrorKind as EK;
-use error::*;
-use programs::run_editor;
-use libgitdit::{Issue, RepositoryExt};
 use libgitdit::message::LineIteratorExt;
 use libgitdit::message::trailer::Trailer;
+use libgitdit::{Issue, RepositoryExt};
+
+use abort::IteratorExt;
+use error::*;
+use error::ErrorKind as EK;
+use programs::run_editor;
+use reference::RemotePriorization;
 
 /// Open the DIT repo
 ///
@@ -86,6 +88,9 @@ pub trait RepositoryUtil<'r> {
     /// Get the abbreviation length for oids
     ///
     fn abbreviation_length(&self, matches: &ArgMatches) -> Result<usize>;
+
+    /// Get remote priorization from the config
+    fn remote_priorization(&self) -> Result<RemotePriorization>;
 }
 
 impl<'r> RepositoryUtil<'r> for Repository {
@@ -196,6 +201,13 @@ impl<'r> RepositoryUtil<'r> for Repository {
 
         // TODO: use a larger number based on the number of objects in the repo
         Ok(7)
+    }
+
+    fn remote_priorization(&self) -> Result<RemotePriorization> {
+        let config = self
+            .config()
+            .chain_err(|| EK::CannotGetRepositoryConfig)?;
+        Ok(RemotePriorization::from(config.get_str("dit.remote-prios").unwrap_or_default()))
     }
 }
 
