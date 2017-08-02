@@ -22,7 +22,7 @@ use std::str::FromStr;
 
 use error::*;
 use error::ErrorKind as EK;
-use message::line::{Line, Lines};
+use message::block::Blocks;
 
 /// The Key of a Trailer:
 ///
@@ -88,11 +88,11 @@ impl TrailerValue {
     /// This method may be used to construct multi line trailer values.
     /// Note that the result will always be a string value.
     ///
-    pub fn append(self, slice: &str) -> TrailerValue {
-        TrailerValue::String(match self {
-            TrailerValue::Int(i)    => i.to_string() + slice,
-            TrailerValue::String(s) => s + slice,
-        })
+    pub fn append(&mut self, slice: &str) {
+        match self {
+            &mut TrailerValue::Int(i)    => *self = TrailerValue::String(i.to_string() + slice),
+            &mut TrailerValue::String(ref mut s) => s.push_str(slice),
+        }
     }
 }
 
@@ -156,54 +156,6 @@ impl FromStr for Trailer {
 }
 
 
-/// Helper type for colecting trailers in a linked list
-///
-/// This collector helps parsing blocks of test such that a block contains only
-/// lines of text or trailers. In such a situation, we may need to collect
-/// trailers as long as the block of text "looks" like a block of trailers but
-/// dump them as soon as the block turns out to be a block of text.
-///
-/// This collector holds this state and offers the functionality for collecting
-/// trailers transparently.
-///
-enum TrailerCollector<'l> {
-    Collecting(&'l mut VecDeque<Trailer>),
-    Dumping,
-}
-
-impl<'l> TrailerCollector<'l> {
-    /// Create a new trailer collector collecting into a target
-    ///
-    pub fn new(target: &'l mut VecDeque<Trailer>) -> Self {
-        TrailerCollector::Collecting(target)
-    }
-
-    /// Dump the current and all future trailers pushed to this collector
-    ///
-    pub fn dumping(self) -> Self {
-        if let TrailerCollector::Collecting(target) = self {
-            target.clear();
-        }
-        TrailerCollector::Dumping
-    }
-
-    /// Push a new trailer
-    ///
-    /// The trailer pushed will be either collected or dumped, based on the
-    /// current state.
-    ///
-    pub fn push(self, trailer: Trailer) -> Self {
-        match self {
-            TrailerCollector::Collecting(target) => {
-                target.push_back(trailer);
-                TrailerCollector::Collecting(target)
-            },
-            TrailerCollector::Dumping => self,
-        }
-    }
-}
-
-
 /// Iterator extracting trailers from a sequence of strings representing lines
 ///
 /// This iterator extracts all trailers from a text provided by the wrapped
@@ -215,7 +167,7 @@ pub struct Trailers<I, S>
     where I: Iterator<Item = S>,
           S: AsRef<str>
 {
-    lines: Lines<I, S>,
+    blocks: Blocks<I, S>,
     buf: VecDeque<Trailer>,
 }
 
@@ -234,7 +186,7 @@ impl<I, S> From<I> for Trailers<I, S>
 {
     fn from(lines: I) -> Self {
         Trailers {
-            lines: Lines::from(lines),
+            blocks: Blocks::from(lines),
             buf: VecDeque::new(),
         }
     }
@@ -247,26 +199,17 @@ impl<I, S> Iterator for Trailers<I, S>
     type Item = Trailer;
 
     fn next(&mut self) -> Option<Self::Item> {
-        'outer: loop {
+        use message::block::Block;
+
+        loop {
             if let Some(trailer) = self.buf.pop_front() {
                 return Some(trailer);
             }
 
-            // refill buffer from next block
-            let mut collector = TrailerCollector::new(&mut self.buf);
-            let mut at_end = true;
-
-            'refill: for line in &mut self.lines {
-                at_end = false;
-                collector = match line {
-                    Line::Text(_) => collector.dumping(), // block of text
-                    Line::Trailer(t) => collector.push(t),
-                    Line::Blank => continue 'outer, // end of block
-                }
-            }
-
-            if at_end {
-                return None;
+            match self.blocks.next() {
+                Some(Block::Trailer(trailers)) => self.buf = VecDeque::from(trailers),
+                None => return None,
+                _ => {},
             }
         }
     }

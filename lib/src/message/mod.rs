@@ -25,7 +25,7 @@ use git2::Commit;
 use std;
 
 pub mod accumulation;
-pub mod line;
+pub mod block;
 pub mod line_processor;
 pub mod metadata;
 pub mod trailer;
@@ -72,11 +72,12 @@ pub trait LineIteratorExt<S>
     ///
     fn quoted(self) -> Quoted<Self::Iter, S>;
 
-    /// Create an iterator for categorizing lines
+    /// Create an iterator over categorized blocks
     ///
-    /// The iterator returned by this function will return categorized lines.
+    /// The iterator returned by this function provides a line-block oriented
+    /// view.
     ///
-    fn categorized_lines(self) -> line::Lines<Self::Iter, S>;
+    fn line_blocks(self) -> block::Blocks<Self::Iter, S>;
 
     /// Create an iterator for extracting trailers
     ///
@@ -117,8 +118,8 @@ impl<L, S> LineIteratorExt<S> for L
         Quoted::from(self)
     }
 
-    fn categorized_lines(self) -> line::Lines<Self::Iter, S> {
-        line::Lines::from(self)
+    fn line_blocks(self) -> block::Blocks<Self::Iter, S> {
+        block::Blocks::from(self)
     }
 
     fn trailers(self) -> trailer::Trailers<Self::Iter, S> {
@@ -156,9 +157,9 @@ pub trait Message {
     ///
     fn body_lines(&self) -> BodyLines;
 
-    /// Get the commit message's body as a sequence of categorized lines
+    /// Get the commit message's body as a sequence of paragraphs and blocks of trailers
     ///
-    fn categorized_body(&self) -> line::Lines<BodyLines, String>;
+    fn body_blocks(&self) -> block::Blocks<BodyLines, String>;
 
     /// Get an iterator over all the trailers in the commit message's body
     ///
@@ -185,8 +186,8 @@ impl<'c> Message for Commit<'c> {
         self.message_lines().skip(2)
     }
 
-    fn categorized_body(&self) -> line::Lines<BodyLines, String> {
-        self.body_lines().categorized_lines()
+    fn body_blocks(&self) -> block::Blocks<BodyLines, String> {
+        self.body_lines().line_blocks()
     }
 
     fn trailers(&self) -> trailer::Trailers<BodyLines, String> {
