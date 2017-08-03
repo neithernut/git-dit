@@ -109,6 +109,12 @@ impl<'r> IssueMessagesIter<'r> {
     }
 }
 
+impl<'r> From<Messages<'r>> for IssueMessagesIter<'r> {
+    fn from(messages: Messages<'r>) -> Self {
+        IssueMessagesIter(messages)
+    }
+}
+
 impl<'r> Iterator for IssueMessagesIter<'r> {
     type Item = Result<git2::Commit<'r>>;
 
