@@ -70,6 +70,12 @@ impl<'r> Messages<'r> {
     pub fn new<'a>(repo: &'a Repository, revwalk: git2::Revwalk<'a>) -> Messages<'a> {
         Messages { revwalk: revwalk, repo: repo }
     }
+
+    /// Create an IssueMessagesIter from this instance
+    ///
+    pub fn until_any_initial(self) -> IssueMessagesIter<'r> {
+        self.into()
+    }
 }
 
 impl<'r> Iterator for Messages<'r> {
