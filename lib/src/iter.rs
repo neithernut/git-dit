@@ -71,6 +71,14 @@ impl<'r> Messages<'r> {
         Messages { revwalk: revwalk, repo: repo }
     }
 
+    /// Create a new messages iter from an unconfigured revwalk
+    ///
+    pub fn empty<'a>(repo: &'a Repository) -> Result<Messages<'a>> {
+        repo.revwalk()
+            .map(|revwalk| Self::new(repo, revwalk))
+            .chain_err(|| EK::CannotConstructRevwalk)
+    }
+
     /// Create an IssueMessagesIter from this instance
     ///
     pub fn until_any_initial(self) -> IssueMessagesIter<'r> {
