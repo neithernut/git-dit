@@ -54,6 +54,38 @@ impl<'r> Iterator for HeadRefsToIssuesIter<'r>
 }
 
 
+/// Messages iter
+///
+/// Use this iterator if you intend to iterate over messages rather than `Oid`s
+/// via a `Revwalk`.
+///
+pub struct Messages<'r> {
+    pub revwalk: git2::Revwalk<'r>,
+    repo: &'r Repository,
+}
+
+impl<'r> Messages<'r> {
+    /// Create a new Messages itrator from a revwalk for a given repo
+    ///
+    pub fn new<'a>(repo: &'a Repository, revwalk: git2::Revwalk<'a>) -> Messages<'a> {
+        Messages { revwalk: revwalk, repo: repo }
+    }
+}
+
+impl<'r> Iterator for Messages<'r> {
+    type Item = Result<git2::Commit<'r>>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.revwalk
+            .next()
+            .map(|item| item
+                .and_then(|id| self.repo.find_commit(id))
+                .chain_err(|| EK::CannotGetCommit)
+            )
+    }
+}
+
+
 /// Iterator iterating over messages of an issue
 ///
 /// This iterator returns the first parent of a commit or message successively
