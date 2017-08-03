@@ -121,12 +121,6 @@ impl<'r> Iterator for Messages<'r> {
 pub struct IssueMessagesIter<'r>(Messages<'r>);
 
 impl<'r> IssueMessagesIter<'r> {
-    pub fn new<'a>(repo: &'a Repository, commit: git2::Commit<'a>) -> Result<IssueMessagesIter<'a>> {
-        repo.first_parent_revwalk(commit.id())
-            .map(|revwalk| Messages::new(repo, revwalk))
-            .map(|messages| IssueMessagesIter(messages))
-    }
-
     /// Fuse the iterator is the id refers to an issue
     ///
     fn fuse_if_initial(&mut self, id: git2::Oid) {
