@@ -18,6 +18,7 @@ extern crate libgitdit;
 mod abort;
 mod callbacks;
 mod error;
+mod filters;
 mod logger;
 mod msgtree;
 mod programs;
