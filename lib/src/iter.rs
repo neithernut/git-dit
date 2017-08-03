@@ -91,22 +91,20 @@ impl<'r> Iterator for Messages<'r> {
 /// This iterator returns the first parent of a commit or message successively
 /// until an initial issue message is encountered, inclusively.
 ///
-pub struct IssueMessagesIter<'r> {
-    inner: git2::Revwalk<'r>,
-    repo: &'r Repository,
-}
+pub struct IssueMessagesIter<'r>(Messages<'r>);
 
 impl<'r> IssueMessagesIter<'r> {
     pub fn new<'a>(repo: &'a Repository, commit: git2::Commit<'a>) -> Result<IssueMessagesIter<'a>> {
         repo.first_parent_revwalk(commit.id())
-            .map(|revwalk| IssueMessagesIter { inner: revwalk, repo: repo })
+            .map(|revwalk| Messages::new(repo, revwalk))
+            .map(|messages| IssueMessagesIter(messages))
     }
 
     /// Fuse the iterator is the id refers to an issue
     ///
     fn fuse_if_initial(&mut self, id: git2::Oid) {
-        if self.repo.find_issue(id).is_ok() {
-            self.inner.reset();
+        if self.0.repo.find_issue(id).is_ok() {
+            self.0.revwalk.reset();
         }
     }
 }
@@ -115,15 +113,14 @@ impl<'r> Iterator for IssueMessagesIter<'r> {
     type Item = Result<git2::Commit<'r>>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.inner
+        self.0
             .next()
-            .map(|item| item
-                .and_then(|id| {
-                    self.fuse_if_initial(id);
-                    self.repo.find_commit(id)
-                })
-                .chain_err(|| EK::CannotGetCommit)
-            )
+            .map(|item| {
+                if let Ok(ref commit) = item {
+                    self.fuse_if_initial(commit.id());
+                }
+                item
+            })
     }
 }
 
