@@ -76,6 +76,19 @@ impl<'r> Messages<'r> {
     pub fn until_any_initial(self) -> IssueMessagesIter<'r> {
         self.into()
     }
+
+    /// Terminate this iterator at the given issue's initial message
+    ///
+    /// This method hides the initial message's parents. It is somewhat more
+    /// performant than creating an `IssueMessagesIter`. However, the issue has
+    /// to be known in advance.
+    ///
+    pub fn terminate_at_initial(&mut self, issue: &issue::Issue) -> Result<()> {
+        for parent in issue.initial_message()?.parent_ids() {
+            self.revwalk.hide(parent)?;
+        }
+        Ok(())
+    }
 }
 
 impl<'r> Iterator for Messages<'r> {
