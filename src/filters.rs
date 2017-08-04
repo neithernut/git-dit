@@ -11,8 +11,11 @@ use libgitdit::Issue;
 use libgitdit::message::accumulation::{Accumulator, ValueAccumulator};
 use libgitdit::message::trailer::TrailerValue;
 use libgitdit::message::{Message, metadata};
+use std::str::FromStr;
 
 use abort::{Abortable, IteratorExt};
+use error::*;
+use error::ErrorKind as EK;
 use reference::{self, ReferrencesExt};
 
 
@@ -34,6 +37,30 @@ impl<'a> FilterSpec<'a> {
     ///
     pub fn apply_to_values(&self, values: ValueAccumulator) -> bool {
         values.into_iter().any(|v| v == self.value)
+    }
+}
+
+impl<'a> FromStr for FilterSpec<'a> {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        let mut parts = s.splitn(2, ':');
+
+        let metadata = parts
+            .next()
+            .and_then(|name| match name {
+                "status"    => Some(metadata::ISSUE_STATUS_SPEC.clone()),
+                "type"      => Some(metadata::ISSUE_TYPE_SPEC.clone()),
+                _           => None,
+            })
+            .ok_or_else(|| Error::from_kind(EK::MalformedFilterSpec(s.to_owned())))?;
+
+        let value = parts
+            .next()
+            .map(TrailerValue::from_slice)
+            .ok_or_else(|| Error::from_kind(EK::MalformedFilterSpec(s.to_owned())))?;
+
+        Ok(FilterSpec {metadata: metadata, value: value})
     }
 }
 

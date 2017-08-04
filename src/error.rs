@@ -29,6 +29,11 @@ error_chain! {
             display("Cannot get signature")
         }
 
+        MalformedFilterSpec(spec: String) {
+            description("Malformed filter spec")
+            display("Malformed filter spec: {}", spec)
+        }
+
         ParameterMissing(name: String) {
             description("Missing parameter")
             display("Missing parameter: {}", name)
