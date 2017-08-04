@@ -46,6 +46,17 @@ pub struct MetadataFilter<'a> {
 }
 
 impl<'a> MetadataFilter<'a> {
+    /// Create a new metadata filter
+    ///
+    pub fn new<I>(prios: &'a reference::RemotePriorization, spec: I) -> Self
+        where I: IntoIterator<Item = FilterSpec<'a>>
+    {
+        MetadataFilter {
+            prios: prios,
+            spec: spec.into_iter().collect(),
+        }
+    }
+
     /// Create an empty metadata filter
     ///
     /// The filter will not filter out any issues.
