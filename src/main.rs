@@ -242,10 +242,26 @@ fn fetch_impl(matches: &clap::ArgMatches) {
 /// list subcommand implementation
 ///
 fn list_impl(matches: &clap::ArgMatches) {
+    use filters::MetadataFilter;
+
     let repo = util::open_dit_repo().unwrap_or_abort();
+    let remote_prios = repo.remote_priorization().unwrap_or_abort();
+
+    // construct filter
+    let filter = match matches.values_of("filter") {
+        Some(values) => {
+            let specs = values.map(str::parse).abort_on_err();
+            MetadataFilter::new(&remote_prios, specs)
+        },
+        None         => MetadataFilter::empty(&remote_prios),
+    };
 
     // get initial commits
-    let mut issues : Vec<Issue> = repo.issues().abort_on_err().collect();
+    let mut issues : Vec<Issue> = repo
+        .issues()
+        .abort_on_err()
+        .filter(|issue| filter.filter(issue))
+        .collect();
 
     // descending order
     let mut sort_key : Box<FnMut(&Issue) -> git2::Time> = Box::new(|ref issue| issue
