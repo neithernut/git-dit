@@ -393,26 +393,16 @@ fn push_impl(matches: &clap::ArgMatches) {
     let mut remote = repo.find_remote(matches.value_of("remote").unwrap()).unwrap_or_abort();
 
     // accumulate the refspecs to push
-    let refspecs : Vec<String> = if let Some(issues) = matches.values_of("issue") {
-        // push a specific list of issues
-        issues.map(|issue| repo.value_to_issue(issue))
-              .abort_on_err()
-              .map(|issue| issue.local_refs(IssueRefType::Any))
-              .abort_on_err()
-              .flat_map(git2::References::names)
-              .abort_on_err()
-              .map(String::from)
-              .collect()
-    } else {
-        repo.issues_with_prefix("refs")
-            .abort_on_err()
-            .map(|issue| issue.local_refs(IssueRefType::Any))
-            .abort_on_err()
-            .flat_map(git2::References::names)
-            .abort_on_err()
-            .map(String::from)
-            .collect()
-    };
+    let refspecs : Vec<String> = repo
+        .cli_issues(matches)
+        .unwrap_or_else(|| repo.issues().abort_on_err().collect())
+        .into_iter()
+        .map(|issue| issue.local_refs(IssueRefType::Any))
+        .abort_on_err()
+        .flat_map(git2::References::names)
+        .abort_on_err()
+        .map(String::from)
+        .collect();
 
     // set the options for the push
     let mut fetch_options = git2::PushOptions::new();
