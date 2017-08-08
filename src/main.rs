@@ -346,6 +346,106 @@ fn list_impl(matches: &clap::ArgMatches) {
 
 /// new subcommand implementation
 ///
+fn mirror_impl(matches: &clap::ArgMatches) {
+    use std::collections::HashSet;
+    use reference::{RemotePriorization, ReferrenceExt, ReferrencesExt};
+
+    let repo = util::open_dit_repo().unwrap_or_abort();
+
+    // retrieve the options and flags
+    let remote = matches.value_of("remote");
+    let clone_head = matches.is_present("clone-head");
+    let update_head = matches.is_present("update-head");
+    let create_leaves = matches.is_present("clone-leaves");
+
+    let prios = remote
+        .map(RemotePriorization::from)
+        .unwrap_or_else(|| repo.remote_priorization().unwrap_or_abort());
+    let issues = repo
+        .cli_issues(matches)
+        .unwrap_or_else(|| repo.issues().abort_on_err().collect());
+
+    for issue in issues {
+        if clone_head || update_head {
+            // take care about the head reference
+            if let Some(r) = issue.heads().abort_on_err().select_ref(&prios) {
+                let id = r
+                    .peel(git2::ObjectType::Commit)
+                    .unwrap_or_abort()
+                    .id();
+                // TODO: Failure to update a head ref should probably result in
+                //       a warning instead of a hard error.
+                issue.update_head(id, update_head).unwrap_or_abort();
+            }
+        }
+
+        if create_leaves {
+            // construct a hash set with all the relevant leaves
+            let mut leaves: HashSet<_> = issue
+                .remote_refs(IssueRefType::Leaf)
+                .abort_on_err()
+                .filter(|reference| match remote {
+                    Some(r) => reference
+                        .remote()
+                        .map(|name| name == r)
+                        .unwrap_or(false),
+                    None => true,
+                })
+                .map(|reference| reference
+                    .peel(git2::ObjectType::Commit)
+                    .unwrap_or_abort()
+                    .id()
+                )
+                .collect();
+
+            // Prepare revwalk for iterating over all messages which already
+            // hang by local refs.
+            let mut existing_refs = issue
+                .terminated_messages()
+                .unwrap_or_abort()
+                .revwalk;
+            for reference in issue.local_refs(IssueRefType::Any).abort_on_err() {
+                existing_refs
+                    .push(reference
+                        .peel(git2::ObjectType::Commit)
+                        .unwrap_or_abort()
+                        .id()
+                    )
+                    .unwrap_or_abort();
+            }
+            {
+                // This also includes future refs. We therefore add parents of
+                // the supposed leaves as starting points of the revwalk. If any
+                // of the ids cloned from the remote do not refer to leaves,
+                // they will be filtered out early.
+                let leaf_messages = leaves
+                    .iter()
+                    .cloned()
+                    .map(|id| repo.find_commit(id))
+                    .abort_on_err();
+                for message in leaf_messages {
+                    for parent in message.parent_ids() {
+                        existing_refs.push(parent).unwrap_or_abort();
+                    }
+                }
+            }
+
+            // filter out any leaf which is not required
+            for id in existing_refs.abort_on_err() {
+                leaves.remove(&id);
+            }
+
+            // create refs for remaining leaves
+            for leaf in leaves {
+                issue.add_leaf(leaf).unwrap_or_abort();
+            }
+        }
+    }
+}
+
+
+/// new subcommand implementation
+///
 fn new_impl(matches: &clap::ArgMatches) {
     let repo = util::open_dit_repo().unwrap_or_abort();
 
@@ -680,6 +780,7 @@ fn main() {
         ("fetch",   Some(sub_matches)) => fetch_impl(sub_matches),
         ("gc",      Some(sub_matches)) => gc_impl(sub_matches),
         ("list",    Some(sub_matches)) => list_impl(sub_matches),
+        ("mirror",  Some(sub_matches)) => mirror_impl(sub_matches),
         ("new",     Some(sub_matches)) => new_impl(sub_matches),
         ("push",    Some(sub_matches)) => push_impl(sub_matches),
         ("reply",   Some(sub_matches)) => reply_impl(sub_matches),
