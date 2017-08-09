@@ -20,6 +20,11 @@ error_chain! {
             display("Cannot create a message")
         }
 
+        CannotConstructRevwalk {
+            description("Cannot construct revwalk")
+            display("Cannot construct a revwalk for iterating over commits")
+        }
+
         CannotGetCommit {
             description("Cannot get a commit from the repository")
             display("Cannot get a specific commit from repository")

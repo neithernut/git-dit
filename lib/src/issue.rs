@@ -18,6 +18,7 @@ use std::result::Result as RResult;
 
 use error::*;
 use error::ErrorKind as EK;
+use iter::Messages;
 
 
 #[derive(PartialEq)]
@@ -191,32 +192,57 @@ impl<'r> Issue<'r> {
             .chain_err(|| EK::CannotGetReferences(glob))
     }
 
-    /// Get a revwalk for traversing all messages of the issue
+    /// Get all Messages of the issue
     ///
-    /// The sorting of the revwalk will be set to "topological".
+    /// The sorting of the underlying revwalk will be set to "topological".
     ///
-    pub fn message_revwalk(&self) -> Result<git2::Revwalk<'r>> {
-        let glob = format!("**/dit/{}/**", self.ref_part());
-        self.repo
-            .revwalk()
-            .and_then(|mut revwalk| {
+    pub fn messages(&self) -> Result<Messages<'r>> {
+        self.terminated_messages()
+            .and_then(|mut messages| {
+                let glob = format!("**/dit/{}/**", self.ref_part());
+
                 // The iterator will iterate over all the messages in the tree
                 // spanned but it will halt at the initial message.
-                revwalk.push_glob(glob.as_ref())?;
-                let _ = self.repo
-                    .find_commit(self.id)
-                    .and_then(|commit| commit.parent_id(0))
-                    .ok() // the initial message having no parent is not unusual
-                    .map(|parent| revwalk.hide(parent))
-                    .unwrap_or(Ok(()))?;
+                messages
+                    .revwalk
+                    .push_glob(glob.as_ref())
+                    .chain_err(|| EK::CannotGetReferences(glob))?;
+
+                Ok(messages)
+            })
+    }
+
+    /// Get Messages of the issue starting from a specific one
+    ///
+    /// The Messages iterator returned will return all first parents up to and
+    /// includingthe initial message of the issue.
+    ///
+    pub fn messages_from(&self, message: Oid) -> Result<Messages<'r>> {
+        self.terminated_messages()
+            .and_then(|mut messages| {
+                messages
+                    .revwalk
+                    .push(message)
+                    .chain_err(|| EK::CannotConstructRevwalk)?;
+
+                Ok(messages)
+            })
+    }
+
+    /// Prepare a Messages iterator which will terminate at the initial message
+    ///
+    pub fn terminated_messages(&self) -> Result<Messages<'r>> {
+        Messages::empty(self.repo)
+            .and_then(|mut messages| {
+                // terminate at this issue's initial message
+                messages.terminate_at_initial(self)?;
 
                 // configure the revwalk
-                revwalk.simplify_first_parent();
-                revwalk.set_sorting(git2::SORT_TOPOLOGICAL);
+                messages.revwalk.simplify_first_parent();
+                messages.revwalk.set_sorting(git2::SORT_TOPOLOGICAL);
 
-                Ok(revwalk)
+                Ok(messages)
             })
-            .chain_err(|| EK::CannotGetReferences(glob))
     }
 
     /// Add a new message to the issue
@@ -448,16 +474,16 @@ mod tests {
         let message_id = message.id();
 
         let mut iter1 = issue1
-            .message_revwalk()
+            .messages()
             .expect("Could not create message revwalk iterator");
-        assert_eq!(iter1.next().unwrap().unwrap(), issue1.id());
+        assert_eq!(iter1.next().unwrap().unwrap().id(), issue1.id());
         assert!(iter1.next().is_none());
 
         let mut iter2 = issue2
-            .message_revwalk()
+            .messages()
             .expect("Could not create message revwalk iterator");
-        assert_eq!(iter2.next().unwrap().unwrap(), message_id);
-        assert_eq!(iter2.next().unwrap().unwrap(), issue2.id());
+        assert_eq!(iter2.next().unwrap().unwrap().id(), message_id);
+        assert_eq!(iter2.next().unwrap().unwrap().id(), issue2.id());
         assert!(iter2.next().is_none());
     }
 

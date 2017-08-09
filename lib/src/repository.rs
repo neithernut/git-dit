@@ -78,7 +78,7 @@ pub trait RepositoryExt {
     /// This is a convenience function. It returns an iterator over messages in
     /// reverse order, only following first parents.
     ///
-    fn first_parent_revwalk(&self, id: Oid) -> Result<git2::Revwalk>;
+    fn first_parent_messages(&self, id: Oid) -> Result<iter::Messages>;
 
     /// Get an IssueMessagesIter starting at a given commit
     ///
@@ -129,7 +129,7 @@ impl RepositoryExt for git2::Repository {
     fn issue_with_message<'a>(&'a self, message: &Commit<'a>) -> Result<Issue> {
         // follow the chain of first parents towards an initial message for
         // which a head exists
-        for id in self.first_parent_revwalk(message.id())? {
+        for id in self.first_parent_messages(message.id())?.revwalk {
             let issue = self.find_issue(id?);
             if issue.is_ok() {
                 return issue
@@ -175,19 +175,19 @@ impl RepositoryExt for git2::Repository {
             })
     }
 
-    fn first_parent_revwalk(&self, id: Oid) -> Result<git2::Revwalk> {
-        self.revwalk()
-            .and_then(|mut revwalk| {
-                revwalk.push(id)?;
-                revwalk.simplify_first_parent();
-                revwalk.set_sorting(git2::SORT_TOPOLOGICAL);
-                Ok(revwalk)
+    fn first_parent_messages(&self, id: Oid) -> Result<iter::Messages> {
+        iter::Messages::empty(self)
+            .and_then(|mut messages| {
+                messages.revwalk.push(id)?;
+                messages.revwalk.simplify_first_parent();
+                messages.revwalk.set_sorting(git2::SORT_TOPOLOGICAL);
+                Ok(messages)
             })
             .chain_err(|| EK::CannotGetCommitForRev(id.to_string()))
     }
 
     fn issue_messages_iter<'a>(&'a self, commit: Commit<'a>) -> Result<iter::IssueMessagesIter<'a>> {
-        iter::IssueMessagesIter::new(self, commit)
+        self.first_parent_messages(commit.id()).map(iter::Messages::until_any_initial)
     }
 
     fn empty_tree(&self) -> Result<Tree> {
@@ -301,7 +301,7 @@ mod tests {
     }
 
     #[test]
-    fn first_parent_revwalk() {
+    fn first_parent_messages() {
         let mut testing_repo = TestingRepo::new("first_parent_revwalk");
         let repo = testing_repo.repo();
 
@@ -321,10 +321,10 @@ mod tests {
             .expect("Could not add message");
 
         let mut iter = repo
-            .first_parent_revwalk(message.id())
+            .first_parent_messages(message.id())
             .expect("Could not create first parent iterator");
-        assert_eq!(iter.next().unwrap().unwrap(), message.id());
-        assert_eq!(iter.next().unwrap().unwrap(), issue.id());
+        assert_eq!(iter.next().unwrap().unwrap().id(), message.id());
+        assert_eq!(iter.next().unwrap().unwrap().id(), issue.id());
         assert!(iter.next().is_none());
     }
 

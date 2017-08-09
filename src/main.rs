@@ -492,9 +492,7 @@ fn show_impl(matches: &clap::ArgMatches) {
             )]
         } else {
             issue
-                .message_revwalk()
-                .abort_on_err()
-                .map(|oid| repo.find_commit(oid))
+                .messages()
                 .abort_on_err()
                 .into_tree_graph()
                 .collect()
