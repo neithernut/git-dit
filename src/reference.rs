@@ -89,13 +89,13 @@ impl<'a> From<&'a str> for RemotePriorization {
 pub trait ReferrencesExt<'r> {
     /// Select the reference with the highest priority
     ///
-    fn select_ref(self, prios: RemotePriorization) -> Option<Reference<'r>>;
+    fn select_ref(self, prios: &RemotePriorization) -> Option<Reference<'r>>;
 }
 
 impl<'r, I> ReferrencesExt<'r> for I
     where I: IntoIterator<Item = Reference<'r>>,
 {
-    fn select_ref(self, prios: RemotePriorization) -> Option<Reference<'r>> {
+    fn select_ref(self, prios: &RemotePriorization) -> Option<Reference<'r>> {
         self.into_iter()
             .filter_map(|reference| prios
                 .priority_for_ref(reference.borrow())
