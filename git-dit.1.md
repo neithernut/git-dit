@@ -119,6 +119,7 @@ The following git-dit-specific configuration options are available:
 ## dit.remote-prios
 
 Comma-separated list of remotes' names, in descending order of priority.
+Defaults to "`*`".
 This option controls the prioritization of remotes.
 
 Some commands may use this option in order to select one of several available
@@ -128,7 +129,8 @@ select one of the visible "head" references for that issue.
 
 In such cases, local references will always be preferred before remote
 references are considered.
-Remotes not listed are assigned the lowest possible priority.
+Remotes not listed will be ignored. However, the special entry "`*`" will accept
+any remote.
 
 
 # WORKFLOWS
