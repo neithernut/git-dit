@@ -255,7 +255,7 @@ mod tests {
             let message = issue
                 .add_message(&sig, &sig, "Test message 4", &empty_tree, vec![&initial_message])
                 .expect("Could not add message");
-            issue.update_head(message.id()).expect("Could not update head");
+            issue.update_head(message.id(), true).expect("Could not update head");
             issues.push(issue);
             refs_to_collect.push(message.id());
         }

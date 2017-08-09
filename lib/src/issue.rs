@@ -279,11 +279,11 @@ impl<'r> Issue<'r> {
     /// The function will update the reference even if it would not be an
     /// fast-forward update.
     ///
-    pub fn update_head(&self, message: Oid) -> Result<Reference<'r>> {
+    pub fn update_head(&self, message: Oid, replace: bool) -> Result<Reference<'r>> {
         let refname = format!("refs/dit/{}/head", self.ref_part());
         let reflogmsg = format!("git-dit: set head reference of {} to {}", self, message);
         self.repo
-            .reference(&refname, message, true, &reflogmsg)
+            .reference(&refname, message, replace, &reflogmsg)
             .chain_err(|| EK::CannotSetReference(refname))
     }
 
@@ -511,7 +511,7 @@ mod tests {
         assert_eq!(issue.local_head().unwrap().target().unwrap(), issue.id());
 
         issue
-            .update_head(message.id())
+            .update_head(message.id(), true)
             .expect("Could not update head reference");
         assert_eq!(issue.local_head().unwrap().target().unwrap(), message.id());
     }
