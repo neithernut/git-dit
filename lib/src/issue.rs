@@ -197,7 +197,7 @@ impl<'r> Issue<'r> {
     /// The sorting of the underlying revwalk will be set to "topological".
     ///
     pub fn messages(&self) -> Result<Messages<'r>> {
-        Messages::empty(self.repo)
+        self.terminated_messages()
             .and_then(|mut messages| {
                 let glob = format!("**/dit/{}/**", self.ref_part());
 
@@ -207,6 +207,17 @@ impl<'r> Issue<'r> {
                     .revwalk
                     .push_glob(glob.as_ref())
                     .chain_err(|| EK::CannotGetReferences(glob))?;
+
+                Ok(messages)
+            })
+    }
+
+    /// Prepare a Messages iterator which will terminate at the initial message
+    ///
+    pub fn terminated_messages(&self) -> Result<Messages<'r>> {
+        Messages::empty(self.repo)
+            .and_then(|mut messages| {
+                // terminate at this issue's initial message
                 messages.terminate_at_initial(self)?;
 
                 // configure the revwalk
