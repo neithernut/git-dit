@@ -212,6 +212,23 @@ impl<'r> Issue<'r> {
             })
     }
 
+    /// Get Messages of the issue starting from a specific one
+    ///
+    /// The Messages iterator returned will return all first parents up to and
+    /// includingthe initial message of the issue.
+    ///
+    pub fn messages_from(&self, message: Oid) -> Result<Messages<'r>> {
+        self.terminated_messages()
+            .and_then(|mut messages| {
+                messages
+                    .revwalk
+                    .push(message)
+                    .chain_err(|| EK::CannotConstructRevwalk)?;
+
+                Ok(messages)
+            })
+    }
+
     /// Prepare a Messages iterator which will terminate at the initial message
     ///
     pub fn terminated_messages(&self) -> Result<Messages<'r>> {
