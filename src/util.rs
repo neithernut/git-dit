@@ -207,7 +207,7 @@ impl<'r> RepositoryUtil<'r> for Repository {
         let config = self
             .config()
             .chain_err(|| EK::CannotGetRepositoryConfig)?;
-        Ok(RemotePriorization::from(config.get_str("dit.remote-prios").unwrap_or_default()))
+        Ok(RemotePriorization::from(config.get_str("dit.remote-prios").unwrap_or("*")))
     }
 }
 
