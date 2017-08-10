@@ -182,7 +182,7 @@ impl RepositoryExt for git2::Repository {
             .chain_err(|| EK::CannotCreateMessage)
             .map(|id| Issue::new(self, id))
             .and_then(|issue| {
-                issue.update_head(issue.id())?;
+                issue.update_head(issue.id(), true)?;
                 Ok(issue)
             })
     }

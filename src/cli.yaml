@@ -237,6 +237,55 @@ subcommands:
                 multiple: true
                 required: false
 
+    - mirror:
+        about: Clone issue references from remotes
+        version: 0.2.1
+        authors:
+            - Matthias Beyer <mail@beyermatthias.de>
+            - Julian Ganz <neither@nut.email>
+        groups:
+            - refs:
+                required: true
+                multiple: true
+                args:
+                    - clone-head
+                    - update-head
+                    - clone-leaves
+        args:
+            - clone-head:
+                short: H
+                long: head
+                help: >
+                        Clone the head reference if no local head exists for
+                        the issue
+                multiple: false
+                takes_value: false
+            - update-head:
+                short: u
+                long: update-head
+                help: Clone the head reference overriding existing head refs
+                multiple: false
+                takes_value: false
+                conflicts_with:
+                    - clone-head
+            - clone-leaves:
+                short: l
+                long: leaves
+                help: Create local leaves for the issue
+                multiple: false
+                takes_value: false
+            - remote:
+                short: r
+                long: remote
+                help: Only clone refs from the remote specified
+                multiple: false
+                takes_value: true
+            - issue:
+                help: Issue for which to clone refs
+                index: 1
+                required: false
+                multiple: true
+
     - new:
         about: Create a new bug report
         version: 0.2.1

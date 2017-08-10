@@ -18,7 +18,7 @@ use libgitdit::message::LineIteratorExt;
 use libgitdit::message::trailer::Trailer;
 use libgitdit::{Issue, RepositoryExt};
 
-use abort::IteratorExt;
+use abort::{Abortable, IteratorExt};
 use error::*;
 use error::ErrorKind as EK;
 use programs::run_editor;
@@ -61,6 +61,12 @@ pub trait RepositoryUtil<'r> {
     /// This function parses the issue specified via the `"issue"` field.
     ///
     fn cli_issue(&'r self, matches: &ArgMatches) -> Result<Issue<'r>>;
+
+    /// Get the issues specified on the command line
+    ///
+    /// This function parses the issues specified via the `"issue"` field.
+    ///
+    fn cli_issues(&'r self, matches: &ArgMatches) -> Option<Vec<Issue<'r>>>;
 
     /// Retrieve the references from the command line
     ///
@@ -128,6 +134,15 @@ impl<'r> RepositoryUtil<'r> for Repository {
                    Error::from_kind(EK::ParameterMissing("issue".to_owned()))
                })
                .and_then(|value| self.value_to_issue(value))
+    }
+
+    fn cli_issues(&'r self, matches: &ArgMatches) -> Option<Vec<Issue<'r>>> {
+        matches
+            .values_of("issue")
+            .map(|values| values
+                .map(|issue| self.value_to_issue(issue).unwrap_or_abort())
+                .collect()
+            )
     }
 
     fn cli_references(&'r self, matches: &ArgMatches) -> Result<Vec<Commit<'r>>> {
