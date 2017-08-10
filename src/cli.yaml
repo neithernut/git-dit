@@ -231,6 +231,11 @@ subcommands:
                 help: Abbreviate issue hash
                 multiple: false
                 takes_value: false
+            - filter:
+                help: Filter specification
+                index: 1
+                multiple: true
+                required: false
 
     - new:
         about: Create a new bug report
