@@ -170,8 +170,12 @@ impl<'r, I, J> CollectableRefs<'r, I, J>
 
             // remote refs
             if self.consider_remote_refs {
-                for item in issue.local_refs(IssueRefType::Leaf)? {
-                    refs_to_assess.push(item?);
+                for item in issue.remote_refs(IssueRefType::Any)? {
+                    messages.push(item?
+                        .peel(git2::ObjectType::Commit)
+                        .chain_err(|| EK::CannotGetCommit)?
+                        .id()
+                    )?;
                 }
             }
         }
