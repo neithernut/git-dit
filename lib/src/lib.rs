@@ -40,11 +40,14 @@ extern crate git2;
 extern crate regex;
 
 pub mod error;
+pub mod gc;
 pub mod issue;
 pub mod iter;
 pub mod message;
 pub mod remote;
 pub mod repository;
+
+mod utils;
 
 #[cfg(test)]
 mod test_utils;
