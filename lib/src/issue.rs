@@ -316,6 +316,14 @@ impl<'r> fmt::Display for Issue<'r> {
     }
 }
 
+impl<'r> PartialEq for Issue<'r> {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
+}
+
+impl<'r> Eq for Issue<'r> {}
+
 
 
 
