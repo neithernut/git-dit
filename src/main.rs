@@ -364,7 +364,7 @@ fn mirror_impl(matches: &clap::ArgMatches) {
         .unwrap_or_else(|| repo.remote_priorization().unwrap_or_abort());
     let issues = repo
         .cli_issues(matches)
-        .unwrap_or_else(|| repo.issues().unwrap_or_abort().into_iter().collect());
+        .unwrap_or_else(|| repo.issues().unwrap_or_abort());
 
     for issue in issues {
         if clone_head || update_head {
@@ -496,7 +496,7 @@ fn push_impl(matches: &clap::ArgMatches) {
     // accumulate the refspecs to push
     let refspecs : Vec<String> = repo
         .cli_issues(matches)
-        .unwrap_or_else(|| repo.issues().unwrap_or_abort().into_iter().collect())
+        .unwrap_or_else(|| repo.issues().unwrap_or_abort())
         .into_iter()
         .map(|issue| issue.local_refs(IssueRefType::Any))
         .abort_on_err()
