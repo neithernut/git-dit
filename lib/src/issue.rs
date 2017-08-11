@@ -14,6 +14,7 @@
 
 use git2::{self, Commit, Oid, Reference, References};
 use std::fmt;
+use std::hash;
 use std::result::Result as RResult;
 
 use error::*;
@@ -323,6 +324,14 @@ impl<'r> PartialEq for Issue<'r> {
 }
 
 impl<'r> Eq for Issue<'r> {}
+
+impl<'r> hash::Hash for Issue<'r> {
+    fn hash<H>(&self, state: &mut H)
+        where H: hash::Hasher
+    {
+        self.id.hash(state);
+    }
+}
 
 
 
