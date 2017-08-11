@@ -678,15 +678,20 @@ fn show_impl(matches: &clap::ArgMatches) {
 /// tag subcommand implementation
 ///
 fn tag_impl(matches: &clap::ArgMatches) {
+    use reference::ReferrencesExt;
+
     let repo = util::open_dit_repo().unwrap_or_abort();
+    let prios = repo.remote_priorization().unwrap_or_abort();
 
     // get the head for the issue to tag
-    let mut issue_head = repo
+    let issue = repo
         .cli_issue(matches)
-        .unwrap_or_abort()
-        .local_head()
         .unwrap_or_abort();
-    let mut head_commit = issue_head
+    let mut head_commit = issue
+        .heads()
+        .abort_on_err()
+        .select_ref(&prios)
+        .unwrap() // TODO: abort gracefully
         .peel(git2::ObjectType::Commit)
         .unwrap_or_abort()
         .into_commit()
@@ -731,8 +736,7 @@ fn tag_impl(matches: &clap::ArgMatches) {
         .unwrap_or_abort();
 
     // update the head reference
-    issue_head.set_target(new, "Issue head updated by git-dit-tag")
-              .unwrap_or_abort();
+    issue.update_head(new, true).unwrap_or_abort();
 }
 
 
