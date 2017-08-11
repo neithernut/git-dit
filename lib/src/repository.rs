@@ -65,7 +65,7 @@ pub trait RepositoryExt {
     /// prefix provided (e.g. all issues for which refs exist under
     /// `<prefix>/dit/`). Provide "refs" as the prefix to get only local issues.
     ///
-    fn issues_with_prefix(&self, prefix: &str) -> Result<iter::HeadRefsToIssuesIter>;
+    fn issues_with_prefix(&self, prefix: &str) -> Result<UniqueIssues>;
 
     /// Get all issue hashes
     ///
@@ -156,11 +156,12 @@ impl RepositoryExt for git2::Repository {
         Err(Error::from_kind(EK::NoTreeInitFound(message.id())))
     }
 
-    fn issues_with_prefix(&self, prefix: &str) -> Result<iter::HeadRefsToIssuesIter> {
+    fn issues_with_prefix(&self, prefix: &str) -> Result<UniqueIssues> {
         let glob = format!("{}/dit/**/head", prefix);
         self.references_glob(&glob)
             .chain_err(|| EK::CannotGetReferences(glob))
-            .map(|refs| iter::HeadRefsToIssuesIter::new(self, refs))
+            .map(|refs| iter::HeadRefsToIssuesIter::new(self, refs))?
+            .collect_result()
     }
 
     fn issues(&self) -> Result<UniqueIssues> {
