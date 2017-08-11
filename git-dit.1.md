@@ -41,52 +41,52 @@ and low level ("plumbing") commands.
 # HIGH LEVEL COMMANDS (PORCELAIN)
 
 ## git-dit-new
-    Add a new issue.
+Add a new issue.
 
 ## git-dit-reply
-    Reply to an existing issue with a new message.
+Reply to an existing issue with a new message.
 
 ## git-dit-show
-    Show the contents (messages) of an issue.
+Show the contents (messages) of an issue.
 
 ## git-dit-list
-    List all issues known to git-dit in the current directory.
+List all issues known to git-dit in the current directory.
 
 ## git-dit-tag
-    Show or modify meta-data of issues.
+Show or modify meta-data of issues.
 
 ## git-dit-fetch
-    Fetch issues from a remote repository.
+Fetch issues from a remote repository.
 
 ## git-dit-push
-    Push issues to a remote repository.
+Push issues to a remote repository.
 
 ## git-dit-mirror
-    Mirror remote references as local ones.
+Mirror remote references as local ones.
 
 ## git-dit-gc
-    Collect and delete references which are no longer required.
+Collect and delete references which are no longer required.
 
 
 # LOW LEVEL COMMANDS (PLUMBING)
 
 ## git-dit-check-message
-    Check whether the format of an issue message is valid.
+Check whether the format of an issue message is valid.
 
 ## git-dit-check-refname
-    Check whether a reference is a dit reference of a known type, by name.
+Check whether a reference is a dit reference of a known type, by name.
 
 ## git-dit-create-message
-    Create a bare message.
+Create a bare message.
 
 ## git-dit-find-tree-init-hash
-    Find the issue hash for a message's hash.
+Find the issue hash for a message's hash.
 
 ## git-dit-get-issue-tree-init-hashes
-    List all known issue hashes.
+List all known issue hashes.
 
 ## git-dit-get-issue-metadata
-    Extract meta-data from a thread in an issue.
+Extract meta-data from a thread in an issue.
 
 
 # DISCUSSION
