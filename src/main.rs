@@ -192,7 +192,7 @@ fn get_issue_metadata(matches: &clap::ArgMatches) {
 fn get_issue_tree_init_hashes(_: &clap::ArgMatches) {
     let repo = util::open_dit_repo().unwrap_or_abort();
 
-    io::stdout().consume_lines(repo.issues().abort_on_err()).unwrap_or_abort();
+    io::stdout().consume_lines(repo.issues().unwrap_or_abort()).unwrap_or_abort();
 }
 
 
@@ -213,7 +213,7 @@ fn fetch_impl(matches: &clap::ArgMatches) {
         // fetch a specific list of issues
         let iter = issues.map(|issue| repo.value_to_issue(issue)).abort_on_err();
         if matches.is_present("known") {
-            iter.chain(repo.issues().abort_on_err())
+            iter.chain(repo.issues().unwrap_or_abort())
                 .filter_map(|issue| remote.issue_refspec(issue))
                 .collect()
         } else {
@@ -291,7 +291,8 @@ fn list_impl(matches: &clap::ArgMatches) {
     // get initial commits
     let mut issues : Vec<Issue> = repo
         .issues()
-        .abort_on_err()
+        .unwrap_or_abort()
+        .into_iter()
         .filter(|issue| filter.filter(issue))
         .collect();
 
@@ -363,7 +364,7 @@ fn mirror_impl(matches: &clap::ArgMatches) {
         .unwrap_or_else(|| repo.remote_priorization().unwrap_or_abort());
     let issues = repo
         .cli_issues(matches)
-        .unwrap_or_else(|| repo.issues().abort_on_err().collect());
+        .unwrap_or_else(|| repo.issues().unwrap_or_abort().into_iter().collect());
 
     for issue in issues {
         if clone_head || update_head {
@@ -495,7 +496,7 @@ fn push_impl(matches: &clap::ArgMatches) {
     // accumulate the refspecs to push
     let refspecs : Vec<String> = repo
         .cli_issues(matches)
-        .unwrap_or_else(|| repo.issues().abort_on_err().collect())
+        .unwrap_or_else(|| repo.issues().unwrap_or_abort().into_iter().collect())
         .into_iter()
         .map(|issue| issue.local_refs(IssueRefType::Any))
         .abort_on_err()
