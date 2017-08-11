@@ -14,6 +14,7 @@
 //!
 
 use git2::{self, Commit, Oid, Tree};
+use std::collections::HashSet;
 
 use gc;
 use issue::Issue;
@@ -23,6 +24,10 @@ use utils::ResultIterExt;
 use error::*;
 use error::ErrorKind as EK;
 
+
+/// Set of unique issues
+///
+pub type UniqueIssues<'a> = HashSet<Issue<'a>>;
 
 /// Convenience alias for easier use of the CollectableRefs type
 ///
