@@ -201,7 +201,7 @@ impl RepositoryExt for git2::Repository {
     fn collectable_refs<'a>(&'a self) -> Result<CollectableRefs<'a>> {
         self.issues()?
             .collect_result()
-            .map(|issues| gc::CollectableRefs::new(self, issues))
+            .map(|issues: Vec<_>| gc::CollectableRefs::new(self, issues))
     }
 
     fn issue_messages_iter<'a>(&'a self, commit: Commit<'a>) -> Result<iter::IssueMessagesIter<'a>> {
