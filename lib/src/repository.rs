@@ -14,6 +14,7 @@
 //!
 
 use git2::{self, Commit, Oid, Tree};
+use std::collections::HashSet;
 
 use gc;
 use issue::Issue;
@@ -24,9 +25,13 @@ use error::*;
 use error::ErrorKind as EK;
 
 
+/// Set of unique issues
+///
+pub type UniqueIssues<'a> = HashSet<Issue<'a>>;
+
 /// Convenience alias for easier use of the CollectableRefs type
 ///
-type CollectableRefs<'a> = gc::CollectableRefs<'a, <Vec<Issue<'a>> as IntoIterator>::IntoIter>;
+type CollectableRefs<'a> = gc::CollectableRefs<'a, <UniqueIssues<'a> as IntoIterator>::IntoIter>;
 
 
 /// Extension trait for Repositories
@@ -60,13 +65,13 @@ pub trait RepositoryExt {
     /// prefix provided (e.g. all issues for which refs exist under
     /// `<prefix>/dit/`). Provide "refs" as the prefix to get only local issues.
     ///
-    fn issues_with_prefix(&self, prefix: &str) -> Result<iter::HeadRefsToIssuesIter>;
+    fn issues_with_prefix(&self, prefix: &str) -> Result<UniqueIssues>;
 
     /// Get all issue hashes
     ///
     /// This function returns all known issues known to the DIT repo.
     ///
-    fn issues(&self) -> Result<iter::HeadRefsToIssuesIter>;
+    fn issues(&self) -> Result<UniqueIssues>;
 
     /// Create a new issue with an initial message
     ///
@@ -151,18 +156,20 @@ impl RepositoryExt for git2::Repository {
         Err(Error::from_kind(EK::NoTreeInitFound(message.id())))
     }
 
-    fn issues_with_prefix(&self, prefix: &str) -> Result<iter::HeadRefsToIssuesIter> {
+    fn issues_with_prefix(&self, prefix: &str) -> Result<UniqueIssues> {
         let glob = format!("{}/dit/**/head", prefix);
         self.references_glob(&glob)
             .chain_err(|| EK::CannotGetReferences(glob))
-            .map(|refs| iter::HeadRefsToIssuesIter::new(self, refs))
+            .map(|refs| iter::HeadRefsToIssuesIter::new(self, refs))?
+            .collect_result()
     }
 
-    fn issues(&self) -> Result<iter::HeadRefsToIssuesIter> {
+    fn issues(&self) -> Result<UniqueIssues> {
         let glob = "**/dit/**/head";
         self.references_glob(glob)
             .chain_err(|| EK::CannotGetReferences(glob.to_owned()))
-            .map(|refs| iter::HeadRefsToIssuesIter::new(self, refs))
+            .map(|refs| iter::HeadRefsToIssuesIter::new(self, refs))?
+            .collect_result()
     }
 
     fn create_issue<'a, A, I, J>(&self,
@@ -199,8 +206,7 @@ impl RepositoryExt for git2::Repository {
     }
 
     fn collectable_refs<'a>(&'a self) -> Result<CollectableRefs<'a>> {
-        self.issues()?
-            .collect_result()
+        self.issues()
             .map(|issues| gc::CollectableRefs::new(self, issues))
     }
 
@@ -309,10 +315,10 @@ mod tests {
 
         let mut issues = repo
             .issues()
-            .expect("Could not retrieve issues");
+            .expect("Could not retrieve issues")
+            .into_iter();
         let retrieved_issue = issues
             .next()
-            .expect("Could not find issue")
             .expect("Could not retrieve issue");
         assert_eq!(retrieved_issue.id(), issue.id());
         assert!(issues.next().is_none());

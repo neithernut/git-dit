@@ -17,21 +17,26 @@ use std::result::Result as RResult;
 
 /// Trait for pre-accumulating results
 pub trait ResultIterExt<I, E> : Sized {
-    fn collect_result(self) -> RResult<Vec<I>, E> {
-        let mut res = Vec::new();
+    fn collect_result<T>(self) -> RResult<T, E>
+        where T: Extend<I> + Default
+    {
+        let mut res = T::default();
         self.collect_result_into(&mut res)?;
         Ok(res)
     }
 
-    fn collect_result_into(self, target: &mut Vec<I>) -> RResult<(), E>;
+    fn collect_result_into<T>(self, target: &mut T) -> RResult<(), E>
+        where T: Extend<I> + Default;
 }
 
 impl<I, E, J> ResultIterExt<I, E> for J
     where J: Iterator<Item = RResult<I, E>>
 {
-    fn collect_result_into(self, target: &mut Vec<I>) -> RResult<(), E> {
+    fn collect_result_into<T>(self, target: &mut T) -> RResult<(), E>
+        where T: Extend<I> + Default
+    {
         for item in self {
-            target.push(item?);
+            target.extend(Some(item?));
         }
         Ok(())
     }

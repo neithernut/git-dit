@@ -16,6 +16,7 @@ use std::str::FromStr;
 
 use libgitdit::message::LineIteratorExt;
 use libgitdit::message::trailer::Trailer;
+use libgitdit::repository::UniqueIssues;
 use libgitdit::{Issue, RepositoryExt};
 
 use abort::{Abortable, IteratorExt};
@@ -66,7 +67,7 @@ pub trait RepositoryUtil<'r> {
     ///
     /// This function parses the issues specified via the `"issue"` field.
     ///
-    fn cli_issues(&'r self, matches: &ArgMatches) -> Option<Vec<Issue<'r>>>;
+    fn cli_issues(&'r self, matches: &ArgMatches) -> Option<UniqueIssues<'r>>;
 
     /// Retrieve the references from the command line
     ///
@@ -136,7 +137,7 @@ impl<'r> RepositoryUtil<'r> for Repository {
                .and_then(|value| self.value_to_issue(value))
     }
 
-    fn cli_issues(&'r self, matches: &ArgMatches) -> Option<Vec<Issue<'r>>> {
+    fn cli_issues(&'r self, matches: &ArgMatches) -> Option<UniqueIssues<'r>> {
         matches
             .values_of("issue")
             .map(|values| values
