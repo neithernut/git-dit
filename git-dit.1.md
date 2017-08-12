@@ -350,5 +350,36 @@ with the link between "H" and "G" being only an informal reference.
 Note that the maintainer may now also incorporate changes from the message "F"
 in a similar way.
 
+## Getting rid of unnecessary references
+
+Git-dit creates s reference for each new leaf.
+If a user replies to a leaf, the associated reference is no longer required and
+may be removed.
+For this purpose, git-dit offers the "gc" subcommand.
+
+    git dit gc
+
+removes all leaf references referring to messages which are otherwise backed by
+local dit references.
+
+    git dit gc --consider-remote
+
+also causes collection of leaf references which are backed by remote references.
+This is especially useful for cleaning up after pushing a leaf to a remote.
+
+    git dit gc --consider-remote --collect-heads
+
+also causes collection of local head references referring to messages which are
+backed by remote heads.
+This is useful for maintainers and moderators.
+
+Users may choose to collect dit-references via the `pre-auto-gc` hook of their
+git-repository.
+However, this may naturally also collect local references which are kept on
+purpose, e.g. via the "mirror" subcommand.
+
+Similarly, maintainers of remote repositories may choose to invoke git-dit-gc
+from `post-receive` in an asynchronous way.
+
 # SEE ALSO
 
