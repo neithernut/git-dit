@@ -181,6 +181,17 @@ order to accept and share change requests.
 Developers can add each of those issue repositories as remotes, viewing and
 interacting with all of the issues from different customers.
 
+Transferring messages to a remote repository (and thus reporting issues)
+generally requires push-access to the remote repository.
+Usually, only developers have push-access to upstream repositories, because of
+obvious reasons.
+However, it is possible to construct policies which allow public push-access
+for issue repositories and prevent vandalism to a reasonable extend at the same
+time.
+The example server-side `update` hook located in the `example/hooks` directory
+illustrates such a policy as well as techniques which may be used for
+implementation.
+
 ## Retrieving issues from a remote repository
 
 Naturally, contributors as well as maintainers will want to retrieve issues from
