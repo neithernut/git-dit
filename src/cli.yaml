@@ -196,7 +196,6 @@ subcommands:
                 multiple: false
                 takes_value: false
             - collect-heads:
-                short: h
                 long: collect-heads
                 help: Also collect local heads
                 multiple: false
