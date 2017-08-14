@@ -21,7 +21,7 @@ use libgitdit::{Issue, RepositoryExt};
 
 use error::*;
 use error::ErrorKind as EK;
-use reference::RemotePriorization;
+use gitext::RemotePriorization;
 use system::{Abortable, IteratorExt};
 
 /// Open the DIT repo

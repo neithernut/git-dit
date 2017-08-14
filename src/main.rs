@@ -15,11 +15,10 @@ extern crate chrono;
 extern crate git2;
 extern crate libgitdit;
 
-mod callbacks;
 mod error;
 mod filters;
+mod gitext;
 mod msgtree;
-mod reference;
 mod system;
 mod util;
 
@@ -228,7 +227,7 @@ fn fetch_impl(matches: &clap::ArgMatches) {
     } else {
         git2::FetchPrune::Unspecified
     });
-    fetch_options.remote_callbacks(callbacks::callbacks());
+    fetch_options.remote_callbacks(gitext::callbacks());
 
     let refspec_refs : Vec<&str> = refspecs.iter().map(String::as_str).collect();
     remote.fetch(refspec_refs.as_ref(), Some(&mut fetch_options), None)
@@ -346,7 +345,7 @@ fn list_impl(matches: &clap::ArgMatches) {
 ///
 fn mirror_impl(matches: &clap::ArgMatches) {
     use std::collections::HashSet;
-    use reference::{RemotePriorization, ReferrenceExt, ReferrencesExt};
+    use gitext::{RemotePriorization, ReferrenceExt, ReferrencesExt};
 
     let repo = util::open_dit_repo().unwrap_or_abort();
 
@@ -504,7 +503,7 @@ fn push_impl(matches: &clap::ArgMatches) {
 
     // set the options for the push
     let mut fetch_options = git2::PushOptions::new();
-    fetch_options.remote_callbacks(callbacks::callbacks());
+    fetch_options.remote_callbacks(gitext::callbacks());
 
     let refspec_refs : Vec<&str> = refspecs.iter().map(String::as_str).collect();
     remote.push(refspec_refs.as_ref(), Some(&mut fetch_options))
@@ -676,7 +675,7 @@ fn show_impl(matches: &clap::ArgMatches) {
 /// tag subcommand implementation
 ///
 fn tag_impl(matches: &clap::ArgMatches) {
-    use reference::ReferrencesExt;
+    use gitext::ReferrencesExt;
 
     let repo = util::open_dit_repo().unwrap_or_abort();
     let prios = repo.remote_priorization().unwrap_or_abort();
