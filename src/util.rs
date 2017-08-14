@@ -19,11 +19,10 @@ use libgitdit::repository::UniqueIssues;
 use libgitdit::trailer::Trailer;
 use libgitdit::{Issue, RepositoryExt};
 
-use abort::{Abortable, IteratorExt};
 use error::*;
 use error::ErrorKind as EK;
-use programs::run_editor;
 use reference::RemotePriorization;
+use system::{Abortable, IteratorExt};
 
 /// Open the DIT repo
 ///
@@ -153,6 +152,8 @@ impl<'r> RepositoryUtil<'r> for Repository {
     }
 
     fn get_commit_msg(&self, path: PathBuf) -> Result<Vec<String>> {
+        use system::programs::run_editor;
+
         // let the user write the message
         if !run_editor(self.config().chain_err(|| EK::CannotGetRepositoryConfig)?, &path)?
             .wait().chain_err(|| EK::WrappedIOError)?

@@ -15,16 +15,13 @@ extern crate chrono;
 extern crate git2;
 extern crate libgitdit;
 
-mod abort;
 mod callbacks;
 mod error;
 mod filters;
-mod logger;
 mod msgtree;
-mod programs;
 mod reference;
+mod system;
 mod util;
-mod write;
 
 use chrono::{FixedOffset, TimeZone};
 use clap::App;
@@ -41,12 +38,11 @@ use std::io::{self, Read, Write};
 use std::process::Command;
 use std::str::FromStr;
 
-use abort::{Abortable, IteratorExt};
 use error::*;
 use error::ErrorKind as EK;
 use msgtree::{IntoTreeGraph, TreeGraphElem, TreeGraphElemLine};
 use util::{RepositoryUtil, message_from_args};
-use write::WriteExt;
+use system::{Abortable, IteratorExt, WriteExt};
 
 
 // Plumbing subcommand implementations
@@ -313,7 +309,7 @@ fn list_impl(matches: &clap::ArgMatches) {
     let id_len = repo.abbreviation_length(matches).unwrap_or_abort();
 
     // spawn a pager
-    let mut pager = programs::pager(repo.config().unwrap_or_abort())
+    let mut pager = system::programs::pager(repo.config().unwrap_or_abort())
         .unwrap_or_abort();
 
     {
@@ -666,7 +662,7 @@ fn show_impl(matches: &clap::ArgMatches) {
         .map(|line| format!("{} {}", line.0, line.1));
 
     // spawn a pager and write the graph
-    let mut pager = programs::pager(repo.config().unwrap_or_abort())
+    let mut pager = system::programs::pager(repo.config().unwrap_or_abort())
         .unwrap_or_abort();
     pager.stdin.as_mut().unwrap().consume_lines(graph).unwrap_or_abort();
 
@@ -770,7 +766,7 @@ fn main() {
     let yaml    = load_yaml!("cli.yaml");
     let matches = App::from_yaml(yaml).get_matches();
 
-    if let Err(err) = logger::Logger::init(LogLevel::Warn) {
+    if let Err(err) = system::Logger::init(LogLevel::Warn) {
         writeln!(io::stderr(), "Could not initialize logger: {}", err).ok();
     }
 

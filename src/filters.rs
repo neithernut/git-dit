@@ -12,10 +12,10 @@ use libgitdit::trailer::{TrailerValue, spec};
 use libgitdit::{Issue, Message};
 use std::str::FromStr;
 
-use abort::{Abortable, IteratorExt};
 use error::*;
 use error::ErrorKind as EK;
 use reference::{self, ReferrencesExt};
+use system::{Abortable, IteratorExt};
 
 
 /// Filter specification
