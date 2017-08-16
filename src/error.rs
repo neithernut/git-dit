@@ -14,11 +14,6 @@ error_chain! {
     }
 
     errors {
-        CannotOpenRepository {
-            description("Cannot open repository")
-            display("Cannot open repository")
-        }
-
         CannotGetRepositoryConfig {
             description("Cannot get repository config")
             display("Cannot get repository config")

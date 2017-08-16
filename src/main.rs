@@ -92,7 +92,7 @@ fn check_refname(matches: &clap::ArgMatches) {
 /// create-message subcommand implementation
 ///
 fn create_message(matches: &clap::ArgMatches) {
-    let repo = util::open_dit_repo().unwrap_or_abort();
+    let repo = util::open_dit_repo();
 
     let issue = match matches.value_of("issue") {
         Some(i) => Some(repo.value_to_issue(i).unwrap_or_abort()),
@@ -133,7 +133,7 @@ fn create_message(matches: &clap::ArgMatches) {
 /// find-tree-init-hash subcommand implementation
 ///
 fn find_tree_init_hash(matches: &clap::ArgMatches) {
-    let repo = util::open_dit_repo().unwrap_or_abort();
+    let repo = util::open_dit_repo();
 
     // note: commit is always present since it is a required parameter
     let commit = repo
@@ -151,7 +151,7 @@ fn find_tree_init_hash(matches: &clap::ArgMatches) {
 /// get-issue-metadata subcommand implementation
 ///
 fn get_issue_metadata(matches: &clap::ArgMatches) {
-    let repo = util::open_dit_repo().unwrap_or_abort();
+    let repo = util::open_dit_repo();
 
     // note: "head" is always present since it is a required parameter
     let head = repo
@@ -186,7 +186,7 @@ fn get_issue_metadata(matches: &clap::ArgMatches) {
 /// find-tree-init-hash subcommand implementation
 ///
 fn get_issue_tree_init_hashes(_: &clap::ArgMatches) {
-    let repo = util::open_dit_repo().unwrap_or_abort();
+    let repo = util::open_dit_repo();
 
     io::stdout().consume_lines(repo.issues().unwrap_or_abort()).unwrap_or_abort();
 }
@@ -197,7 +197,7 @@ fn get_issue_tree_init_hashes(_: &clap::ArgMatches) {
 /// fetch subcommand implementation
 ///
 fn fetch_impl(matches: &clap::ArgMatches) {
-    let repo = util::open_dit_repo().unwrap_or_abort();
+    let repo = util::open_dit_repo();
 
     // note: "remote" is always present since it is a required parameter
     let mut remote = repo
@@ -240,7 +240,7 @@ fn fetch_impl(matches: &clap::ArgMatches) {
 fn gc_impl(matches: &clap::ArgMatches) {
     use libgitdit::gc::{ReferenceCollectionSpec, ReferenceCollector};
 
-    let repo = util::open_dit_repo().unwrap_or_abort();
+    let repo = util::open_dit_repo();
 
     let collect_heads = if matches.is_present("collect-heads") {
         ReferenceCollectionSpec::BackedByRemoteHead
@@ -272,7 +272,7 @@ fn gc_impl(matches: &clap::ArgMatches) {
 fn list_impl(matches: &clap::ArgMatches) {
     use filters::MetadataFilter;
 
-    let repo = util::open_dit_repo().unwrap_or_abort();
+    let repo = util::open_dit_repo();
     let remote_prios = repo.remote_priorization().unwrap_or_abort();
 
     // construct filter
@@ -347,7 +347,7 @@ fn mirror_impl(matches: &clap::ArgMatches) {
     use std::collections::HashSet;
     use gitext::{RemotePriorization, ReferrenceExt, ReferrencesExt};
 
-    let repo = util::open_dit_repo().unwrap_or_abort();
+    let repo = util::open_dit_repo();
 
     // retrieve the options and flags
     let remote = matches.value_of("remote");
@@ -444,7 +444,7 @@ fn mirror_impl(matches: &clap::ArgMatches) {
 /// new subcommand implementation
 ///
 fn new_impl(matches: &clap::ArgMatches) {
-    let repo = util::open_dit_repo().unwrap_or_abort();
+    let repo = util::open_dit_repo();
 
     let sig = repo.signature().unwrap_or_abort();
 
@@ -484,7 +484,7 @@ fn new_impl(matches: &clap::ArgMatches) {
 /// push subcommand implementation
 ///
 fn push_impl(matches: &clap::ArgMatches) {
-    let repo = util::open_dit_repo().unwrap_or_abort();
+    let repo = util::open_dit_repo();
 
     // note: "remote" is always present since it is a required parameter
     let mut remote = repo.find_remote(matches.value_of("remote").unwrap()).unwrap_or_abort();
@@ -514,7 +514,7 @@ fn push_impl(matches: &clap::ArgMatches) {
 /// reply subcommand implementation
 ///
 fn reply_impl(matches: &clap::ArgMatches) {
-    let repo = util::open_dit_repo().unwrap_or_abort();
+    let repo = util::open_dit_repo();
 
     let sig = repo.signature().unwrap_or_abort();
 
@@ -589,7 +589,7 @@ fn reply_impl(matches: &clap::ArgMatches) {
 /// show subcommand implementation
 ///
 fn show_impl(matches: &clap::ArgMatches) {
-    let repo = util::open_dit_repo().unwrap_or_abort();
+    let repo = util::open_dit_repo();
 
     let id_len = repo.abbreviation_length(matches).unwrap_or_abort();
 
@@ -677,7 +677,7 @@ fn show_impl(matches: &clap::ArgMatches) {
 fn tag_impl(matches: &clap::ArgMatches) {
     use gitext::ReferrencesExt;
 
-    let repo = util::open_dit_repo().unwrap_or_abort();
+    let repo = util::open_dit_repo();
     let prios = repo.remote_priorization().unwrap_or_abort();
 
     // get the head for the issue to tag

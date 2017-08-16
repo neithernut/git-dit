@@ -29,9 +29,9 @@ use system::{Abortable, IteratorExt};
 /// Opens the DIT repo corresponding to the current one honouring the user
 /// configuration.
 ///
-pub fn open_dit_repo() -> Result<Repository> {
+pub fn open_dit_repo() -> Repository {
     // TODO: access the config and maybe return another repo instead
-    Repository::open_from_env().chain_err(|| EK::CannotOpenRepository)
+    Repository::open_from_env().unwrap_or_abort()
 }
 
 
