@@ -37,8 +37,6 @@ use std::io::{self, Read, Write};
 use std::process::Command;
 use std::str::FromStr;
 
-use error::*;
-use error::ErrorKind as EK;
 use msgtree::{IntoTreeGraph, TreeGraphElem, TreeGraphElemLine};
 use util::{RepositoryUtil, message_from_args};
 use system::{Abortable, IteratorExt, WriteExt};
