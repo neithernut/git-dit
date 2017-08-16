@@ -94,10 +94,7 @@ fn check_refname(matches: &clap::ArgMatches) {
 fn create_message(matches: &clap::ArgMatches) {
     let repo = util::open_dit_repo();
 
-    let issue = match matches.value_of("issue") {
-        Some(i) => Some(repo.value_to_issue(i).unwrap_or_abort()),
-        None    => None,
-    };
+    let issue = repo.cli_issue(matches);
     let sig = repo.signature().unwrap_or_abort();
 
     // Note: The list of parents must live long enough to back the references we
