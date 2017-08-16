@@ -489,6 +489,7 @@ subcommands:
                 help: Issue hash
                 index: 1
                 multiple: false
+                required: true
             - list:
                 short: l
                 long: list
