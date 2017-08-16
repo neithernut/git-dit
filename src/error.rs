@@ -24,11 +24,6 @@ error_chain! {
             display("IO Error")
         }
 
-        WrappedGitDitError {
-            description("Error in libgitdit")
-            display("Error in libgitdit")
-        }
-
         ProgramError(program_name: String) {
             description("Could not find some configuration or ENV variable specifying a program")
             display("Could not find {} configuration or ENV variable", program_name)
