@@ -454,7 +454,7 @@ fn new_impl(matches: &clap::ArgMatches) {
             file.flush().unwrap_or_abort();
         }
 
-        repo.get_commit_msg(path).unwrap_or_abort()
+        repo.get_commit_msg(path)
     }.into_iter().collect_string();
 
     // commit the message
@@ -558,7 +558,7 @@ fn reply_impl(matches: &clap::ArgMatches) {
             file.flush().unwrap_or_abort();
         }
 
-        repo.get_commit_msg(path).unwrap_or_abort()
+        repo.get_commit_msg(path)
     }.into_iter().collect_string();
 
     // construct a vector holding all parents

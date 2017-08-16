@@ -22,7 +22,7 @@ use libgitdit::{Issue, RepositoryExt};
 use error::*;
 use error::ErrorKind as EK;
 use gitext::RemotePriorization;
-use system::{Abortable, IteratorExt};
+use system::{Abortable, IteratorExt, LoggableError};
 
 /// Open the DIT repo
 ///
@@ -79,7 +79,7 @@ pub trait RepositoryUtil<'r> {
     /// Note: the pathbuf is consumed since we assume that the fill will not be
     ///       used after the commit message is read back.
     ///
-    fn get_commit_msg(&self, path: PathBuf) -> Result<Vec<String>>;
+    fn get_commit_msg(&self, path: PathBuf) -> Vec<String>;
 
     /// Retrieve metadata from command line arguments
     ///
@@ -131,30 +131,34 @@ impl<'r> RepositoryUtil<'r> for Repository {
             .unwrap_or_default()
     }
 
-    fn get_commit_msg(&self, path: PathBuf) -> Result<Vec<String>> {
+    fn get_commit_msg(&self, path: PathBuf) -> Vec<String> {
         use system::programs::run_editor;
 
         // let the user write the message
-        if !run_editor(self.config().chain_err(|| EK::CannotGetRepositoryConfig)?, &path)?
-            .wait().chain_err(|| EK::WrappedIOError)?
+        if !run_editor(self.config().unwrap_or_abort(), &path)
+            .unwrap_or_abort()
+            .wait()
+            .unwrap_or_abort()
             .success()
         {
-            return Err(Error::from_kind(EK::ChildError));
+            Error::from_kind(EK::ChildError).log();
+            ::std::process::exit(1);
         }
 
         // read the message back, check for validity
         use io::BufRead;
-        let lines : Vec<String> = io::BufReader::new(File::open(path).chain_err(|| EK::WrappedIOError)?)
+        let lines : Vec<String> = io::BufReader::new(File::open(path).unwrap_or_abort())
             .lines()
             .abort_on_err()
             .stripped()
             .collect();
 
-        lines.iter()
+        lines
+            .iter()
             .check_message_format()
-            .chain_err(|| EK::WrappedGitDitError)?;
+            .unwrap_or_abort();
 
-        Ok(lines)
+        lines
     }
 
     fn prepare_trailers(&self, matches: &ArgMatches) -> Result<Vec<Trailer>> {
