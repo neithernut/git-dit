@@ -196,17 +196,15 @@ fn fetch_impl(matches: &clap::ArgMatches) {
         .unwrap_or_abort();
 
     // accumulate the refspecs to fetch
-    let refspecs : Vec<String> = if let Some(issues) = matches.values_of("issue") {
+    let refspecs : Vec<String> = if let Some(mut issues) = repo.cli_issues(matches) {
         // fetch a specific list of issues
-        let iter = issues.map(|issue| repo.value_to_issue(issue)).abort_on_err();
         if matches.is_present("known") {
-            iter.chain(repo.issues().unwrap_or_abort())
-                .filter_map(|issue| remote.issue_refspec(issue))
-                .collect()
-        } else {
-            iter.filter_map(|issue| remote.issue_refspec(issue))
-                .collect()
+            issues.extend(repo.issues().unwrap_or_abort());
         }
+        issues
+            .into_iter()
+            .filter_map(|issue| remote.issue_refspec(issue))
+            .collect()
     } else {
         vec![remote.all_issues_refspec().unwrap()]
     };
