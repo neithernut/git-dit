@@ -14,11 +14,6 @@ error_chain! {
     }
 
     errors {
-        CannotGetRepositoryConfig {
-            description("Cannot get repository config")
-            display("Cannot get repository config")
-        }
-
         CannotGetSignature {
             description("Cannot get signature")
             display("Cannot get signature")
