@@ -24,11 +24,6 @@ error_chain! {
             display("IO Error")
         }
 
-        WrappedParseError {
-            description("Parser Error")
-            display("Error while parsing")
-        }
-
         WrappedGitDitError {
             description("Error in libgitdit")
             display("Error in libgitdit")
