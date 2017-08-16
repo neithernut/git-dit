@@ -29,11 +29,6 @@ error_chain! {
             display("Malformed filter spec: {}", spec)
         }
 
-        ParameterMissing(name: String) {
-            description("Missing parameter")
-            display("Missing parameter: {}", name)
-        }
-
         WrappedIOError {
             description("IO Error")
             display("IO Error")

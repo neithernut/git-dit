@@ -608,7 +608,9 @@ fn show_impl(matches: &clap::ArgMatches) {
     };
 
     // first, get us an iterator over all the commits
-    let issue = repo.cli_issue(matches).unwrap_or_abort();
+
+    // NOTE: the issue is a required parameter
+    let issue = repo.cli_issue(matches).unwrap();
     let mut commits : Vec<(TreeGraphElemLine, Commit)> =
         if matches.is_present("initial") {
             vec![(
@@ -670,9 +672,9 @@ fn tag_impl(matches: &clap::ArgMatches) {
     let prios = repo.remote_priorization().unwrap_or_abort();
 
     // get the head for the issue to tag
-    let issue = repo
-        .cli_issue(matches)
-        .unwrap_or_abort();
+
+    // NOTE: the issue is a required parameter
+    let issue = repo.cli_issue(matches).unwrap();
     let mut head_commit = issue
         .heads()
         .abort_on_err()

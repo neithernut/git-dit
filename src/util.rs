@@ -60,7 +60,7 @@ pub trait RepositoryUtil<'r> {
     ///
     /// This function parses the issue specified via the `"issue"` field.
     ///
-    fn cli_issue(&'r self, matches: &ArgMatches) -> Result<Issue<'r>>;
+    fn cli_issue(&'r self, matches: &ArgMatches) -> Option<Issue<'r>>;
 
     /// Get the issues specified on the command line
     ///
@@ -128,12 +128,9 @@ impl<'r> RepositoryUtil<'r> for Repository {
                .unwrap_or_else(|| self.path().join("COMMIT_EDITMSG"))
     }
 
-    fn cli_issue(&'r self, matches: &ArgMatches) -> Result<Issue<'r>> {
+    fn cli_issue(&'r self, matches: &ArgMatches) -> Option<Issue<'r>> {
         matches.value_of("issue")
-               .ok_or_else(|| {
-                   Error::from_kind(EK::ParameterMissing("issue".to_owned()))
-               })
-               .and_then(|value| self.value_to_issue(value))
+               .map(|value| self.value_to_issue(value).unwrap_or_abort())
     }
 
     fn cli_issues(&'r self, matches: &ArgMatches) -> Option<UniqueIssues<'r>> {
