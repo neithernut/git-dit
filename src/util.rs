@@ -44,12 +44,6 @@ pub trait RepositoryUtil<'r> {
     ///
     fn value_to_commit(&'r self, rev: &str) -> Commit<'r>;
 
-    /// Get an issue from a string representation
-    ///
-    /// This function returns an issue from a string representation.
-    ///
-    fn value_to_issue(&'r self, value: &str) -> Result<Issue<'r>>;
-
     /// Get a vector of commits from values
     ///
     /// This function transforms values to a vector.
@@ -106,14 +100,6 @@ impl<'r> RepositoryUtil<'r> for Repository {
             .unwrap_or_abort()
     }
 
-    fn value_to_issue(&'r self, value: &str) -> Result<Issue<'r>> {
-        git2::Oid::from_str(value)
-            .chain_err(|| EK::WrappedParseError)
-            .and_then(|id| {
-                self.find_issue(id).chain_err(|| EK::WrappedGitDitError)
-            })
-    }
-
     fn values_to_hashes(&'r self, values: Values) -> Result<Vec<Commit<'r>>> {
         let mut retval = Vec::new();
         for commit in values.map(|string| self.value_to_commit(string)) {
@@ -130,14 +116,14 @@ impl<'r> RepositoryUtil<'r> for Repository {
 
     fn cli_issue(&'r self, matches: &ArgMatches) -> Option<Issue<'r>> {
         matches.value_of("issue")
-               .map(|value| self.value_to_issue(value).unwrap_or_abort())
+               .map(|value| value_to_issue(self, value))
     }
 
     fn cli_issues(&'r self, matches: &ArgMatches) -> Option<UniqueIssues<'r>> {
         matches
             .values_of("issue")
             .map(|values| values
-                .map(|issue| self.value_to_issue(issue).unwrap_or_abort())
+                .map(|issue| value_to_issue(self, issue))
                 .collect()
             )
     }
@@ -225,6 +211,7 @@ impl<'r> RepositoryUtil<'r> for Repository {
     }
 }
 
+
 /// Get the message specified on the command line, as lines
 ///
 /// Retrieve the message specified on the command line. If no paragraph was
@@ -235,5 +222,15 @@ pub fn message_from_args(matches: &ArgMatches) -> Option<Vec<String>> {
            .map(|ps| ps.map(str::to_owned)
                        .map(|p| (p + "\n").to_owned()) // paragraphs
                        .collect())
+}
+
+
+/// Get an issue from a string representation
+///
+/// This function returns an issue from a string representation.
+///
+fn value_to_issue<'r>(repo: &'r Repository, value: &str) -> Issue<'r> {
+    let id = git2::Oid::from_str(value).unwrap_or_abort();
+    repo.find_issue(id).unwrap_or_abort()
 }
 
