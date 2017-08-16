@@ -83,7 +83,7 @@ pub trait RepositoryUtil<'r> {
 
     /// Retrieve metadata from command line arguments
     ///
-    fn prepare_trailers(&self, matches: &ArgMatches) -> Result<Vec<Trailer>>;
+    fn prepare_trailers(&self, matches: &ArgMatches) -> Vec<Trailer>;
 
     /// Get the abbreviation length for oids
     ///
@@ -161,22 +161,22 @@ impl<'r> RepositoryUtil<'r> for Repository {
         lines
     }
 
-    fn prepare_trailers(&self, matches: &ArgMatches) -> Result<Vec<Trailer>> {
+    fn prepare_trailers(&self, matches: &ArgMatches) -> Vec<Trailer> {
         let mut trailers = Vec::new();
 
         if matches.is_present("signoff") {
-            let sig = self.signature().chain_err(|| EK::CannotGetSignature)?.to_string();
+            let sig = self.signature().unwrap_or_abort().to_string();
             trailers.push(Trailer::new("Signed-off-by", sig.as_str()));
         }
 
         // append misc metadata
         if let Some(metadata) = matches.values_of("metadata") {
             for trailer in metadata.map(Trailer::from_str) {
-                trailers.push(trailer?);
+                trailers.push(trailer.unwrap_or_abort());
             }
         }
 
-        Ok(trailers)
+        trailers
     }
 
     fn abbreviation_length(&self, matches: &ArgMatches) -> Result<usize> {

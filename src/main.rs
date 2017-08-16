@@ -438,7 +438,6 @@ fn new_impl(matches: &clap::ArgMatches) {
         // the message was supplied via the command line
         m.into_iter()
          .chain(repo.prepare_trailers(matches)
-                    .unwrap_or_abort()
                     .into_iter()
                     .map(|t| t.to_string()))
          .collect()
@@ -450,7 +449,7 @@ fn new_impl(matches: &clap::ArgMatches) {
 
         { // write
             let mut file = File::create(path.as_path()).unwrap_or_abort();
-            file.consume_lines(repo.prepare_trailers(matches).unwrap_or_abort()).unwrap_or_abort();
+            file.consume_lines(repo.prepare_trailers(matches)).unwrap_or_abort();
             file.flush().unwrap_or_abort();
         }
 
@@ -531,7 +530,6 @@ fn reply_impl(matches: &clap::ArgMatches) {
 
         m.into_iter()
          .chain(repo.prepare_trailers(matches)
-                    .unwrap_or_abort()
                     .into_iter()
                     .map(|t| t.to_string()))
          .collect()
@@ -553,7 +551,7 @@ fn reply_impl(matches: &clap::ArgMatches) {
                 write!(&mut file, "\n").unwrap_or_abort();
             }
 
-            file.consume_lines(repo.prepare_trailers(matches).unwrap_or_abort())
+            file.consume_lines(repo.prepare_trailers(matches))
                 .unwrap_or_abort();
             file.flush().unwrap_or_abort();
         }
