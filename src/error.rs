@@ -14,11 +14,6 @@ error_chain! {
     }
 
     errors {
-        CannotGetSignature {
-            description("Cannot get signature")
-            display("Cannot get signature")
-        }
-
         MalformedFilterSpec(spec: String) {
             description("Malformed filter spec")
             display("Malformed filter spec: {}", spec)
