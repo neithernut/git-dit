@@ -87,7 +87,7 @@ pub trait RepositoryUtil<'r> {
 
     /// Get the abbreviation length for oids
     ///
-    fn abbreviation_length(&self, matches: &ArgMatches) -> Result<usize>;
+    fn abbreviation_length(&self, matches: &ArgMatches) -> usize;
 
     /// Get remote priorization from the config
     fn remote_priorization(&self) -> Result<RemotePriorization>;
@@ -179,12 +179,12 @@ impl<'r> RepositoryUtil<'r> for Repository {
         trailers
     }
 
-    fn abbreviation_length(&self, matches: &ArgMatches) -> Result<usize> {
+    fn abbreviation_length(&self, matches: &ArgMatches) -> usize {
         if !matches.is_present("abbrev") {
             // If the abbreviation option was not used, we can just use the
             // known length of a hash.
             // TODO: have this compile-time at some prominent place
-            return Ok(40);
+            return 40;
         }
 
         // TODO: the following _might_ be simplified using the `programs::Var`
@@ -192,16 +192,16 @@ impl<'r> RepositoryUtil<'r> for Repository {
 
         if let Some(number) = matches.value_of("abbrev") {
             // The abbreviation flas might have been specified with a value.
-            return str::parse(number).chain_err(|| EK::WrappedParseError);
+            return str::parse(number).unwrap_or_abort();
         }
 
-        if let Some(number) = self.config().and_then(|c| c.get_i32("core.abbrev")).ok() {
+        if let Some(number) = self.config().unwrap_or_abort().get_i32("core.abbrev").ok() {
             // The abbreviation flag might have been specified as a configuration option
-            return Ok(number as usize);
+            return number as usize;
         }
 
         // TODO: use a larger number based on the number of objects in the repo
-        Ok(7)
+        7
     }
 
     fn remote_priorization(&self) -> Result<RemotePriorization> {

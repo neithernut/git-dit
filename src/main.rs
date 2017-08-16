@@ -290,7 +290,7 @@ fn list_impl(matches: &clap::ArgMatches) {
         issues.truncate(str::parse(number).unwrap_or_abort());
     }
 
-    let id_len = repo.abbreviation_length(matches).unwrap_or_abort();
+    let id_len = repo.abbreviation_length(matches);
 
     // spawn a pager
     let mut pager = system::programs::pager(repo.config().unwrap_or_abort())
@@ -572,7 +572,7 @@ fn reply_impl(matches: &clap::ArgMatches) {
 fn show_impl(matches: &clap::ArgMatches) {
     let repo = util::open_dit_repo();
 
-    let id_len = repo.abbreviation_length(matches).unwrap_or_abort();
+    let id_len = repo.abbreviation_length(matches);
 
     // translate commit to lines representing the commit
     let commit_lines = |mut commit: Commit| -> Vec<String> {
