@@ -22,23 +22,16 @@ mod msgtree;
 mod system;
 mod util;
 
-use chrono::{FixedOffset, TimeZone};
 use clap::App;
 use git2::Commit;
 use libgitdit::issue::IssueRefType;
 use libgitdit::message::LineIteratorExt;
-use libgitdit::trailer::accumulation::{self, Accumulator};
-use libgitdit::trailer::iter::PairsToTrailers;
-use libgitdit::trailer::Trailer;
-use libgitdit::{Issue, Message, RemoteExt, RepositoryExt};
+use libgitdit::{Message, RepositoryExt};
 use log::LogLevel;
 use std::fs::File;
 use std::io::{self, Read, Write};
-use std::process::Command;
-use std::str::FromStr;
 
-use msgtree::{IntoTreeGraph, TreeGraphElem, TreeGraphElemLine};
-use util::{RepositoryUtil, message_from_args};
+use util::{RepositoryUtil};
 use system::{Abortable, IteratorExt, WriteExt};
 
 
@@ -138,6 +131,9 @@ fn find_tree_init_hash(matches: &clap::ArgMatches) {
 /// get-issue-metadata subcommand implementation
 ///
 fn get_issue_metadata(matches: &clap::ArgMatches) {
+    use libgitdit::trailer::accumulation::{self, Accumulator};
+    use libgitdit::trailer::iter::PairsToTrailers;
+
     let repo = util::open_dit_repo();
 
     // note: "head" is always present since it is a required parameter
@@ -182,6 +178,8 @@ fn get_issue_tree_init_hashes(_: &clap::ArgMatches) {
 /// fetch subcommand implementation
 ///
 fn fetch_impl(matches: &clap::ArgMatches) {
+    use libgitdit::RemoteExt;
+
     let repo = util::open_dit_repo();
 
     // note: "remote" is always present since it is a required parameter
@@ -253,6 +251,9 @@ fn gc_impl(matches: &clap::ArgMatches) {
 /// list subcommand implementation
 ///
 fn list_impl(matches: &clap::ArgMatches) {
+    use chrono::{FixedOffset, TimeZone};
+    use libgitdit::Issue;
+
     use filters::MetadataFilter;
 
     let repo = util::open_dit_repo();
@@ -427,6 +428,8 @@ fn mirror_impl(matches: &clap::ArgMatches) {
 /// new subcommand implementation
 ///
 fn new_impl(matches: &clap::ArgMatches) {
+    use util::message_from_args;
+
     let repo = util::open_dit_repo();
 
     let sig = repo.signature().unwrap_or_abort();
@@ -496,8 +499,9 @@ fn push_impl(matches: &clap::ArgMatches) {
 /// reply subcommand implementation
 ///
 fn reply_impl(matches: &clap::ArgMatches) {
-    let repo = util::open_dit_repo();
+    use util::message_from_args;
 
+    let repo = util::open_dit_repo();
     let sig = repo.signature().unwrap_or_abort();
 
     // NOTE: We want to do a lot of stuff early, because we want to report
@@ -568,6 +572,8 @@ fn reply_impl(matches: &clap::ArgMatches) {
 /// show subcommand implementation
 ///
 fn show_impl(matches: &clap::ArgMatches) {
+    use msgtree::{IntoTreeGraph, TreeGraphElem, TreeGraphElemLine};
+
     let repo = util::open_dit_repo();
 
     let id_len = repo.abbreviation_length(matches);
@@ -656,6 +662,9 @@ fn show_impl(matches: &clap::ArgMatches) {
 /// tag subcommand implementation
 ///
 fn tag_impl(matches: &clap::ArgMatches) {
+    use libgitdit::trailer::Trailer;
+    use std::str::FromStr;
+
     use gitext::ReferrencesExt;
 
     let repo = util::open_dit_repo();
@@ -725,6 +734,8 @@ fn tag_impl(matches: &clap::ArgMatches) {
 /// Try to invoke an executable matching the name of the subcommand.
 ///
 fn handle_unknown_subcommand(name: &str, matches: &clap::ArgMatches) {
+    use std::process::Command;
+
     // prepare the command to be invoked
     let mut command = Command::new(format!("git-dit-{}", name));
     if let Some(values) = matches.values_of("") {
