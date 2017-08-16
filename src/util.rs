@@ -90,7 +90,7 @@ pub trait RepositoryUtil<'r> {
     fn abbreviation_length(&self, matches: &ArgMatches) -> usize;
 
     /// Get remote priorization from the config
-    fn remote_priorization(&self) -> Result<RemotePriorization>;
+    fn remote_priorization(&self) -> RemotePriorization;
 }
 
 impl<'r> RepositoryUtil<'r> for Repository {
@@ -204,11 +204,12 @@ impl<'r> RepositoryUtil<'r> for Repository {
         7
     }
 
-    fn remote_priorization(&self) -> Result<RemotePriorization> {
-        let config = self
-            .config()
-            .chain_err(|| EK::CannotGetRepositoryConfig)?;
-        Ok(RemotePriorization::from(config.get_str("dit.remote-prios").unwrap_or("*")))
+    fn remote_priorization(&self) -> RemotePriorization {
+        self.config()
+            .unwrap_or_abort()
+            .get_str("dit.remote-prios")
+            .unwrap_or("*")
+            .into()
     }
 }
 

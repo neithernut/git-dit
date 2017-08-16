@@ -258,7 +258,7 @@ fn list_impl(matches: &clap::ArgMatches) {
     use filters::MetadataFilter;
 
     let repo = util::open_dit_repo();
-    let remote_prios = repo.remote_priorization().unwrap_or_abort();
+    let remote_prios = repo.remote_priorization();
 
     // construct filter
     let filter = match matches.values_of("filter") {
@@ -342,7 +342,7 @@ fn mirror_impl(matches: &clap::ArgMatches) {
 
     let prios = remote
         .map(RemotePriorization::from)
-        .unwrap_or_else(|| repo.remote_priorization().unwrap_or_abort());
+        .unwrap_or_else(|| repo.remote_priorization());
     let issues = repo
         .cli_issues(matches)
         .unwrap_or_else(|| repo.issues().unwrap_or_abort());
@@ -661,7 +661,7 @@ fn tag_impl(matches: &clap::ArgMatches) {
     use gitext::ReferrencesExt;
 
     let repo = util::open_dit_repo();
-    let prios = repo.remote_priorization().unwrap_or_abort();
+    let prios = repo.remote_priorization();
 
     // get the head for the issue to tag
 
