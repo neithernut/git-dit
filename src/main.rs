@@ -136,15 +136,8 @@ fn find_tree_init_hash(matches: &clap::ArgMatches) {
     let repo = util::open_dit_repo();
 
     // note: commit is always present since it is a required parameter
-    let commit = repo
-        .value_to_commit(matches.value_of("commit").unwrap())
-        .and_then(|commit| {
-            repo.issue_with_message(&commit)
-                .chain_err(|| EK::WrappedGitDitError)
-        })
-        .unwrap_or_abort();
-
-     println!("{}", commit.id());
+    let commit = repo.value_to_commit(matches.value_of("commit").unwrap());
+    println!("{}", repo.issue_with_message(&commit).unwrap_or_abort());
 }
 
 
@@ -154,9 +147,7 @@ fn get_issue_metadata(matches: &clap::ArgMatches) {
     let repo = util::open_dit_repo();
 
     // note: "head" is always present since it is a required parameter
-    let head = repo
-        .value_to_commit(matches.value_of("head").unwrap())
-        .unwrap_or_abort();
+    let head = repo.value_to_commit(matches.value_of("head").unwrap());
     let trailers = repo
         .issue_messages_iter(head)
         .abort_on_err()
@@ -525,9 +516,7 @@ fn reply_impl(matches: &clap::ArgMatches) {
 
     // the unwrap is safe since `parent` is a required value
     // and get all the info from it that we might need
-    let mut parent = repo
-        .value_to_commit(matches.value_of("parent").unwrap())
-        .unwrap_or_abort();
+    let mut parent = repo.value_to_commit(matches.value_of("parent").unwrap());
 
     // extract the subject and tree from the parent
     let subject = parent.reply_subject();

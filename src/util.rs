@@ -42,7 +42,7 @@ pub trait RepositoryUtil<'r> {
     ///
     /// This function returns a commit for a rev-string.
     ///
-    fn value_to_commit(&'r self, rev: &str) -> Result<Commit<'r>>;
+    fn value_to_commit(&'r self, rev: &str) -> Commit<'r>;
 
     /// Get an issue from a string representation
     ///
@@ -100,10 +100,10 @@ pub trait RepositoryUtil<'r> {
 }
 
 impl<'r> RepositoryUtil<'r> for Repository {
-    fn value_to_commit(&'r self, rev: &str) -> Result<Commit<'r>> {
+    fn value_to_commit(&'r self, rev: &str) -> Commit<'r> {
         self.revparse_single(rev)
             .and_then(|oid| self.find_commit(oid.id()))
-            .chain_err(|| EK::WrappedGitDitError)
+            .unwrap_or_abort()
     }
 
     fn value_to_issue(&'r self, value: &str) -> Result<Issue<'r>> {
@@ -117,7 +117,7 @@ impl<'r> RepositoryUtil<'r> for Repository {
     fn values_to_hashes(&'r self, values: Values) -> Result<Vec<Commit<'r>>> {
         let mut retval = Vec::new();
         for commit in values.map(|string| self.value_to_commit(string)) {
-            retval.push(try!(commit));
+            retval.push(commit);
         }
         Ok(retval)
     }
