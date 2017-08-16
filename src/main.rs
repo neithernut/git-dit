@@ -100,8 +100,7 @@ fn create_message(matches: &clap::ArgMatches) {
     // Note: The list of parents must live long enough to back the references we
     //       supply to `libgitdit::repository::RepositoryExt::create_message()`.
     let parents = matches.values_of("parents")
-                         .map(|p| repo.values_to_hashes(p))
-                         .map(Abortable::unwrap_or_abort)
+                         .map(|p| repo.values_to_commits(p))
                          .unwrap_or_default();
     let parent_refs = parents.iter().map(|command| command);
 
@@ -521,7 +520,7 @@ fn reply_impl(matches: &clap::ArgMatches) {
     let issue = repo.issue_with_message(&parent).unwrap_or_abort();
 
     // get the references specified on the command line
-    let references = repo.cli_references(matches).unwrap_or_abort();
+    let references = repo.cli_references(matches);
 
     // get the message, either from the command line argument or an editor
     let message = if let Some(m) = message_from_args(matches) {
@@ -693,7 +692,7 @@ fn tag_impl(matches: &clap::ArgMatches) {
     // we produce a commit with status and references
 
     // get references and trailers for the new commit
-    let references = repo.cli_references(matches).unwrap_or_abort();
+    let references = repo.cli_references(matches);
     let trailers : Vec<Trailer> = matches.values_of("set-status")
                                          .into_iter()
                                          .flat_map(|values| values)

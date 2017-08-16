@@ -48,7 +48,7 @@ pub trait RepositoryUtil<'r> {
     ///
     /// This function transforms values to a vector.
     ///
-    fn values_to_hashes(&'r self, values: Values) -> Result<Vec<Commit<'r>>>;
+    fn values_to_commits(&'r self, values: Values) -> Vec<Commit<'r>>;
 
     /// Get the issue specified on the command line
     ///
@@ -64,7 +64,7 @@ pub trait RepositoryUtil<'r> {
 
     /// Retrieve the references from the command line
     ///
-    fn cli_references(&'r self, matches: &ArgMatches) -> Result<Vec<Commit<'r>>>;
+    fn cli_references(&'r self, matches: &ArgMatches) -> Vec<Commit<'r>>;
 
     /// Get the path to the file usually used to edit comit messages
     fn commitmsg_edit_path(&self, matches: &ArgMatches) -> PathBuf;
@@ -100,12 +100,8 @@ impl<'r> RepositoryUtil<'r> for Repository {
             .unwrap_or_abort()
     }
 
-    fn values_to_hashes(&'r self, values: Values) -> Result<Vec<Commit<'r>>> {
-        let mut retval = Vec::new();
-        for commit in values.map(|string| self.value_to_commit(string)) {
-            retval.push(commit);
-        }
-        Ok(retval)
+    fn values_to_commits(&'r self, values: Values) -> Vec<Commit<'r>> {
+        values.map(|string| self.value_to_commit(string)).collect()
     }
 
     fn commitmsg_edit_path(&self, matches: &ArgMatches) -> PathBuf {
@@ -128,10 +124,11 @@ impl<'r> RepositoryUtil<'r> for Repository {
             )
     }
 
-    fn cli_references(&'r self, matches: &ArgMatches) -> Result<Vec<Commit<'r>>> {
-        matches.values_of("reference")
-               .map(|p| self.values_to_hashes(p))
-               .unwrap_or(Ok(vec![]))
+    fn cli_references(&'r self, matches: &ArgMatches) -> Vec<Commit<'r>> {
+        matches
+            .values_of("reference")
+            .map(|p| self.values_to_commits(p))
+            .unwrap_or_default()
     }
 
     fn get_commit_msg(&self, path: PathBuf) -> Result<Vec<String>> {
