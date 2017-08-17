@@ -15,10 +15,10 @@ extern crate chrono;
 extern crate git2;
 extern crate libgitdit;
 
+mod display;
 mod error;
 mod filters;
 mod gitext;
-mod msgtree;
 mod system;
 mod util;
 
@@ -572,7 +572,7 @@ fn reply_impl(matches: &clap::ArgMatches) {
 /// show subcommand implementation
 ///
 fn show_impl(matches: &clap::ArgMatches) {
-    use msgtree::{IntoTreeGraph, TreeGraphElem, TreeGraphElemLine};
+    use display::{IntoTreeGraph, TreeGraphElem, TreeGraphElemLine};
 
     let repo = util::open_dit_repo();
 
