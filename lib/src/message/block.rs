@@ -143,15 +143,24 @@ impl<I, S> Trailers<I, S>
     }
 }
 
+impl<I, S> From<Blocks<I, S>> for Trailers<I, S>
+    where I: Iterator<Item = S>,
+          S: AsRef<str>
+{
+    fn from(blocks: Blocks<I, S>) -> Self {
+        Trailers {
+            blocks: blocks,
+            buf: VecDeque::new(),
+        }
+    }
+}
+
 impl<I, S> From<I> for Trailers<I, S>
     where I: Iterator<Item = S>,
           S: AsRef<str>
 {
     fn from(lines: I) -> Self {
-        Trailers {
-            blocks: Blocks::from(lines),
-            buf: VecDeque::new(),
-        }
+        Blocks::from(lines).into()
     }
 }
 
