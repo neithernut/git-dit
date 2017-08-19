@@ -15,6 +15,7 @@
 //!
 
 pub mod accumulation;
+pub mod spec;
 
 use regex::Regex;
 use std::fmt;

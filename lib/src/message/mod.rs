@@ -26,7 +26,6 @@ use std;
 
 pub mod block;
 pub mod line_processor;
-pub mod metadata;
 
 use self::line_processor::{Quoted, StripWhiteSpaceRightIter, WithoutCommentsIter};
 

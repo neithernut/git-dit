@@ -25,12 +25,12 @@ use trailer::accumulation::{AccumulationPolicy, SingleAccumulator, ValueAccumula
 /// of pieces of metadata.
 ///
 #[derive(Clone)]
-pub struct MetadataSpecification<'k> {
+pub struct TrailerSpec<'k> {
     pub key: &'k str,
     pub accumulation: AccumulationPolicy,
 }
 
-impl<'k> MetadataSpecification<'k> {
+impl<'k> TrailerSpec<'k> {
     /// Create a SingleAccumulator from the specification
     ///
     pub fn single_accumulator(&self) -> SingleAccumulator {
@@ -41,14 +41,14 @@ impl<'k> MetadataSpecification<'k> {
 
 /// Metadata specification for an issue's type
 ///
-pub const ISSUE_TYPE_SPEC: MetadataSpecification = MetadataSpecification {
+pub const ISSUE_TYPE_SPEC: TrailerSpec = TrailerSpec {
     key: "Dit-type",
     accumulation: AccumulationPolicy::Latest,
 };
 
 /// Metadata specification for an issue's status
 ///
-pub const ISSUE_STATUS_SPEC: MetadataSpecification = MetadataSpecification {
+pub const ISSUE_STATUS_SPEC: TrailerSpec = TrailerSpec {
     key: "Dit-status",
     accumulation: AccumulationPolicy::Latest,
 };
@@ -70,7 +70,7 @@ pub trait ToMap {
 
 impl<'s, I, J> ToMap for I
     where I: IntoIterator<Item = J>,
-          J: Borrow<MetadataSpecification<'s>>
+          J: Borrow<TrailerSpec<'s>>
 {
     fn into_map<M>(self) -> M
         where M: FromIterator<(String, ValueAccumulator)>
