@@ -175,7 +175,7 @@ impl<I, S> Trailers<I, S>
     where I: Iterator<Item = S>,
           S: AsRef<str>
 {
-    pub fn only_dit(self) -> DitTrailers<I, S> {
+    pub fn only_dit(self) -> DitTrailers<Self> {
         DitTrailers(self)
     }
 }
@@ -255,13 +255,11 @@ impl<K, I> Iterator for PairsToTrailers<K, I>
 
 /// Iterator extracting DIT trailers from an iterator over trailers
 ///
-pub struct DitTrailers<I, S>(Trailers<I, S>)
-    where I: Iterator<Item = S>,
-          S: AsRef<str>;
+pub struct DitTrailers<I>(I)
+    where I: Iterator<Item = Trailer>;
 
-impl<I, S> Iterator for DitTrailers<I, S>
-    where I: Iterator<Item = S>,
-          S: AsRef<str>
+impl<I> Iterator for DitTrailers<I>
+    where I: Iterator<Item = Trailer>
 {
     type Item = Trailer;
 
