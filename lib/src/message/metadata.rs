@@ -16,7 +16,7 @@
 use std::borrow::Borrow;
 use std::iter::FromIterator;
 
-use message::accumulation::{AccumulationPolicy, SingleAccumulator, ValueAccumulator};
+use trailer::accumulation::{AccumulationPolicy, SingleAccumulator, ValueAccumulator};
 
 
 /// Metadata specification

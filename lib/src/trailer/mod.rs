@@ -14,6 +14,8 @@
 //! uses trailers as storage for issue metadata.
 //!
 
+pub mod accumulation;
+
 use regex::Regex;
 use std::fmt;
 use std::result::Result as RResult;

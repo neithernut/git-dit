@@ -24,7 +24,6 @@ use error::ErrorKind as EK;
 use git2::Commit;
 use std;
 
-pub mod accumulation;
 pub mod block;
 pub mod line_processor;
 pub mod metadata;

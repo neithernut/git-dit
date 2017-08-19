@@ -8,9 +8,9 @@
 //
 
 use libgitdit::Issue;
-use libgitdit::message::accumulation::{Accumulator, ValueAccumulator};
 use libgitdit::message::{Message, metadata};
 use libgitdit::trailer::TrailerValue;
+use libgitdit::trailer::accumulation::{Accumulator, ValueAccumulator};
 use std::str::FromStr;
 
 use abort::{Abortable, IteratorExt};
