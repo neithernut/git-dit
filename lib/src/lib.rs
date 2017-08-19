@@ -46,6 +46,7 @@ pub mod iter;
 pub mod message;
 pub mod remote;
 pub mod repository;
+pub mod trailer;
 
 mod utils;
 

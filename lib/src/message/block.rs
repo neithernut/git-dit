@@ -16,9 +16,10 @@
 //! well as an iterator for extracting the blocks from a sequence of lines.
 //!
 
-use message::trailer::{self, Trailer};
 use std::collections::VecDeque;
 use std::str::FromStr;
+
+use trailer::{self, Trailer};
 
 
 /// A block of lines
@@ -193,7 +194,7 @@ impl<I, S> Iterator for Trailers<I, S>
 mod tests {
     use super::*;
 
-    use message::trailer::{TrailerKey, TrailerValue};
+    use trailer::{TrailerKey, TrailerValue};
 
     // Blocks test
 

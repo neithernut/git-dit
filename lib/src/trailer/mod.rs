@@ -103,6 +103,7 @@ impl fmt::Display for TrailerValue {
     }
 }
 
+
 /// Trailer representation
 ///
 /// A trailer is nothing but the combination of a `TrailerKey` and a
