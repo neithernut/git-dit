@@ -139,7 +139,7 @@ impl<I, S> Trailers<I, S>
     where I: Iterator<Item = S>,
           S: AsRef<str>
 {
-    pub fn only_dit(self) -> trailer::DitTrailers<Self> {
+    pub fn only_dit(self) -> trailer::iter::DitTrailers<Self> {
         self.into()
     }
 }
