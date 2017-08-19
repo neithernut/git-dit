@@ -85,7 +85,7 @@ pub trait LineIteratorExt<S>
     /// resembling trailers which co-exist with regular text-lines in a block of
     /// non-blank lines will be ignored (e.g. not returned).
     ///
-    fn trailers(self) -> trailer::Trailers<Self::Iter, S>;
+    fn trailers(self) -> block::Trailers<Self::Iter, S>;
 
     /// Accumulate the lines into a single string
     ///
@@ -122,8 +122,8 @@ impl<L, S> LineIteratorExt<S> for L
         block::Blocks::from(self)
     }
 
-    fn trailers(self) -> trailer::Trailers<Self::Iter, S> {
-        trailer::Trailers::from(self)
+    fn trailers(self) -> block::Trailers<Self::Iter, S> {
+        self.into()
     }
 
     fn collect_string(self) -> String {
@@ -163,7 +163,7 @@ pub trait Message {
 
     /// Get an iterator over all the trailers in the commit message's body
     ///
-    fn trailers(&self) -> trailer::Trailers<BodyLines, String>;
+    fn trailers(&self) -> block::Trailers<BodyLines, String>;
 
     /// Get a suitable subject for a reply
     ///
@@ -190,7 +190,7 @@ impl<'c> Message for Commit<'c> {
         self.body_lines().line_blocks()
     }
 
-    fn trailers(&self) -> trailer::Trailers<BodyLines, String> {
+    fn trailers(&self) -> block::Trailers<BodyLines, String> {
         self.body_lines().trailers()
     }
 
