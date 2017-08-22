@@ -90,6 +90,7 @@ impl<I, S> Iterator for Blocks<I, S>
             if trimmed.starts_with(" ") {
                 // We encountered a part of a multiline trailer.
                 if let Some(ref mut trailer) = trailers.last_mut() {
+                    trailer.value.append("\n");
                     trailer.value.append(trimmed);
                 } else {
                     // Turns out this is a paragraph with the first line being
@@ -272,7 +273,7 @@ mod tests {
                 {
                     let trailer = iter.next().expect("Failed to parse trailer 4");
                     assert_eq!(trailer.key, TrailerKey::from("Multi-line-trailer".to_string()));
-                    assert_eq!(trailer.value, TrailerValue::String("multi  line  content".to_string()));
+                    assert_eq!(trailer.value, TrailerValue::String("multi\n  line\n  content".to_string()));
                 }
 
                 assert!(iter.next().is_none());
@@ -322,7 +323,7 @@ mod tests {
         {
             let (key, value) = trailers.next().expect("Failed to parse trailer4").into();
             assert_eq!(key, "Multi-line-trailer".to_string().into());
-            assert_eq!(value, TrailerValue::String("multi  line  content".to_string()));
+            assert_eq!(value, TrailerValue::String("multi\n  line\n  content".to_string()));
         }
 
         assert!(!trailers.next().is_some())
