@@ -103,6 +103,35 @@ pub trait Accumulator {
     }
 }
 
+
+/// Trait for accumulators accumulating multiple values
+///
+/// # Note
+///
+/// This trait really is a convenience trait for consolidating mapping
+/// containers. It only exists because the standart library doesn't provide
+/// any matching traits (the `Index` trait is not an option).
+///
+pub trait MultiAccumulator {
+    /// Get the ValueAccumulator associated with a given string
+    ///
+    fn get(&self, key: &str) -> Option<&ValueAccumulator>;
+
+    /// Get the ValueAccumulator associated with a given string, mutable
+    ///
+    fn get_mut(&mut self, key: &str) -> Option<&mut ValueAccumulator>;
+}
+
+impl<M> Accumulator for M
+    where M: MultiAccumulator
+{
+    fn process(&mut self, trailer: Trailer) {
+        let (key, value) = trailer.into();
+        self.get_mut(key.as_ref())
+            .map(|ref mut acc| acc.process(value));
+    }
+}
+
 // TODO: consolidate the implementation for map types, should there ever be an
 //       appropriate map trait in `std`.
 impl<S> Accumulator for collections::HashMap<String, ValueAccumulator, S>
