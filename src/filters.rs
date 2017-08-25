@@ -83,7 +83,7 @@ impl FromStr for FilterSpec {
     fn from_str(s: &str) -> Result<Self> {
         lazy_static! {
             // regex for parsing a trailer spec
-            static ref RE: Regex = Regex::new(r"^(!)?([[:alnum:]-]+)((:|~)(.*))?$").unwrap();
+            static ref RE: Regex = Regex::new(r"^(!)?([[:alnum:]-]+)((=|~)(.*))?$").unwrap();
         }
 
         let parts = RE
@@ -110,7 +110,7 @@ impl FromStr for FilterSpec {
                 .ok_or_else(|| Error::from_kind(EK::MalformedFilterSpec(s.to_owned())))?;
 
             match op {
-                ":" => ValueMatcher::Equals(TrailerValue::from_slice(value)),
+                "=" => ValueMatcher::Equals(TrailerValue::from_slice(value)),
                 "~" => ValueMatcher::Contains(value.to_string()),
                 _   => return Err(Error::from_kind(EK::MalformedFilterSpec(s.to_owned()))),
             }
