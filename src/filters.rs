@@ -28,6 +28,8 @@ pub struct FilterSpec {
     key: String,
     /// Matcher for the value
     matcher: ValueMatcher,
+    /// Indicator whether the filter shall be negated or not
+    negated: bool,
 }
 
 impl FromStr for FilterSpec {
@@ -36,7 +38,7 @@ impl FromStr for FilterSpec {
     fn from_str(s: &str) -> Result<Self> {
         lazy_static! {
             // regex for parsing a trailer spec
-            static ref RE: Regex = Regex::new(r"^([[:alnum:]-]+)((:|~)(.*))?$").unwrap();
+            static ref RE: Regex = Regex::new(r"^(!)?([[:alnum:]-]+)((:|~)(.*))?$").unwrap();
         }
 
         let parts = RE
@@ -44,20 +46,20 @@ impl FromStr for FilterSpec {
             .ok_or_else(|| Error::from_kind(EK::MalformedFilterSpec(s.to_owned())))?;
 
         let key = parts
-            .get(1)
+            .get(2)
             .as_ref()
             .map(Match::as_str)
             .ok_or_else(|| Error::from_kind(EK::MalformedFilterSpec(s.to_owned())))?;
 
-        let matcher = if parts.get(2).is_some() {
+        let matcher = if parts.get(3).is_some() {
             let op = parts
-                .get(3)
+                .get(4)
                 .as_ref()
                 .map(Match::as_str)
                 .ok_or_else(|| Error::from_kind(EK::MalformedFilterSpec(s.to_owned())))?;
 
             let value = parts
-                .get(4)
+                .get(5)
                 .as_ref()
                 .map(Match::as_str)
                 .ok_or_else(|| Error::from_kind(EK::MalformedFilterSpec(s.to_owned())))?;
@@ -71,7 +73,11 @@ impl FromStr for FilterSpec {
             ValueMatcher::Any
         };
 
-        Ok(FilterSpec {key: key.to_string(), matcher: matcher})
+        Ok(FilterSpec {
+            key: key.to_string(),
+            matcher: matcher,
+            negated: parts.get(1).is_some()
+        })
     }
 }
 
@@ -80,7 +86,7 @@ impl FromStr for FilterSpec {
 ///
 pub struct MetadataFilter<'a> {
     prios: &'a RemotePriorization,
-    trailers: Vec<TrailerFilter<'a>>,
+    trailers: Vec<(TrailerFilter<'a>, bool)>,
 }
 
 impl<'a> MetadataFilter<'a> {
@@ -93,8 +99,8 @@ impl<'a> MetadataFilter<'a> {
 
         for s in spec.into_iter() {
             match s.key.as_ref() {
-                "status"    => trailers.push(TrailerFilter::new(spec::ISSUE_STATUS_SPEC.clone(), s.matcher)),
-                "type"      => trailers.push(TrailerFilter::new(spec::ISSUE_TYPE_SPEC.clone(), s.matcher)),
+                "status"    => trailers.push((TrailerFilter::new(spec::ISSUE_STATUS_SPEC.clone(), s.matcher), s.negated)),
+                "type"      => trailers.push((TrailerFilter::new(spec::ISSUE_TYPE_SPEC.clone(), s.matcher), s.negated)),
                 _           => return Err(Error::from_kind(EK::UnknownMetadataKey(s.key.to_string()))),
             }
         }
@@ -139,12 +145,12 @@ impl<'a> MetadataFilter<'a> {
         let acc: HashMap<_, _> = head
             .into_iter()
             .flat_map(|head| issue.messages_from(head).abort_on_err())
-            .accumulate_trailers(self.trailers.iter().map(|i| i.spec()));
+            .accumulate_trailers(self.trailers.iter().map(|i| i.0.spec()));
 
         // Compute whether all constraints are met
         self.trailers
             .iter()
-            .all(|spec| spec.matches(&acc))
+            .all(|spec| spec.0.matches(&acc) ^ spec.1)
     }
 }
 
