@@ -71,6 +71,10 @@ impl FilterSpec {
     fn into_trailer<'a>(self, spec: spec::TrailerSpec<'a>) -> (TrailerFilter<'a>, bool) {
         (TrailerFilter::new(spec, self.matcher), self.negated)
     }
+
+    fn into_nontrailer<'a>(self, spec: NonTrailer) -> (NonTrailer, ValueMatcher, bool) {
+        (spec, self.matcher, self.negated)
+    }
 }
 
 impl FromStr for FilterSpec {
