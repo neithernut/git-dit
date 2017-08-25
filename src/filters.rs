@@ -32,6 +32,12 @@ pub struct FilterSpec {
     negated: bool,
 }
 
+impl FilterSpec {
+    fn into_trailer<'a>(self, spec: spec::TrailerSpec<'a>) -> (TrailerFilter<'a>, bool) {
+        (TrailerFilter::new(spec, self.matcher), self.negated)
+    }
+}
+
 impl FromStr for FilterSpec {
     type Err = Error;
 
@@ -99,8 +105,8 @@ impl<'a> MetadataFilter<'a> {
 
         for s in spec.into_iter() {
             match s.key.as_ref() {
-                "status"    => trailers.push((TrailerFilter::new(spec::ISSUE_STATUS_SPEC.clone(), s.matcher), s.negated)),
-                "type"      => trailers.push((TrailerFilter::new(spec::ISSUE_TYPE_SPEC.clone(), s.matcher), s.negated)),
+                "status"    => trailers.push(s.into_trailer(spec::ISSUE_STATUS_SPEC.clone())),
+                "type"      => trailers.push(s.into_trailer(spec::ISSUE_TYPE_SPEC.clone())),
                 _           => return Err(Error::from_kind(EK::UnknownMetadataKey(s.key.to_string()))),
             }
         }
