@@ -113,7 +113,7 @@ pub trait RepositoryExt {
 
 impl RepositoryExt for git2::Repository {
     fn find_issue(&self, id: Oid) -> Result<Issue> {
-        let retval = Issue::new(self, id);
+        let retval = Issue::new(self, id)?;
 
         // make sure the id refers to an issue by checking whether an associated
         // head reference exists
@@ -140,7 +140,7 @@ impl RepositoryExt for git2::Repository {
                Oid::from_str(hash)
                    .chain_err(|| EK::OidFormatError(hash.to_string()))
             })
-            .map(|id| Issue::new(self, id))
+            .and_then(|id| Issue::new(self, id))
     }
 
     fn issue_with_message<'a>(&'a self, message: &Commit<'a>) -> Result<Issue> {
@@ -187,7 +187,7 @@ impl RepositoryExt for git2::Repository {
 
         self.commit(None, author, committer, message.as_ref(), tree, &parent_vec)
             .chain_err(|| EK::CannotCreateMessage)
-            .map(|id| Issue::new(self, id))
+            .and_then(|id| Issue::new(self, id))
             .and_then(|issue| {
                 issue.update_head(issue.id(), true)?;
                 Ok(issue)

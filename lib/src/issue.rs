@@ -111,26 +111,31 @@ impl fmt::Debug for IssueRefType {
 ///
 pub struct Issue<'r> {
     repo: &'r git2::Repository,
-    id: Oid,
+    obj: git2::Object<'r>,
 }
 
 impl<'r> Issue<'r> {
     /// Create a new handle for an issue with a given id
     ///
-    pub fn new(repo: &'r git2::Repository, id: Oid) -> Self {
-        Issue { repo: repo, id: id }
+    pub fn new(repo: &'r git2::Repository, id: Oid) -> Result<Self> {
+        repo.find_object(id, Some(git2::ObjectType::Commit))
+            .chain_err(|| EK::CannotGetCommitForRev(id.to_string()))
+            .map(|obj| Issue { repo: repo, obj: obj })
     }
 
     /// Get the issue's id
     ///
     pub fn id(&self) -> Oid {
-        self.id
+        self.obj.id()
     }
 
     /// Get the issue's initial message
     ///
     pub fn initial_message(&self) -> Result<git2::Commit<'r>> {
-        self.repo.find_commit(self.id).chain_err(|| EK::CannotGetCommit)
+        self.obj
+            .clone()
+            .into_commit()
+            .map_err(|obj| Error::from_kind(EK::CannotGetCommitForRev(obj.id().to_string())))
     }
 
     /// Get possible heads of the issue
@@ -142,7 +147,7 @@ impl<'r> Issue<'r> {
         let glob = format!("**/dit/{}/head", self.ref_part());
         self.repo
             .references_glob(&glob)
-            .chain_err(|| EK::CannotFindIssueHead(self.id))
+            .chain_err(|| EK::CannotFindIssueHead(self.id()))
     }
 
     /// Get the local issue head for the issue
@@ -154,7 +159,7 @@ impl<'r> Issue<'r> {
         let refname = format!("refs/dit/{}/head", self.ref_part());
         self.repo
             .find_reference(&refname)
-            .chain_err(|| EK::CannotFindIssueHead(self.id))
+            .chain_err(|| EK::CannotFindIssueHead(self.id()))
     }
 
     /// Get local references for the issue
@@ -307,19 +312,19 @@ impl<'r> Issue<'r> {
     /// part after the  `dit/`.
     ///
     pub fn ref_part(&self) -> String {
-        self.id.to_string()
+        self.id().to_string()
     }
 }
 
 impl<'r> fmt::Display for Issue<'r> {
     fn fmt(&self, f: &mut fmt::Formatter) -> RResult<(), fmt::Error> {
-        write!(f, "{}", self.id)
+        write!(f, "{}", self.id())
     }
 }
 
 impl<'r> PartialEq for Issue<'r> {
     fn eq(&self, other: &Self) -> bool {
-        self.id == other.id
+        self.id() == other.id()
     }
 }
 
@@ -329,7 +334,7 @@ impl<'r> hash::Hash for Issue<'r> {
     fn hash<H>(&self, state: &mut H)
         where H: hash::Hasher
     {
-        self.id.hash(state);
+        self.id().hash(state);
     }
 }
 
