@@ -7,9 +7,9 @@
 //   published by the Free Software Foundation.
 //
 
-use libgitdit::trailer::accumulation::{Accumulator, ValueAccumulator};
+use libgitdit::Issue;
+use libgitdit::trailer::filter::{TrailerFilter, ValueMatcher};
 use libgitdit::trailer::{TrailerValue, spec};
-use libgitdit::{Issue, Message};
 use std::str::FromStr;
 
 use error::*;
@@ -25,18 +25,8 @@ use system::{Abortable, IteratorExt};
 pub struct FilterSpec<'a> {
     /// Metadata to filter
     metadata: spec::TrailerSpec<'a>,
-    /// Expected value
-    value: TrailerValue,
-}
-
-impl<'a> FilterSpec<'a> {
-    /// Apply the filter rule to a piece of accumulated values
-    ///
-    /// This function returns true if the filter applies.
-    ///
-    pub fn apply_to_values(&self, values: ValueAccumulator) -> bool {
-        values.into_iter().any(|v| v == self.value)
-    }
+    /// Matcher for the value
+    matcher: ValueMatcher,
 }
 
 impl<'a> FromStr for FilterSpec<'a> {
@@ -59,7 +49,7 @@ impl<'a> FromStr for FilterSpec<'a> {
             .map(TrailerValue::from_slice)
             .ok_or_else(|| Error::from_kind(EK::MalformedFilterSpec(s.to_owned())))?;
 
-        Ok(FilterSpec {metadata: metadata, value: value})
+        Ok(FilterSpec {metadata: metadata, matcher: ValueMatcher::Equals(value)})
     }
 }
 
@@ -68,7 +58,7 @@ impl<'a> FromStr for FilterSpec<'a> {
 ///
 pub struct MetadataFilter<'a> {
     prios: &'a RemotePriorization,
-    spec: Vec<FilterSpec<'a>>,
+    trailers: Vec<TrailerFilter<'a>>,
 }
 
 impl<'a> MetadataFilter<'a> {
@@ -79,7 +69,10 @@ impl<'a> MetadataFilter<'a> {
     {
         MetadataFilter {
             prios: prios,
-            spec: spec.into_iter().collect(),
+            trailers: spec
+                .into_iter()
+                .map(|spec| TrailerFilter::new(spec.metadata, spec.matcher))
+                .collect(),
         }
     }
 
@@ -90,7 +83,7 @@ impl<'a> MetadataFilter<'a> {
     pub fn empty(prios: &'a RemotePriorization) -> Self {
         MetadataFilter {
             prios: prios,
-            spec: Vec::new(),
+            trailers: Vec::new(),
         }
     }
 
@@ -100,41 +93,32 @@ impl<'a> MetadataFilter<'a> {
         // NOTE: if we ever add the filters crate as a dependency, this method
         //       may be transferred to an implementatio nof the Filter trait
         use git2::ObjectType;
-        use libgitdit::trailer::spec::ToMap;
+        use libgitdit::iter::MessagesExt;
         use std::collections::HashMap;
 
         // Filtering may be expensive, so it makes sense to return early if the
         // filter is empty.
-        if self.spec.is_empty() {
+        if self.trailers.is_empty() {
             return true;
         }
 
-        // Construct an iterator over trailers
-        let trailers = issue
+        // Get the head reference
+        let head = issue
             .heads()
             .abort_on_err()
             .select_ref(self.prios)
-            .into_iter()
-            .map(|head| head.peel(ObjectType::Commit).unwrap_or_abort().id())
-            .flat_map(|head| issue.messages_from(head).abort_on_err())
-            .flat_map(|message| message.trailers());
+            .map(|head| head.peel(ObjectType::Commit).unwrap_or_abort().id());
 
         // Accumulate all the metadata we care about
-        let mut acc: HashMap<String, ValueAccumulator> = self
-            .spec
-            .iter()
-            .map(|i| &i.metadata)
-            .into_map();
-        acc.process_all(trailers);
+        let acc: HashMap<_, _> = head
+            .into_iter()
+            .flat_map(|head| issue.messages_from(head).abort_on_err())
+            .accumulate_trailers(self.trailers.iter().map(|i| i.spec()));
 
         // Compute whether all constraints are met
-        self.spec
+        self.trailers
             .iter()
-            .all(|spec| {
-                acc.remove(&spec.metadata.key.to_owned())
-                    .map(|values| spec.apply_to_values(values))
-                    .unwrap_or(false)
-            })
+            .all(|spec| spec.matches(&acc))
     }
 }
 
