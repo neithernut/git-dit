@@ -99,6 +99,12 @@ impl TrailerValue {
     }
 }
 
+impl Default for TrailerValue {
+    fn default() -> Self {
+        TrailerValue::String(String::new())
+    }
+}
+
 impl fmt::Display for TrailerValue {
     fn fmt(&self, f: &mut fmt::Formatter) -> RResult<(), fmt::Error> {
         match *self {
