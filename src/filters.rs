@@ -22,26 +22,21 @@ use system::{Abortable, IteratorExt};
 ///
 /// This type represents a filter rule for a single piece of metadata.
 ///
-pub struct FilterSpec<'a> {
+pub struct FilterSpec {
     /// Metadata to filter
-    metadata: spec::TrailerSpec<'a>,
+    key: String,
     /// Matcher for the value
     matcher: ValueMatcher,
 }
 
-impl<'a> FromStr for FilterSpec<'a> {
+impl FromStr for FilterSpec {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self> {
         let mut parts = s.splitn(2, ':');
 
-        let metadata = parts
+        let key = parts
             .next()
-            .and_then(|name| match name {
-                "status"    => Some(spec::ISSUE_STATUS_SPEC.clone()),
-                "type"      => Some(spec::ISSUE_TYPE_SPEC.clone()),
-                _           => None,
-            })
             .ok_or_else(|| Error::from_kind(EK::MalformedFilterSpec(s.to_owned())))?;
 
         let value = parts
@@ -49,7 +44,7 @@ impl<'a> FromStr for FilterSpec<'a> {
             .map(TrailerValue::from_slice)
             .ok_or_else(|| Error::from_kind(EK::MalformedFilterSpec(s.to_owned())))?;
 
-        Ok(FilterSpec {metadata: metadata, matcher: ValueMatcher::Equals(value)})
+        Ok(FilterSpec {key: key.to_string(), matcher: ValueMatcher::Equals(value)})
     }
 }
 
@@ -64,16 +59,20 @@ pub struct MetadataFilter<'a> {
 impl<'a> MetadataFilter<'a> {
     /// Create a new metadata filter
     ///
-    pub fn new<I>(prios: &'a RemotePriorization, spec: I) -> Self
-        where I: IntoIterator<Item = FilterSpec<'a>>
+    pub fn new<I>(prios: &'a RemotePriorization, spec: I) -> Result<Self>
+        where I: IntoIterator<Item = FilterSpec>
     {
-        MetadataFilter {
-            prios: prios,
-            trailers: spec
-                .into_iter()
-                .map(|spec| TrailerFilter::new(spec.metadata, spec.matcher))
-                .collect(),
+        let mut trailers = Vec::new();
+
+        for s in spec.into_iter() {
+            match s.key.as_ref() {
+                "status"    => trailers.push(TrailerFilter::new(spec::ISSUE_STATUS_SPEC.clone(), s.matcher)),
+                "type"      => trailers.push(TrailerFilter::new(spec::ISSUE_TYPE_SPEC.clone(), s.matcher)),
+                _           => return Err(Error::from_kind(EK::UnknownMetadataKey(s.key.to_string()))),
+            }
         }
+
+        Ok(MetadataFilter { prios: prios, trailers: trailers })
     }
 
     /// Create an empty metadata filter

@@ -263,7 +263,7 @@ fn list_impl(matches: &clap::ArgMatches) {
     let filter = match matches.values_of("filter") {
         Some(values) => {
             let specs = values.map(str::parse).abort_on_err();
-            MetadataFilter::new(&remote_prios, specs)
+            MetadataFilter::new(&remote_prios, specs).unwrap_or_abort()
         },
         None         => MetadataFilter::empty(&remote_prios),
     };
