@@ -17,7 +17,7 @@
 use std::collections;
 use std::hash::BuildHasher;
 
-use message::trailer::{Trailer, TrailerValue};
+use trailer::{Trailer, TrailerValue};
 
 /// Policy for accumulating trailers
 ///
@@ -212,7 +212,7 @@ impl IntoIterator for SingleAccumulator {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use message::trailer::{Trailer, TrailerValue};
+    use trailer::{Trailer, TrailerValue};
 
     // ValueAccumulator tests
 

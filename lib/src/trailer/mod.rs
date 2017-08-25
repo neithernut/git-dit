@@ -14,15 +14,17 @@
 //! uses trailers as storage for issue metadata.
 //!
 
+pub mod accumulation;
+pub mod iter;
+pub mod spec;
+
 use regex::Regex;
-use std::collections::VecDeque;
 use std::fmt;
 use std::result::Result as RResult;
 use std::str::FromStr;
 
 use error::*;
 use error::ErrorKind as EK;
-use message::block::Blocks;
 
 /// The Key of a Trailer:
 ///
@@ -105,6 +107,7 @@ impl fmt::Display for TrailerValue {
     }
 }
 
+
 /// Trailer representation
 ///
 /// A trailer is nothing but the combination of a `TrailerKey` and a
@@ -153,134 +156,6 @@ impl FromStr for Trailer {
             _ => Err(Error::from_kind(EK::TrailerFormatError(s.to_owned())))
         }
     }
-}
-
-
-/// Iterator extracting trailers from a sequence of strings representing lines
-///
-/// This iterator extracts all trailers from a text provided by the wrapped
-/// iterator over the text's lines. Blocks of lines which contain regular lines
-/// of text are ignored. Only trailers which are part of a pure block of
-/// trailers, delimited by blank lines, are returned by the iterator.
-///
-pub struct Trailers<I, S>
-    where I: Iterator<Item = S>,
-          S: AsRef<str>
-{
-    blocks: Blocks<I, S>,
-    buf: VecDeque<Trailer>,
-}
-
-impl<I, S> Trailers<I, S>
-    where I: Iterator<Item = S>,
-          S: AsRef<str>
-{
-    pub fn only_dit(self) -> DitTrailers<I, S> {
-        DitTrailers(self)
-    }
-}
-
-impl<I, S> From<I> for Trailers<I, S>
-    where I: Iterator<Item = S>,
-          S: AsRef<str>
-{
-    fn from(lines: I) -> Self {
-        Trailers {
-            blocks: Blocks::from(lines),
-            buf: VecDeque::new(),
-        }
-    }
-}
-
-impl<I, S> Iterator for Trailers<I, S>
-    where I: Iterator<Item = S>,
-          S: AsRef<str>
-{
-    type Item = Trailer;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        use message::block::Block;
-
-        loop {
-            if let Some(trailer) = self.buf.pop_front() {
-                return Some(trailer);
-            }
-
-            match self.blocks.next() {
-                Some(Block::Trailer(trailers)) => self.buf = VecDeque::from(trailers),
-                None => return None,
-                _ => {},
-            }
-        }
-    }
-
-}
-
-
-/// Iterator assembling trailers from key-value pairs
-///
-/// This iterator wraps an iterator returning key-value pairs. The pairs
-/// returned by the wrapped iterator are assembled to `Trailer`s.
-///
-pub struct PairsToTrailers<K, I>
-    where K: Into<TrailerKey>,
-          I: Iterator<Item = (K, TrailerValue)>
-{
-    inner: I
-}
-
-impl<K, I, J> From<J> for PairsToTrailers<K, I>
-    where K: Into<TrailerKey>,
-          I: Iterator<Item = (K, TrailerValue)>,
-          J: IntoIterator<Item = (K, TrailerValue), IntoIter = I>
-{
-    fn from(iter: J) -> Self {
-        PairsToTrailers { inner: iter.into_iter() }
-    }
-}
-
-impl<K, I> Iterator for PairsToTrailers<K, I>
-    where K: Into<TrailerKey>,
-          I: Iterator<Item = (K, TrailerValue)>
-{
-    type Item = Trailer;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.inner
-            .next()
-            .map(|(k, v)| Trailer { key: k.into(), value: v })
-    }
-}
-
-
-/// Iterator extracting DIT trailers from an iterator over trailers
-///
-pub struct DitTrailers<I, S>(Trailers<I, S>)
-    where I: Iterator<Item = S>,
-          S: AsRef<str>;
-
-impl<I, S> Iterator for DitTrailers<I, S>
-    where I: Iterator<Item = S>,
-          S: AsRef<str>
-{
-    type Item = Trailer;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            match self.0.next() {
-                None => return None,
-                Some(trailer) => {
-                    if trailer.key.0.starts_with("Dit") {
-                        return Some(trailer);
-                    } else {
-                        continue;
-                    }
-
-                }
-            }
-        }
-    }
-
 }
 
 
@@ -337,50 +212,5 @@ mod tests {
     #[test]
     fn empty_trailer() {
         assert!(Trailer::from_str("").is_err());
-    }
-
-    // Trailers tests
-
-    #[test]
-    fn trailers() {
-        let mut trailers = Trailers::from(vec![
-            "Foo-bar: bar",
-            "",
-            "Space: the final frontier.",
-            "These are the voyages...",
-            "",
-            "And then he",
-            "said: engage!",
-            "",
-            "",
-            "Signed-off-by: Spock",
-            "Dit-status: closed",
-            "Multi-line-trailer: multi",
-            "  line",
-            "  content"
-        ].into_iter());
-
-        {
-            let (key, _) = trailers.next().expect("Failed to parse trailer1").into();
-            assert_eq!(key, TrailerKey("Foo-bar".to_string()));
-        }
-
-        {
-            let (key, _) = trailers.next().expect("Failed to parse trailer2").into();
-            assert_eq!(key, TrailerKey("Signed-off-by".to_string()));
-        }
-
-        {
-            let (key, _) = trailers.next().expect("Failed to parse trailer3").into();
-            assert_eq!(key, TrailerKey("Dit-status".to_string()));
-        }
-
-        {
-            let (key, value) = trailers.next().expect("Failed to parse trailer4").into();
-            assert_eq!(key, TrailerKey("Multi-line-trailer".to_string()));
-            assert_eq!(value, TrailerValue::String("multi  line  content".to_string()));
-        }
-
-        assert!(!trailers.next().is_some())
     }
 }

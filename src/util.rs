@@ -15,8 +15,8 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use libgitdit::message::LineIteratorExt;
-use libgitdit::message::trailer::Trailer;
 use libgitdit::repository::UniqueIssues;
+use libgitdit::trailer::Trailer;
 use libgitdit::{Issue, RepositoryExt};
 
 use abort::{Abortable, IteratorExt};

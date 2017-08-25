@@ -7,10 +7,9 @@
 //   published by the Free Software Foundation.
 //
 
-use libgitdit::Issue;
-use libgitdit::message::accumulation::{Accumulator, ValueAccumulator};
-use libgitdit::message::trailer::TrailerValue;
-use libgitdit::message::{Message, metadata};
+use libgitdit::trailer::accumulation::{Accumulator, ValueAccumulator};
+use libgitdit::trailer::{TrailerValue, spec};
+use libgitdit::{Issue, Message};
 use std::str::FromStr;
 
 use abort::{Abortable, IteratorExt};
@@ -25,7 +24,7 @@ use reference::{self, ReferrencesExt};
 ///
 pub struct FilterSpec<'a> {
     /// Metadata to filter
-    metadata: metadata::MetadataSpecification<'a>,
+    metadata: spec::TrailerSpec<'a>,
     /// Expected value
     value: TrailerValue,
 }
@@ -49,8 +48,8 @@ impl<'a> FromStr for FilterSpec<'a> {
         let metadata = parts
             .next()
             .and_then(|name| match name {
-                "status"    => Some(metadata::ISSUE_STATUS_SPEC.clone()),
-                "type"      => Some(metadata::ISSUE_TYPE_SPEC.clone()),
+                "status"    => Some(spec::ISSUE_STATUS_SPEC.clone()),
+                "type"      => Some(spec::ISSUE_TYPE_SPEC.clone()),
                 _           => None,
             })
             .ok_or_else(|| Error::from_kind(EK::MalformedFilterSpec(s.to_owned())))?;
@@ -101,7 +100,7 @@ impl<'a> MetadataFilter<'a> {
         // NOTE: if we ever add the filters crate as a dependency, this method
         //       may be transferred to an implementatio nof the Filter trait
         use git2::ObjectType;
-        use libgitdit::message::metadata::ToMap;
+        use libgitdit::trailer::spec::ToMap;
         use std::collections::HashMap;
 
         // Filtering may be expensive, so it makes sense to return early if the

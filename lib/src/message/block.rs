@@ -16,8 +16,10 @@
 //! well as an iterator for extracting the blocks from a sequence of lines.
 //!
 
-use message::trailer::Trailer;
+use std::collections::VecDeque;
 use std::str::FromStr;
+
+use trailer::{self, Trailer};
 
 
 /// A block of lines
@@ -88,6 +90,7 @@ impl<I, S> Iterator for Blocks<I, S>
             if trimmed.starts_with(" ") {
                 // We encountered a part of a multiline trailer.
                 if let Some(ref mut trailer) = trailers.last_mut() {
+                    trailer.value.append("\n");
                     trailer.value.append(trimmed);
                 } else {
                     // Turns out this is a paragraph with the first line being
@@ -118,13 +121,81 @@ impl<I, S> Iterator for Blocks<I, S>
 }
 
 
+/// Iterator extracting trailers from a sequence of strings representing lines
+///
+/// This iterator extracts all trailers from a text provided by the wrapped
+/// iterator over the text's lines. Blocks of lines which contain regular lines
+/// of text are ignored. Only trailers which are part of a pure block of
+/// trailers, delimited by blank lines, are returned by the iterator.
+///
+pub struct Trailers<I, S>
+    where I: Iterator<Item = S>,
+          S: AsRef<str>
+{
+    blocks: Blocks<I, S>,
+    buf: VecDeque<Trailer>,
+}
+
+impl<I, S> Trailers<I, S>
+    where I: Iterator<Item = S>,
+          S: AsRef<str>
+{
+    pub fn only_dit(self) -> trailer::iter::DitTrailers<Self> {
+        self.into()
+    }
+}
+
+impl<I, S> From<Blocks<I, S>> for Trailers<I, S>
+    where I: Iterator<Item = S>,
+          S: AsRef<str>
+{
+    fn from(blocks: Blocks<I, S>) -> Self {
+        Trailers {
+            blocks: blocks,
+            buf: VecDeque::new(),
+        }
+    }
+}
+
+impl<I, S> From<I> for Trailers<I, S>
+    where I: Iterator<Item = S>,
+          S: AsRef<str>
+{
+    fn from(lines: I) -> Self {
+        Blocks::from(lines).into()
+    }
+}
+
+impl<I, S> Iterator for Trailers<I, S>
+    where I: Iterator<Item = S>,
+          S: AsRef<str>
+{
+    type Item = Trailer;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            if let Some(trailer) = self.buf.pop_front() {
+                return Some(trailer);
+            }
+
+            match self.blocks.next() {
+                Some(Block::Trailer(trailers)) => self.buf = VecDeque::from(trailers),
+                None => return None,
+                _ => {},
+            }
+        }
+    }
+
+}
+
+
 
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    use message::trailer::{TrailerKey, TrailerValue};
+    use trailer::{TrailerKey, TrailerValue};
 
     // Blocks test
 
@@ -202,7 +273,7 @@ mod tests {
                 {
                     let trailer = iter.next().expect("Failed to parse trailer 4");
                     assert_eq!(trailer.key, TrailerKey::from("Multi-line-trailer".to_string()));
-                    assert_eq!(trailer.value, TrailerValue::String("multi  line  content".to_string()));
+                    assert_eq!(trailer.value, TrailerValue::String("multi\n  line\n  content".to_string()));
                 }
 
                 assert!(iter.next().is_none());
@@ -211,5 +282,50 @@ mod tests {
         }
 
         assert!(!blocks.next().is_some())
+    }
+
+    // Trailers tests
+
+    #[test]
+    fn trailers_iter() {
+        let mut trailers = Trailers::from(vec![
+            "Foo-bar: bar",
+            "",
+            "Space: the final frontier.",
+            "These are the voyages...",
+            "",
+            "And then he",
+            "said: engage!",
+            "",
+            "",
+            "Signed-off-by: Spock",
+            "Dit-status: closed",
+            "Multi-line-trailer: multi",
+            "  line",
+            "  content"
+        ].into_iter());
+
+        {
+            let (key, _) = trailers.next().expect("Failed to parse trailer1").into();
+            assert_eq!(key, "Foo-bar".to_string().into());
+        }
+
+        {
+            let (key, _) = trailers.next().expect("Failed to parse trailer2").into();
+            assert_eq!(key, "Signed-off-by".to_string().into());
+        }
+
+        {
+            let (key, _) = trailers.next().expect("Failed to parse trailer3").into();
+            assert_eq!(key, "Dit-status".to_string().into());
+        }
+
+        {
+            let (key, value) = trailers.next().expect("Failed to parse trailer4").into();
+            assert_eq!(key, "Multi-line-trailer".to_string().into());
+            assert_eq!(value, TrailerValue::String("multi\n  line\n  content".to_string()));
+        }
+
+        assert!(!trailers.next().is_some())
     }
 }
