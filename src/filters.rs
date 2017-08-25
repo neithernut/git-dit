@@ -19,6 +19,41 @@ use gitext::{RemotePriorization, ReferrencesExt};
 use system::{Abortable, IteratorExt};
 
 
+/// Representation of non-trailer metadata
+///
+enum NonTrailer {
+    ReporterName,
+    ReporterEMail,
+}
+
+impl NonTrailer {
+    /// Retrieve the value for a given issue
+    ///
+    pub fn for_issue(&self, issue: &Issue) -> Result<TrailerValue> {
+        match self {
+            &NonTrailer::ReporterName => {
+                let initial = issue.initial_message()?;
+                let value = initial
+                    .author()
+                    .name()
+                    .map(TrailerValue::from_slice)
+                    .unwrap_or_default();
+                Ok(value)
+            },
+            &NonTrailer::ReporterEMail => {
+                let initial = issue.initial_message()?;
+                let value = initial
+                    .author()
+                    .email()
+                    .map(TrailerValue::from_slice)
+                    .unwrap_or_default();
+                Ok(value)
+            },
+        }
+    }
+}
+
+
 /// Filter specification
 ///
 /// This type represents a filter rule for a single piece of metadata.
