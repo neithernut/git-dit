@@ -15,6 +15,7 @@
 //!
 
 pub mod accumulation;
+pub mod filter;
 pub mod iter;
 pub mod spec;
 
