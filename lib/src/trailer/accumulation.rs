@@ -132,23 +132,25 @@ impl<M> Accumulator for M
     }
 }
 
-// TODO: consolidate the implementation for map types, should there ever be an
-//       appropriate map trait in `std`.
-impl<S> Accumulator for collections::HashMap<String, ValueAccumulator, S>
+impl<S> MultiAccumulator for collections::HashMap<String, ValueAccumulator, S>
     where S: BuildHasher
 {
-    fn process(&mut self, trailer: Trailer) {
-        let (key, value) = trailer.into();
-        self.get_mut(key.as_ref())
-            .map(|ref mut acc| acc.process(value));
+    fn get(&self, key: &str) -> Option<&ValueAccumulator> {
+        collections::HashMap::get(self, key)
+    }
+
+    fn get_mut(&mut self, key: &str) -> Option<&mut ValueAccumulator> {
+        collections::HashMap::get_mut(self, key)
     }
 }
 
-impl Accumulator for collections::BTreeMap<String, ValueAccumulator> {
-    fn process(&mut self, trailer: Trailer) {
-        let (key, value) = trailer.into();
-        self.get_mut(key.as_ref())
-            .map(|ref mut acc| acc.process(value));
+impl MultiAccumulator for collections::BTreeMap<String, ValueAccumulator> {
+    fn get(&self, key: &str) -> Option<&ValueAccumulator> {
+        collections::BTreeMap::get(self, key)
+    }
+
+    fn get_mut(&mut self, key: &str) -> Option<&mut ValueAccumulator> {
+        collections::BTreeMap::get_mut(self, key)
     }
 }
 
