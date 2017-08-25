@@ -131,6 +131,7 @@ impl FromStr for FilterSpec {
 ///
 pub struct MetadataFilter<'a> {
     prios: &'a RemotePriorization,
+    nontrailers: Vec<(NonTrailer, ValueMatcher, bool)>,
     trailers: Vec<(TrailerFilter<'a>, bool)>,
 }
 
@@ -140,17 +141,20 @@ impl<'a> MetadataFilter<'a> {
     pub fn new<I>(prios: &'a RemotePriorization, spec: I) -> Result<Self>
         where I: IntoIterator<Item = FilterSpec>
     {
+        let mut nontrailers = Vec::new();
         let mut trailers = Vec::new();
 
         for s in spec.into_iter() {
             match s.key.as_ref() {
-                "status"    => trailers.push(s.into_trailer(spec::ISSUE_STATUS_SPEC.clone())),
-                "type"      => trailers.push(s.into_trailer(spec::ISSUE_TYPE_SPEC.clone())),
-                _           => return Err(Error::from_kind(EK::UnknownMetadataKey(s.key.to_string()))),
+                "status"            => trailers.push(s.into_trailer(spec::ISSUE_STATUS_SPEC.clone())),
+                "type"              => trailers.push(s.into_trailer(spec::ISSUE_TYPE_SPEC.clone())),
+                "reporter-name"     => nontrailers.push(s.into_nontrailer(NonTrailer::ReporterName)),
+                "reporter-email"    => nontrailers.push(s.into_nontrailer(NonTrailer::ReporterEMail)),
+                _                   => return Err(Error::from_kind(EK::UnknownMetadataKey(s.key.to_string()))),
             }
         }
 
-        Ok(MetadataFilter { prios: prios, trailers: trailers })
+        Ok(MetadataFilter { prios: prios, nontrailers: nontrailers, trailers: trailers })
     }
 
     /// Create an empty metadata filter
@@ -160,6 +164,7 @@ impl<'a> MetadataFilter<'a> {
     pub fn empty(prios: &'a RemotePriorization) -> Self {
         MetadataFilter {
             prios: prios,
+            nontrailers: Vec::new(),
             trailers: Vec::new(),
         }
     }
@@ -172,6 +177,14 @@ impl<'a> MetadataFilter<'a> {
         use git2::ObjectType;
         use libgitdit::iter::MessagesExt;
         use std::collections::HashMap;
+
+        // Check non-trailer metadata first
+        for metadata in self.nontrailers.iter() {
+            let value = metadata.0.for_issue(issue).unwrap_or_abort();
+            if !metadata.1.matches(&value) ^ metadata.2 {
+                return false;
+            }
+        }
 
         // Filtering may be expensive, so it makes sense to return early if the
         // filter is empty.
