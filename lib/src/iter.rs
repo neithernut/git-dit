@@ -13,10 +13,13 @@
 //!
 
 use git2::{self, Repository};
+use std::borrow::Borrow;
 use std::collections::HashMap;
+use std::iter::FromIterator;
 
 use issue;
 use repository::RepositoryExt;
+use trailer::{accumulation, spec};
 
 use error::*;
 use error::ErrorKind as EK;
@@ -110,6 +113,42 @@ impl<'r> Iterator for Messages<'r> {
                 .and_then(|id| self.repo.find_commit(id))
                 .chain_err(|| EK::CannotGetCommit)
             )
+    }
+}
+
+
+/// Messages iterator extension trait
+///
+/// This trait provides some convenience functionality for iterators over
+/// `Message`s which does not need to be part of `Messages` or another iterator.
+///
+pub trait MessagesExt {
+    /// Accumulate trailers according to the specification provided
+    ///
+    /// This function accumulates all specified trailers from the messages
+    /// returned by the iterator.
+    ///
+    fn accumulate_trailers<'a, A, I, J>(self, specs: I) -> A
+        where A: accumulation::MultiAccumulator + FromIterator<(String, accumulation::ValueAccumulator)>,
+              I: IntoIterator<Item = J>,
+              J: Borrow<spec::TrailerSpec<'a>>;
+}
+
+impl<'a, I> MessagesExt for I
+    where I: Iterator<Item = git2::Commit<'a>>
+{
+    fn accumulate_trailers<'b, A, J, K>(self, specs: J) -> A
+        where A: accumulation::MultiAccumulator + FromIterator<(String, accumulation::ValueAccumulator)>,
+              J: IntoIterator<Item = K>,
+              K: Borrow<spec::TrailerSpec<'b>>
+    {
+        use message::Message;
+        use trailer::accumulation::Accumulator;
+        use trailer::spec::ToMap;
+
+        let mut accumulator : A = specs.into_map();
+        accumulator.process_all(self.flat_map(|message| message.trailers()));
+        accumulator
     }
 }
 
