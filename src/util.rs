@@ -19,20 +19,19 @@ use libgitdit::repository::UniqueIssues;
 use libgitdit::trailer::Trailer;
 use libgitdit::{Issue, RepositoryExt};
 
-use abort::{Abortable, IteratorExt};
 use error::*;
 use error::ErrorKind as EK;
-use programs::run_editor;
-use reference::RemotePriorization;
+use gitext::RemotePriorization;
+use system::{Abortable, IteratorExt, LoggableError};
 
 /// Open the DIT repo
 ///
 /// Opens the DIT repo corresponding to the current one honouring the user
 /// configuration.
 ///
-pub fn open_dit_repo() -> Result<Repository> {
+pub fn open_dit_repo() -> Repository {
     // TODO: access the config and maybe return another repo instead
-    Repository::open_from_env().chain_err(|| EK::CannotOpenRepository)
+    Repository::open_from_env().unwrap_or_abort()
 }
 
 
@@ -43,25 +42,19 @@ pub trait RepositoryUtil<'r> {
     ///
     /// This function returns a commit for a rev-string.
     ///
-    fn value_to_commit(&'r self, rev: &str) -> Result<Commit<'r>>;
-
-    /// Get an issue from a string representation
-    ///
-    /// This function returns an issue from a string representation.
-    ///
-    fn value_to_issue(&'r self, value: &str) -> Result<Issue<'r>>;
+    fn value_to_commit(&'r self, rev: &str) -> Commit<'r>;
 
     /// Get a vector of commits from values
     ///
     /// This function transforms values to a vector.
     ///
-    fn values_to_hashes(&'r self, values: Values) -> Result<Vec<Commit<'r>>>;
+    fn values_to_commits(&'r self, values: Values) -> Vec<Commit<'r>>;
 
     /// Get the issue specified on the command line
     ///
     /// This function parses the issue specified via the `"issue"` field.
     ///
-    fn cli_issue(&'r self, matches: &ArgMatches) -> Result<Issue<'r>>;
+    fn cli_issue(&'r self, matches: &ArgMatches) -> Option<Issue<'r>>;
 
     /// Get the issues specified on the command line
     ///
@@ -71,7 +64,7 @@ pub trait RepositoryUtil<'r> {
 
     /// Retrieve the references from the command line
     ///
-    fn cli_references(&'r self, matches: &ArgMatches) -> Result<Vec<Commit<'r>>>;
+    fn cli_references(&'r self, matches: &ArgMatches) -> Vec<Commit<'r>>;
 
     /// Get the path to the file usually used to edit comit messages
     fn commitmsg_edit_path(&self, matches: &ArgMatches) -> PathBuf;
@@ -86,41 +79,29 @@ pub trait RepositoryUtil<'r> {
     /// Note: the pathbuf is consumed since we assume that the fill will not be
     ///       used after the commit message is read back.
     ///
-    fn get_commit_msg(&self, path: PathBuf) -> Result<Vec<String>>;
+    fn get_commit_msg(&self, path: PathBuf) -> Vec<String>;
 
     /// Retrieve metadata from command line arguments
     ///
-    fn prepare_trailers(&self, matches: &ArgMatches) -> Result<Vec<Trailer>>;
+    fn prepare_trailers(&self, matches: &ArgMatches) -> Vec<Trailer>;
 
     /// Get the abbreviation length for oids
     ///
-    fn abbreviation_length(&self, matches: &ArgMatches) -> Result<usize>;
+    fn abbreviation_length(&self, matches: &ArgMatches) -> usize;
 
     /// Get remote priorization from the config
-    fn remote_priorization(&self) -> Result<RemotePriorization>;
+    fn remote_priorization(&self) -> RemotePriorization;
 }
 
 impl<'r> RepositoryUtil<'r> for Repository {
-    fn value_to_commit(&'r self, rev: &str) -> Result<Commit<'r>> {
+    fn value_to_commit(&'r self, rev: &str) -> Commit<'r> {
         self.revparse_single(rev)
             .and_then(|oid| self.find_commit(oid.id()))
-            .chain_err(|| EK::WrappedGitDitError)
+            .unwrap_or_abort()
     }
 
-    fn value_to_issue(&'r self, value: &str) -> Result<Issue<'r>> {
-        git2::Oid::from_str(value)
-            .chain_err(|| EK::WrappedParseError)
-            .and_then(|id| {
-                self.find_issue(id).chain_err(|| EK::WrappedGitDitError)
-            })
-    }
-
-    fn values_to_hashes(&'r self, values: Values) -> Result<Vec<Commit<'r>>> {
-        let mut retval = Vec::new();
-        for commit in values.map(|string| self.value_to_commit(string)) {
-            retval.push(try!(commit));
-        }
-        Ok(retval)
+    fn values_to_commits(&'r self, values: Values) -> Vec<Commit<'r>> {
+        values.map(|string| self.value_to_commit(string)).collect()
     }
 
     fn commitmsg_edit_path(&self, matches: &ArgMatches) -> PathBuf {
@@ -129,77 +110,81 @@ impl<'r> RepositoryUtil<'r> for Repository {
                .unwrap_or_else(|| self.path().join("COMMIT_EDITMSG"))
     }
 
-    fn cli_issue(&'r self, matches: &ArgMatches) -> Result<Issue<'r>> {
+    fn cli_issue(&'r self, matches: &ArgMatches) -> Option<Issue<'r>> {
         matches.value_of("issue")
-               .ok_or_else(|| {
-                   Error::from_kind(EK::ParameterMissing("issue".to_owned()))
-               })
-               .and_then(|value| self.value_to_issue(value))
+               .map(|value| value_to_issue(self, value))
     }
 
     fn cli_issues(&'r self, matches: &ArgMatches) -> Option<UniqueIssues<'r>> {
         matches
             .values_of("issue")
             .map(|values| values
-                .map(|issue| self.value_to_issue(issue).unwrap_or_abort())
+                .map(|issue| value_to_issue(self, issue))
                 .collect()
             )
     }
 
-    fn cli_references(&'r self, matches: &ArgMatches) -> Result<Vec<Commit<'r>>> {
-        matches.values_of("reference")
-               .map(|p| self.values_to_hashes(p))
-               .unwrap_or(Ok(vec![]))
+    fn cli_references(&'r self, matches: &ArgMatches) -> Vec<Commit<'r>> {
+        matches
+            .values_of("reference")
+            .map(|p| self.values_to_commits(p))
+            .unwrap_or_default()
     }
 
-    fn get_commit_msg(&self, path: PathBuf) -> Result<Vec<String>> {
+    fn get_commit_msg(&self, path: PathBuf) -> Vec<String> {
+        use system::programs::run_editor;
+
         // let the user write the message
-        if !run_editor(self.config().chain_err(|| EK::CannotGetRepositoryConfig)?, &path)?
-            .wait().chain_err(|| EK::WrappedIOError)?
+        if !run_editor(self.config().unwrap_or_abort(), &path)
+            .unwrap_or_abort()
+            .wait()
+            .unwrap_or_abort()
             .success()
         {
-            return Err(Error::from_kind(EK::ChildError));
+            Error::from_kind(EK::ChildError).log();
+            ::std::process::exit(1);
         }
 
         // read the message back, check for validity
         use io::BufRead;
-        let lines : Vec<String> = io::BufReader::new(File::open(path).chain_err(|| EK::WrappedIOError)?)
+        let lines : Vec<String> = io::BufReader::new(File::open(path).unwrap_or_abort())
             .lines()
             .abort_on_err()
             .stripped()
             .collect();
 
-        lines.iter()
+        lines
+            .iter()
             .check_message_format()
-            .chain_err(|| EK::WrappedGitDitError)?;
+            .unwrap_or_abort();
 
-        Ok(lines)
+        lines
     }
 
-    fn prepare_trailers(&self, matches: &ArgMatches) -> Result<Vec<Trailer>> {
+    fn prepare_trailers(&self, matches: &ArgMatches) -> Vec<Trailer> {
         let mut trailers = Vec::new();
 
         if matches.is_present("signoff") {
-            let sig = self.signature().chain_err(|| EK::CannotGetSignature)?.to_string();
+            let sig = self.signature().unwrap_or_abort().to_string();
             trailers.push(Trailer::new("Signed-off-by", sig.as_str()));
         }
 
         // append misc metadata
         if let Some(metadata) = matches.values_of("metadata") {
             for trailer in metadata.map(Trailer::from_str) {
-                trailers.push(trailer?);
+                trailers.push(trailer.unwrap_or_abort());
             }
         }
 
-        Ok(trailers)
+        trailers
     }
 
-    fn abbreviation_length(&self, matches: &ArgMatches) -> Result<usize> {
+    fn abbreviation_length(&self, matches: &ArgMatches) -> usize {
         if !matches.is_present("abbrev") {
             // If the abbreviation option was not used, we can just use the
             // known length of a hash.
             // TODO: have this compile-time at some prominent place
-            return Ok(40);
+            return 40;
         }
 
         // TODO: the following _might_ be simplified using the `programs::Var`
@@ -207,25 +192,27 @@ impl<'r> RepositoryUtil<'r> for Repository {
 
         if let Some(number) = matches.value_of("abbrev") {
             // The abbreviation flas might have been specified with a value.
-            return str::parse(number).chain_err(|| EK::WrappedParseError);
+            return str::parse(number).unwrap_or_abort();
         }
 
-        if let Some(number) = self.config().and_then(|c| c.get_i32("core.abbrev")).ok() {
+        if let Some(number) = self.config().unwrap_or_abort().get_i32("core.abbrev").ok() {
             // The abbreviation flag might have been specified as a configuration option
-            return Ok(number as usize);
+            return number as usize;
         }
 
         // TODO: use a larger number based on the number of objects in the repo
-        Ok(7)
+        7
     }
 
-    fn remote_priorization(&self) -> Result<RemotePriorization> {
-        let config = self
-            .config()
-            .chain_err(|| EK::CannotGetRepositoryConfig)?;
-        Ok(RemotePriorization::from(config.get_str("dit.remote-prios").unwrap_or("*")))
+    fn remote_priorization(&self) -> RemotePriorization {
+        self.config()
+            .unwrap_or_abort()
+            .get_str("dit.remote-prios")
+            .unwrap_or("*")
+            .into()
     }
 }
+
 
 /// Get the message specified on the command line, as lines
 ///
@@ -237,5 +224,15 @@ pub fn message_from_args(matches: &ArgMatches) -> Option<Vec<String>> {
            .map(|ps| ps.map(str::to_owned)
                        .map(|p| (p + "\n").to_owned()) // paragraphs
                        .collect())
+}
+
+
+/// Get an issue from a string representation
+///
+/// This function returns an issue from a string representation.
+///
+fn value_to_issue<'r>(repo: &'r Repository, value: &str) -> Issue<'r> {
+    let id = git2::Oid::from_str(value).unwrap_or_abort();
+    repo.find_issue(id).unwrap_or_abort()
 }
 

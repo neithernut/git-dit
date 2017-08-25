@@ -12,10 +12,10 @@ use libgitdit::trailer::{TrailerValue, spec};
 use libgitdit::{Issue, Message};
 use std::str::FromStr;
 
-use abort::{Abortable, IteratorExt};
 use error::*;
 use error::ErrorKind as EK;
-use reference::{self, ReferrencesExt};
+use gitext::{RemotePriorization, ReferrencesExt};
+use system::{Abortable, IteratorExt};
 
 
 /// Filter specification
@@ -67,14 +67,14 @@ impl<'a> FromStr for FilterSpec<'a> {
 /// Metadata filter
 ///
 pub struct MetadataFilter<'a> {
-    prios: &'a reference::RemotePriorization,
+    prios: &'a RemotePriorization,
     spec: Vec<FilterSpec<'a>>,
 }
 
 impl<'a> MetadataFilter<'a> {
     /// Create a new metadata filter
     ///
-    pub fn new<I>(prios: &'a reference::RemotePriorization, spec: I) -> Self
+    pub fn new<I>(prios: &'a RemotePriorization, spec: I) -> Self
         where I: IntoIterator<Item = FilterSpec<'a>>
     {
         MetadataFilter {
@@ -87,7 +87,7 @@ impl<'a> MetadataFilter<'a> {
     ///
     /// The filter will not filter out any issues.
     ///
-    pub fn empty(prios: &'a reference::RemotePriorization) -> Self {
+    pub fn empty(prios: &'a RemotePriorization) -> Self {
         MetadataFilter {
             prios: prios,
             spec: Vec::new(),

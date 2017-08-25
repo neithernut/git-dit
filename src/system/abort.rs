@@ -7,8 +7,9 @@
 //   published by the Free Software Foundation.
 //
 
-use logger::LoggableError;
 use std::process::exit;
+
+use system::LoggableError;
 
 /// Aborting iterator
 ///

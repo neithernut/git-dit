@@ -12,7 +12,7 @@ use std::io::{self, Write};
 use std::result::Result as RResult;
 use std::str;
 
-use logger::LoggableError;
+use system::LoggableError;
 
 
 /// Get credentials from the user

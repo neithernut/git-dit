@@ -15,38 +15,24 @@ extern crate chrono;
 extern crate git2;
 extern crate libgitdit;
 
-mod abort;
-mod callbacks;
+mod display;
 mod error;
 mod filters;
-mod logger;
-mod msgtree;
-mod programs;
-mod reference;
+mod gitext;
+mod system;
 mod util;
-mod write;
 
-use chrono::{FixedOffset, TimeZone};
 use clap::App;
 use git2::Commit;
 use libgitdit::issue::IssueRefType;
 use libgitdit::message::LineIteratorExt;
-use libgitdit::trailer::accumulation::{self, Accumulator};
-use libgitdit::trailer::iter::PairsToTrailers;
-use libgitdit::trailer::Trailer;
-use libgitdit::{Issue, Message, RemoteExt, RepositoryExt};
+use libgitdit::{Message, RepositoryExt};
 use log::LogLevel;
 use std::fs::File;
 use std::io::{self, Read, Write};
-use std::process::Command;
-use std::str::FromStr;
 
-use abort::{Abortable, IteratorExt};
-use error::*;
-use error::ErrorKind as EK;
-use msgtree::{IntoTreeGraph, TreeGraphElem, TreeGraphElemLine};
-use util::{RepositoryUtil, message_from_args};
-use write::WriteExt;
+use util::{RepositoryUtil};
+use system::{Abortable, IteratorExt, WriteExt};
 
 
 // Plumbing subcommand implementations
@@ -97,19 +83,15 @@ fn check_refname(matches: &clap::ArgMatches) {
 /// create-message subcommand implementation
 ///
 fn create_message(matches: &clap::ArgMatches) {
-    let repo = util::open_dit_repo().unwrap_or_abort();
+    let repo = util::open_dit_repo();
 
-    let issue = match matches.value_of("issue") {
-        Some(i) => Some(repo.value_to_issue(i).unwrap_or_abort()),
-        None    => None,
-    };
+    let issue = repo.cli_issue(matches);
     let sig = repo.signature().unwrap_or_abort();
 
     // Note: The list of parents must live long enough to back the references we
     //       supply to `libgitdit::repository::RepositoryExt::create_message()`.
     let parents = matches.values_of("parents")
-                         .map(|p| repo.values_to_hashes(p))
-                         .map(Abortable::unwrap_or_abort)
+                         .map(|p| repo.values_to_commits(p))
                          .unwrap_or_default();
     let parent_refs = parents.iter().map(|command| command);
 
@@ -138,30 +120,24 @@ fn create_message(matches: &clap::ArgMatches) {
 /// find-tree-init-hash subcommand implementation
 ///
 fn find_tree_init_hash(matches: &clap::ArgMatches) {
-    let repo = util::open_dit_repo().unwrap_or_abort();
+    let repo = util::open_dit_repo();
 
     // note: commit is always present since it is a required parameter
-    let commit = repo
-        .value_to_commit(matches.value_of("commit").unwrap())
-        .and_then(|commit| {
-            repo.issue_with_message(&commit)
-                .chain_err(|| EK::WrappedGitDitError)
-        })
-        .unwrap_or_abort();
-
-     println!("{}", commit.id());
+    let commit = repo.value_to_commit(matches.value_of("commit").unwrap());
+    println!("{}", repo.issue_with_message(&commit).unwrap_or_abort());
 }
 
 
 /// get-issue-metadata subcommand implementation
 ///
 fn get_issue_metadata(matches: &clap::ArgMatches) {
-    let repo = util::open_dit_repo().unwrap_or_abort();
+    use libgitdit::trailer::accumulation::{self, Accumulator};
+    use libgitdit::trailer::iter::PairsToTrailers;
+
+    let repo = util::open_dit_repo();
 
     // note: "head" is always present since it is a required parameter
-    let head = repo
-        .value_to_commit(matches.value_of("head").unwrap())
-        .unwrap_or_abort();
+    let head = repo.value_to_commit(matches.value_of("head").unwrap());
     let trailers = repo
         .issue_messages_iter(head)
         .abort_on_err()
@@ -191,7 +167,7 @@ fn get_issue_metadata(matches: &clap::ArgMatches) {
 /// find-tree-init-hash subcommand implementation
 ///
 fn get_issue_tree_init_hashes(_: &clap::ArgMatches) {
-    let repo = util::open_dit_repo().unwrap_or_abort();
+    let repo = util::open_dit_repo();
 
     io::stdout().consume_lines(repo.issues().unwrap_or_abort()).unwrap_or_abort();
 }
@@ -202,7 +178,9 @@ fn get_issue_tree_init_hashes(_: &clap::ArgMatches) {
 /// fetch subcommand implementation
 ///
 fn fetch_impl(matches: &clap::ArgMatches) {
-    let repo = util::open_dit_repo().unwrap_or_abort();
+    use libgitdit::RemoteExt;
+
+    let repo = util::open_dit_repo();
 
     // note: "remote" is always present since it is a required parameter
     let mut remote = repo
@@ -210,17 +188,15 @@ fn fetch_impl(matches: &clap::ArgMatches) {
         .unwrap_or_abort();
 
     // accumulate the refspecs to fetch
-    let refspecs : Vec<String> = if let Some(issues) = matches.values_of("issue") {
+    let refspecs : Vec<String> = if let Some(mut issues) = repo.cli_issues(matches) {
         // fetch a specific list of issues
-        let iter = issues.map(|issue| repo.value_to_issue(issue)).abort_on_err();
         if matches.is_present("known") {
-            iter.chain(repo.issues().unwrap_or_abort())
-                .filter_map(|issue| remote.issue_refspec(issue))
-                .collect()
-        } else {
-            iter.filter_map(|issue| remote.issue_refspec(issue))
-                .collect()
+            issues.extend(repo.issues().unwrap_or_abort());
         }
+        issues
+            .into_iter()
+            .filter_map(|issue| remote.issue_refspec(issue))
+            .collect()
     } else {
         vec![remote.all_issues_refspec().unwrap()]
     };
@@ -232,7 +208,7 @@ fn fetch_impl(matches: &clap::ArgMatches) {
     } else {
         git2::FetchPrune::Unspecified
     });
-    fetch_options.remote_callbacks(callbacks::callbacks());
+    fetch_options.remote_callbacks(gitext::callbacks());
 
     let refspec_refs : Vec<&str> = refspecs.iter().map(String::as_str).collect();
     remote.fetch(refspec_refs.as_ref(), Some(&mut fetch_options), None)
@@ -245,7 +221,7 @@ fn fetch_impl(matches: &clap::ArgMatches) {
 fn gc_impl(matches: &clap::ArgMatches) {
     use libgitdit::gc::{ReferenceCollectionSpec, ReferenceCollector};
 
-    let repo = util::open_dit_repo().unwrap_or_abort();
+    let repo = util::open_dit_repo();
 
     let collect_heads = if matches.is_present("collect-heads") {
         ReferenceCollectionSpec::BackedByRemoteHead
@@ -275,10 +251,13 @@ fn gc_impl(matches: &clap::ArgMatches) {
 /// list subcommand implementation
 ///
 fn list_impl(matches: &clap::ArgMatches) {
+    use chrono::{FixedOffset, TimeZone};
+    use libgitdit::Issue;
+
     use filters::MetadataFilter;
 
-    let repo = util::open_dit_repo().unwrap_or_abort();
-    let remote_prios = repo.remote_priorization().unwrap_or_abort();
+    let repo = util::open_dit_repo();
+    let remote_prios = repo.remote_priorization();
 
     // construct filter
     let filter = match matches.values_of("filter") {
@@ -310,10 +289,10 @@ fn list_impl(matches: &clap::ArgMatches) {
         issues.truncate(str::parse(number).unwrap_or_abort());
     }
 
-    let id_len = repo.abbreviation_length(matches).unwrap_or_abort();
+    let id_len = repo.abbreviation_length(matches);
 
     // spawn a pager
-    let mut pager = programs::pager(repo.config().unwrap_or_abort())
+    let mut pager = system::programs::pager(repo.config().unwrap_or_abort())
         .unwrap_or_abort();
 
     {
@@ -350,9 +329,9 @@ fn list_impl(matches: &clap::ArgMatches) {
 ///
 fn mirror_impl(matches: &clap::ArgMatches) {
     use std::collections::HashSet;
-    use reference::{RemotePriorization, ReferrenceExt, ReferrencesExt};
+    use gitext::{RemotePriorization, ReferrenceExt, ReferrencesExt};
 
-    let repo = util::open_dit_repo().unwrap_or_abort();
+    let repo = util::open_dit_repo();
 
     // retrieve the options and flags
     let remote = matches.value_of("remote");
@@ -362,7 +341,7 @@ fn mirror_impl(matches: &clap::ArgMatches) {
 
     let prios = remote
         .map(RemotePriorization::from)
-        .unwrap_or_else(|| repo.remote_priorization().unwrap_or_abort());
+        .unwrap_or_else(|| repo.remote_priorization());
     let issues = repo
         .cli_issues(matches)
         .unwrap_or_else(|| repo.issues().unwrap_or_abort());
@@ -449,7 +428,9 @@ fn mirror_impl(matches: &clap::ArgMatches) {
 /// new subcommand implementation
 ///
 fn new_impl(matches: &clap::ArgMatches) {
-    let repo = util::open_dit_repo().unwrap_or_abort();
+    use util::message_from_args;
+
+    let repo = util::open_dit_repo();
 
     let sig = repo.signature().unwrap_or_abort();
 
@@ -458,7 +439,6 @@ fn new_impl(matches: &clap::ArgMatches) {
         // the message was supplied via the command line
         m.into_iter()
          .chain(repo.prepare_trailers(matches)
-                    .unwrap_or_abort()
                     .into_iter()
                     .map(|t| t.to_string()))
          .collect()
@@ -470,11 +450,11 @@ fn new_impl(matches: &clap::ArgMatches) {
 
         { // write
             let mut file = File::create(path.as_path()).unwrap_or_abort();
-            file.consume_lines(repo.prepare_trailers(matches).unwrap_or_abort()).unwrap_or_abort();
+            file.consume_lines(repo.prepare_trailers(matches)).unwrap_or_abort();
             file.flush().unwrap_or_abort();
         }
 
-        repo.get_commit_msg(path).unwrap_or_abort()
+        repo.get_commit_msg(path)
     }.into_iter().collect_string();
 
     // commit the message
@@ -489,7 +469,7 @@ fn new_impl(matches: &clap::ArgMatches) {
 /// push subcommand implementation
 ///
 fn push_impl(matches: &clap::ArgMatches) {
-    let repo = util::open_dit_repo().unwrap_or_abort();
+    let repo = util::open_dit_repo();
 
     // note: "remote" is always present since it is a required parameter
     let mut remote = repo.find_remote(matches.value_of("remote").unwrap()).unwrap_or_abort();
@@ -508,7 +488,7 @@ fn push_impl(matches: &clap::ArgMatches) {
 
     // set the options for the push
     let mut fetch_options = git2::PushOptions::new();
-    fetch_options.remote_callbacks(callbacks::callbacks());
+    fetch_options.remote_callbacks(gitext::callbacks());
 
     let refspec_refs : Vec<&str> = refspecs.iter().map(String::as_str).collect();
     remote.push(refspec_refs.as_ref(), Some(&mut fetch_options))
@@ -519,8 +499,9 @@ fn push_impl(matches: &clap::ArgMatches) {
 /// reply subcommand implementation
 ///
 fn reply_impl(matches: &clap::ArgMatches) {
-    let repo = util::open_dit_repo().unwrap_or_abort();
+    use util::message_from_args;
 
+    let repo = util::open_dit_repo();
     let sig = repo.signature().unwrap_or_abort();
 
     // NOTE: We want to do a lot of stuff early, because we want to report
@@ -530,9 +511,7 @@ fn reply_impl(matches: &clap::ArgMatches) {
 
     // the unwrap is safe since `parent` is a required value
     // and get all the info from it that we might need
-    let mut parent = repo
-        .value_to_commit(matches.value_of("parent").unwrap())
-        .unwrap_or_abort();
+    let mut parent = repo.value_to_commit(matches.value_of("parent").unwrap());
 
     // extract the subject and tree from the parent
     let subject = parent.reply_subject();
@@ -542,7 +521,7 @@ fn reply_impl(matches: &clap::ArgMatches) {
     let issue = repo.issue_with_message(&parent).unwrap_or_abort();
 
     // get the references specified on the command line
-    let references = repo.cli_references(matches).unwrap_or_abort();
+    let references = repo.cli_references(matches);
 
     // get the message, either from the command line argument or an editor
     let message = if let Some(m) = message_from_args(matches) {
@@ -553,7 +532,6 @@ fn reply_impl(matches: &clap::ArgMatches) {
 
         m.into_iter()
          .chain(repo.prepare_trailers(matches)
-                    .unwrap_or_abort()
                     .into_iter()
                     .map(|t| t.to_string()))
          .collect()
@@ -575,12 +553,12 @@ fn reply_impl(matches: &clap::ArgMatches) {
                 write!(&mut file, "\n").unwrap_or_abort();
             }
 
-            file.consume_lines(repo.prepare_trailers(matches).unwrap_or_abort())
+            file.consume_lines(repo.prepare_trailers(matches))
                 .unwrap_or_abort();
             file.flush().unwrap_or_abort();
         }
 
-        repo.get_commit_msg(path).unwrap_or_abort()
+        repo.get_commit_msg(path)
     }.into_iter().collect_string();
 
     // construct a vector holding all parents
@@ -594,9 +572,11 @@ fn reply_impl(matches: &clap::ArgMatches) {
 /// show subcommand implementation
 ///
 fn show_impl(matches: &clap::ArgMatches) {
-    let repo = util::open_dit_repo().unwrap_or_abort();
+    use display::{IntoTreeGraph, TreeGraphElem, TreeGraphElemLine};
 
-    let id_len = repo.abbreviation_length(matches).unwrap_or_abort();
+    let repo = util::open_dit_repo();
+
+    let id_len = repo.abbreviation_length(matches);
 
     // translate commit to lines representing the commit
     let commit_lines = |mut commit: Commit| -> Vec<String> {
@@ -624,7 +604,9 @@ fn show_impl(matches: &clap::ArgMatches) {
     };
 
     // first, get us an iterator over all the commits
-    let issue = repo.cli_issue(matches).unwrap_or_abort();
+
+    // NOTE: the issue is a required parameter
+    let issue = repo.cli_issue(matches).unwrap();
     let mut commits : Vec<(TreeGraphElemLine, Commit)> =
         if matches.is_present("initial") {
             vec![(
@@ -666,7 +648,7 @@ fn show_impl(matches: &clap::ArgMatches) {
         .map(|line| format!("{} {}", line.0, line.1));
 
     // spawn a pager and write the graph
-    let mut pager = programs::pager(repo.config().unwrap_or_abort())
+    let mut pager = system::programs::pager(repo.config().unwrap_or_abort())
         .unwrap_or_abort();
     pager.stdin.as_mut().unwrap().consume_lines(graph).unwrap_or_abort();
 
@@ -680,15 +662,18 @@ fn show_impl(matches: &clap::ArgMatches) {
 /// tag subcommand implementation
 ///
 fn tag_impl(matches: &clap::ArgMatches) {
-    use reference::ReferrencesExt;
+    use libgitdit::trailer::Trailer;
+    use std::str::FromStr;
 
-    let repo = util::open_dit_repo().unwrap_or_abort();
-    let prios = repo.remote_priorization().unwrap_or_abort();
+    use gitext::ReferrencesExt;
+
+    let repo = util::open_dit_repo();
+    let prios = repo.remote_priorization();
 
     // get the head for the issue to tag
-    let issue = repo
-        .cli_issue(matches)
-        .unwrap_or_abort();
+
+    // NOTE: the issue is a required parameter
+    let issue = repo.cli_issue(matches).unwrap();
     let mut head_commit = issue
         .heads()
         .abort_on_err()
@@ -712,7 +697,7 @@ fn tag_impl(matches: &clap::ArgMatches) {
     // we produce a commit with status and references
 
     // get references and trailers for the new commit
-    let references = repo.cli_references(matches).unwrap_or_abort();
+    let references = repo.cli_references(matches);
     let trailers : Vec<Trailer> = matches.values_of("set-status")
                                          .into_iter()
                                          .flat_map(|values| values)
@@ -749,6 +734,8 @@ fn tag_impl(matches: &clap::ArgMatches) {
 /// Try to invoke an executable matching the name of the subcommand.
 ///
 fn handle_unknown_subcommand(name: &str, matches: &clap::ArgMatches) {
+    use std::process::Command;
+
     // prepare the command to be invoked
     let mut command = Command::new(format!("git-dit-{}", name));
     if let Some(values) = matches.values_of("") {
@@ -770,7 +757,7 @@ fn main() {
     let yaml    = load_yaml!("cli.yaml");
     let matches = App::from_yaml(yaml).get_matches();
 
-    if let Err(err) = logger::Logger::init(LogLevel::Warn) {
+    if let Err(err) = system::Logger::init(LogLevel::Warn) {
         writeln!(io::stderr(), "Could not initialize logger: {}", err).ok();
     }
 

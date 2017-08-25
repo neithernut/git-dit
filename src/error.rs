@@ -14,44 +14,14 @@ error_chain! {
     }
 
     errors {
-        CannotOpenRepository {
-            description("Cannot open repository")
-            display("Cannot open repository")
-        }
-
-        CannotGetRepositoryConfig {
-            description("Cannot get repository config")
-            display("Cannot get repository config")
-        }
-
-        CannotGetSignature {
-            description("Cannot get signature")
-            display("Cannot get signature")
-        }
-
         MalformedFilterSpec(spec: String) {
             description("Malformed filter spec")
             display("Malformed filter spec: {}", spec)
         }
 
-        ParameterMissing(name: String) {
-            description("Missing parameter")
-            display("Missing parameter: {}", name)
-        }
-
         WrappedIOError {
             description("IO Error")
             display("IO Error")
-        }
-
-        WrappedParseError {
-            description("Parser Error")
-            display("Error while parsing")
-        }
-
-        WrappedGitDitError {
-            description("Error in libgitdit")
-            display("Error in libgitdit")
         }
 
         ProgramError(program_name: String) {
