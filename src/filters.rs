@@ -10,6 +10,7 @@
 use libgitdit::Issue;
 use libgitdit::trailer::filter::{TrailerFilter, ValueMatcher};
 use libgitdit::trailer::{TrailerValue, spec};
+use regex::{Regex, Match};
 use std::str::FromStr;
 
 use error::*;
@@ -33,14 +34,25 @@ impl FromStr for FilterSpec {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self> {
-        let mut parts = s.splitn(2, ':');
+        lazy_static! {
+            // regex for parsing a trailer spec
+            static ref RE: Regex = Regex::new(r"^([[:alnum:]-]+):(.*)$").unwrap();
+        }
+
+        let parts = RE
+            .captures(s)
+            .ok_or_else(|| Error::from_kind(EK::MalformedFilterSpec(s.to_owned())))?;
 
         let key = parts
-            .next()
+            .get(1)
+            .as_ref()
+            .map(Match::as_str)
             .ok_or_else(|| Error::from_kind(EK::MalformedFilterSpec(s.to_owned())))?;
 
         let value = parts
-            .next()
+            .get(2)
+            .as_ref()
+            .map(Match::as_str)
             .map(TrailerValue::from_slice)
             .ok_or_else(|| Error::from_kind(EK::MalformedFilterSpec(s.to_owned())))?;
 
