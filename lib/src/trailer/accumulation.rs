@@ -36,6 +36,7 @@ pub enum AccumulationPolicy {
 /// This type encapsulates the task of accumulating trailers in an appropriate
 /// data structure.
 ///
+#[derive(Clone)]
 pub enum ValueAccumulator {
     Latest(Option<TrailerValue>),
     List(Vec<TrailerValue>),
