@@ -31,7 +31,7 @@
 //!
 //! Like emails, messages are immutable once released to the public. Each
 //! message has an author and a creation date. Additionally, a message may
-//! contain arbitrary metadata in the form of git-tags.
+//! contain arbitrary metadata in the form of git trailers.
 //!
 
 #[macro_use] extern crate error_chain;
