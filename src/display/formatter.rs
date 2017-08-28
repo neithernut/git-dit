@@ -69,3 +69,26 @@ pub trait TokenExpander: Sized {
     fn expand_token(&self, item: &Self::Item) -> Result<Vec<FormattingToken<Self, Self::Item>>, Self::Error>;
 }
 
+
+/// Helper type for storing eihter a type or a Borrow implementation
+///
+enum BorrowHelper<T, B>
+    where T: Sized,
+          B: Borrow<T>
+{
+    Value(T),
+    Borrowed(B),
+}
+
+impl<T, B> Borrow<T> for BorrowHelper<T, B>
+    where T: Sized,
+          B: Borrow<T>
+{
+    fn borrow(&self) -> &T {
+        match self {
+            &BorrowHelper::Value(ref val) => &val,
+            &BorrowHelper::Borrowed(ref val) => val.borrow(),
+        }
+    }
+}
+
