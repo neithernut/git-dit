@@ -7,7 +7,9 @@
 //   published by the Free Software Foundation.
 //
 
+mod formatter;
 mod msgtree;
 
+pub use self::formatter::*;
 pub use self::msgtree::*;
 
