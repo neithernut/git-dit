@@ -195,3 +195,30 @@ impl<I, J, T, K, B> Iterator for FormattedLines<I, J, T, K, B>
     }
 }
 
+
+/// Convenience trait for creating a FormattedLines
+///
+/// Users of formatting facilities will most probably use this trait for
+/// performing the formatting.
+///
+pub trait LineFormatter<I, J, T, K, B>
+    where I: Iterator<Item = J>, // Underlying token iterator
+          J: Borrow<FormattingToken<T, K>>, // Tokens returned by the iterator
+          T: TokenExpander<Item = K>, // The specific token expander
+          B: Borrow<K> // Reference of item to format
+{
+    fn formatted_lines(self, item: B) -> FormattedLines<I, J, T, K, B>;
+}
+
+impl<A, I, J, T, K, B> LineFormatter<I, J, T, K, B> for A
+    where A: IntoIterator<Item = J, IntoIter = I>,
+          I: Iterator<Item = J>,
+          J: Borrow<FormattingToken<T, K>>,
+          T: TokenExpander<Item = K>,
+          B: Borrow<K>
+{
+    fn formatted_lines(self, item: B) -> FormattedLines<I, J, T, K, B> {
+        FormattedLines::new(self, item)
+    }
+}
+
