@@ -54,6 +54,7 @@ mod utils;
 mod test_utils;
 
 // A selection of types are reexported for more convenient access.
+pub use error::Error;
 pub use issue::Issue;
 pub use message::Message;
 pub use remote::RemoteExt;
