@@ -56,6 +56,87 @@ impl<T, I> From<T> for FormattingToken<T, I>
 }
 
 
+/// Adaption iterator for transforming lines to tokens
+///
+/// This adapter wraps an iterator over "lines" and transforms each item from
+/// the wrapped iterator to a sequence of `Text` and `LineEnd` tokens.
+///
+pub struct LinesToTokens<I, J, T, K>
+    where I: Iterator<Item = J>,
+          J: ToString
+{
+    inner: I,
+    eol: bool,
+    dummy1: PhantomData<T>,
+    dummy2: PhantomData<K>,
+}
+
+impl<I, J, T, K> From<I> for LinesToTokens<I, J, T, K>
+    where I: Iterator<Item = J>,
+          J: ToString,
+          T: TokenExpander<Item = K> + Sized
+{
+    fn from(iter: I) -> Self {
+        Self {
+            inner: iter,
+            eol: false,
+            dummy1: PhantomData,
+            dummy2: PhantomData,
+        }
+    }
+}
+
+impl<I, J, T, K> Iterator for LinesToTokens<I, J, T, K>
+    where I: Iterator<Item = J>,
+          J: ToString,
+          T: TokenExpander<Item = K> + Sized
+{
+    type Item = FormattingToken<T, K>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.eol {
+            self.eol = false;
+            Some(FormattingToken::LineEnd)
+        } else {
+            let retval = self
+                .inner
+                .next()
+                .map(|line| line.to_string())
+                .map(FormattingToken::from);
+            // only return an `EndLine` from the next call if we return text in
+            // this one
+            self.eol = retval.is_some();
+            retval
+        }
+    }
+}
+
+
+/// Convenience iterator for transforming lines to sequences of tokens
+///
+pub trait LineTokens<I, J>
+    where I: Iterator<Item = J>,
+          J: ToString
+{
+    /// Create a LinesToTokens from this iterator
+    fn line_tokens<T, K>(self) -> LinesToTokens<I, J, T, K>
+        where T: TokenExpander<Item = K> + Sized;
+}
+
+impl<A, I, J> LineTokens<I, J> for A
+    where A: IntoIterator<Item = J, IntoIter = I>,
+          I: Iterator<Item = J>,
+          J: ToString
+{
+    /// Create a LinesToTokens from this iterator
+    fn line_tokens<T, K>(self) -> LinesToTokens<I, J, T, K>
+        where T: TokenExpander<Item = K> + Sized
+    {
+        self.into_iter().into()
+    }
+}
+
+
 /// Token expander
 ///
 /// This type is used for expanding tokens.
