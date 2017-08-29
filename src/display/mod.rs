@@ -8,8 +8,10 @@
 //
 
 mod formatter;
+mod message;
 mod msgtree;
 
 pub use self::formatter::*;
+pub use self::message::*;
 pub use self::msgtree::*;
 
