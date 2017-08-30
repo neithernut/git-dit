@@ -580,6 +580,9 @@ fn reply_impl(matches: &clap::ArgMatches) {
 /// show subcommand implementation
 ///
 fn show_impl(matches: &clap::ArgMatches) {
+    use chrono::format::strftime::StrftimeItems;
+
+    use display::{FormattingToken as FT, MessageFmtToken as MFT, LineFormatter};
     use display::{IntoTreeGraph, TreeGraphElem, TreeGraphElemLine};
 
     let repo = util::open_dit_repo();
@@ -587,28 +590,21 @@ fn show_impl(matches: &clap::ArgMatches) {
     let id_len = repo.abbreviation_length(matches);
 
     // translate commit to lines representing the commit
-    let commit_lines = |mut commit: Commit| -> Vec<String> {
-        // the function is this ugly to comply to the old bash interface
-        if matches.is_present("msgtree") {
-            // With the "tree" option, we only display subjects in a short
-            // format
-
-            // NOTE: the commit is borrowed mutable in order to get the subject
-            let subject = commit.summary().unwrap_or("").to_owned();
-            vec![format!("{0:.1$} {2}: {3}", commit.id(), id_len, commit.author(), subject)]
-        } else {
-            let mut id = commit.id().to_string();
-            id.truncate(id_len);
-            // Regular "long" format
-            vec![
-                id,
-                commit.author().to_string(),
-                String::new()
-            ].into_iter()
-                .chain(commit.message_lines())
-                .chain(vec![String::new()].into_iter())
-                .collect()
-        }
+    let formatter : Vec<FT<_,_>> = if matches.is_present("msgtree") {
+        // With the "tree" option, we only display subjects in a short
+        // format
+        tokenvec![MFT::Id(id_len), " ", MFT::Author, " ", MFT::Subject]
+    } else {
+        tokenvec![
+            MFT::Id(id_len), FT::LineEnd,
+            "Author: ", MFT::Author, FT::LineEnd,
+            "Date: ", MFT::Date(StrftimeItems::new("%+")), FT::LineEnd,
+            FT::LineEnd,
+            MFT::Subject, FT::LineEnd,
+            FT::LineEnd,
+            MFT::Body,
+            FT::LineEnd,
+            FT::LineEnd]
     };
 
     // first, get us an iterator over all the commits
@@ -651,7 +647,10 @@ fn show_impl(matches: &clap::ArgMatches) {
             (elems.commit_iterator(), commit.1)
         })
         // expand the message to a series of lines
-        .flat_map(|commit| commit.0.zip(commit_lines(commit.1)))
+        .flat_map(|commit| commit
+            .0
+            .zip(formatter.iter().formatted_lines(commit.1).abort_on_err())
+        )
         // combine each line of graph elements and message
         .map(|line| format!("{} {}", line.0, line.1));
 
