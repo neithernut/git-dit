@@ -7,7 +7,8 @@
 //   published by the Free Software Foundation.
 //
 
-mod formatter;
+#[macro_use] mod formatter;
+
 mod message;
 mod msgtree;
 

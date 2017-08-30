@@ -17,7 +17,8 @@ extern crate git2;
 extern crate libgitdit;
 extern crate regex;
 
-mod display;
+#[macro_use] mod display;
+
 mod error;
 mod filters;
 mod gitext;

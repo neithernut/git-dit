@@ -13,6 +13,20 @@
 use std::borrow::Borrow;
 use std::marker::PhantomData;
 
+
+/// Convenience macro for creating a token vector from token-like items
+///
+/// The items passed via the list are transformed to tokens by invoking `into()`
+/// on them. As a result, `String`s, `str`s and `TokenExpander`s may be passed
+/// as items.
+///
+macro_rules! tokenvec {
+    ( $( $tok:expr ),* ) => {
+        vec![$($tok.into(),)*]
+    };
+}
+
+
 /// Formatting tokens
 ///
 /// This type represents generic formatting tokens which may be used for
