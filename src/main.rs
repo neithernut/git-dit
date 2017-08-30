@@ -481,9 +481,14 @@ fn push_impl(matches: &clap::ArgMatches) {
         .into_iter()
         .map(|issue| issue.local_refs(IssueRefType::Any))
         .abort_on_err()
-        .flat_map(git2::References::names)
-        .abort_on_err()
-        .map(String::from)
+        .flat_map(|mut refs| {
+            let names: Vec<_> = refs
+                .names()
+                .abort_on_err()
+                .map(String::from)
+                .collect();
+            names
+        })
         .collect();
 
     // set the options for the push
