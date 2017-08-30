@@ -10,10 +10,12 @@
 #[macro_use] extern crate clap;
 #[macro_use] extern crate error_chain;
 #[macro_use] extern crate is_match;
+#[macro_use] extern crate lazy_static;
 #[macro_use] extern crate log;
 extern crate chrono;
 extern crate git2;
 extern crate libgitdit;
+extern crate regex;
 
 mod display;
 mod error;
@@ -263,7 +265,7 @@ fn list_impl(matches: &clap::ArgMatches) {
     let filter = match matches.values_of("filter") {
         Some(values) => {
             let specs = values.map(str::parse).abort_on_err();
-            MetadataFilter::new(&remote_prios, specs)
+            MetadataFilter::new(&remote_prios, specs).unwrap_or_abort()
         },
         None         => MetadataFilter::empty(&remote_prios),
     };

@@ -19,6 +19,11 @@ error_chain! {
             display("Malformed filter spec: {}", spec)
         }
 
+        UnknownMetadataKey(key: String) {
+            description("Unknown metadata key")
+            display("Unknown metadata key: {}", key)
+        }
+
         WrappedIOError {
             description("IO Error")
             display("IO Error")

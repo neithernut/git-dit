@@ -15,6 +15,7 @@
 //!
 
 pub mod accumulation;
+pub mod filter;
 pub mod iter;
 pub mod spec;
 
@@ -95,6 +96,12 @@ impl TrailerValue {
             &mut TrailerValue::Int(i)    => *self = TrailerValue::String(i.to_string() + slice),
             &mut TrailerValue::String(ref mut s) => s.push_str(slice),
         }
+    }
+}
+
+impl Default for TrailerValue {
+    fn default() -> Self {
+        TrailerValue::String(String::new())
     }
 }
 
