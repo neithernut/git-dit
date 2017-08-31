@@ -9,6 +9,14 @@
 
 //! Trailer based filtering
 //!
+//! This module provides utilities for trailer based filtering of issues.
+//!
+//! # Performance note
+//!
+//! These utilities are purely designed for filtering.
+//! For searching issues in repositories of huge projects, an index should be
+//! more performant.
+//!
 
 use std::borrow::Borrow;
 
@@ -56,10 +64,19 @@ pub struct TrailerFilter<'a> {
 }
 
 impl<'a> TrailerFilter<'a> {
+    /// Create a new trailer filter
+    ///
     pub fn new(trailer: TrailerSpec<'a>, matcher: ValueMatcher) -> Self {
         Self { trailer: trailer, matcher: matcher }
     }
 
+    /// Check whether an issue matches the filter
+    ///
+    /// Rather than the issue itself, this method takes a metadata map which
+    /// was previously retrieved via accumulation.
+    /// The function returns true if the issue matches the filter, e.g. it
+    /// should be displayed or considered for an operation.
+    ///
     pub fn matches<'b>(&self, accumulator: &::std::collections::HashMap<String, ValueAccumulator>) -> bool {
         let values = accumulator
             .get(self.trailer.key)
@@ -68,6 +85,8 @@ impl<'a> TrailerFilter<'a> {
         self.matcher.matches_any(values)
     }
 
+    /// Retrieve the spec associated with this filter
+    ///
     pub fn spec(&self) -> &TrailerSpec<'a> {
         &self.trailer
     }
