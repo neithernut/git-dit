@@ -7,7 +7,12 @@
 //   published by the Free Software Foundation.
 //
 
+#[macro_use] mod formatter;
+
+mod message;
 mod msgtree;
 
+pub use self::formatter::*;
+pub use self::message::*;
 pub use self::msgtree::*;
 
