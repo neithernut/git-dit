@@ -1,4 +1,3 @@
-#![recursion_limit = "1024"]
 // git-dit - the distributed issue tracker for git
 // Copyright (C) 2016, 2017 Matthias Beyer <mail@beyermatthias.de>
 // Copyright (C) 2016, 2017 Julian Ganz <neither@nut.email>
@@ -7,6 +6,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
+#![recursion_limit = "1024"]
 
 //! The git-dit library
 //!
@@ -31,7 +31,7 @@
 //!
 //! Like emails, messages are immutable once released to the public. Each
 //! message has an author and a creation date. Additionally, a message may
-//! contain arbitrary metadata in the form of git-tags.
+//! contain arbitrary metadata in the form of git trailers.
 //!
 
 #[macro_use] extern crate error_chain;
