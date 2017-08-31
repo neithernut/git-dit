@@ -8,7 +8,7 @@
 //
 
 use std::fmt::Display;
-use std::io::{Result as RResult, Write};
+use std::io::{self, Result as RResult, Write};
 
 pub trait WriteExt {
     fn consume_lines<I, L>(&mut self, lines: I) -> RResult<()>
@@ -29,3 +29,32 @@ impl<W> WriteExt for W
         Ok(())
     }
 }
+
+/// Extension trait for convenient writing of lines
+///
+pub trait LinesExt: Sized {
+    /// Write the items returned as lines to a given stream
+    ///
+    fn write_lines(self, stream: &mut Write) -> RResult<()>;
+
+    /// Write the items returned as lines to stdout
+    ///
+    fn print_lines(self) -> RResult<()> {
+        let mut stream = io::stdout();
+        self.write_lines(&mut stream)
+    }
+}
+
+impl<I, L> LinesExt for I
+    where I: IntoIterator<Item = L>,
+          L: Display
+{
+    fn write_lines(self, stream: &mut Write) -> RResult<()>
+    {
+        for line in self {
+            write!(stream, "{}\n", line)?;
+        }
+        Ok(())
+    }
+}
+
