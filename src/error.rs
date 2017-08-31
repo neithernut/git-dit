@@ -7,6 +7,9 @@
 // published by the Free Software Foundation.
 //
 
+use std::error::Error as EError;
+
+
 error_chain! {
     foreign_links {
         GitError(::git2::Error);
@@ -40,3 +43,25 @@ error_chain! {
         }
     }
 }
+
+
+/// Convenience trait for logging error types
+///
+/// Logs all layers of an error using the `error!` macro.
+///
+pub trait LoggableError {
+    fn log(&self);
+}
+
+impl<E> LoggableError for E
+    where E: EError
+{
+    fn log(&self) {
+        let mut current = Some(self as &EError);
+        while let Some(err) = current {
+            error!("{}", err);
+            current = err.cause();
+        }
+    }
+}
+

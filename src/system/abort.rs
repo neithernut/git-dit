@@ -9,7 +9,7 @@
 
 use std::process::exit;
 
-use system::LoggableError;
+use error::LoggableError;
 
 /// Aborting iterator
 ///
