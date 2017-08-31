@@ -254,9 +254,10 @@ fn gc_impl(matches: &clap::ArgMatches) {
 /// list subcommand implementation
 ///
 fn list_impl(matches: &clap::ArgMatches) {
-    use chrono::{FixedOffset, TimeZone};
+    use chrono::format::strftime::StrftimeItems;
     use libgitdit::Issue;
 
+    use display::{FormattingToken as FT, MessageFmtToken as MFT, LineFormatter};
     use filters::MetadataFilter;
 
     let repo = util::open_dit_repo();
@@ -269,6 +270,22 @@ fn list_impl(matches: &clap::ArgMatches) {
             MetadataFilter::new(&remote_prios, specs).unwrap_or_abort()
         },
         None         => MetadataFilter::empty(&remote_prios),
+    };
+
+    let id_len = repo.abbreviation_length(matches);
+
+    let formatter = if matches.is_present("long") {
+        tokenvec![
+            MFT::Id(id_len), FT::LineEnd,
+            "Author: ", MFT::Author, FT::LineEnd,
+            "Date: ", MFT::Date(StrftimeItems::new("%+")), FT::LineEnd,
+            FT::LineEnd,
+            MFT::Subject, FT::LineEnd,
+            FT::LineEnd,
+            MFT::BodyText,
+            FT::LineEnd]
+    } else {
+        tokenvec![MFT::Id(id_len), " (", MFT::Date(StrftimeItems::new("%c")), ") ", MFT::Subject]
     };
 
     // get initial commits
@@ -292,33 +309,17 @@ fn list_impl(matches: &clap::ArgMatches) {
         issues.truncate(str::parse(number).unwrap_or_abort());
     }
 
-    let id_len = repo.abbreviation_length(matches);
-
     // spawn a pager
     let mut pager = system::programs::pager(repo.config().unwrap_or_abort())
         .unwrap_or_abort();
 
-    {
-        let mut stream = pager.stdin.as_mut().unwrap();
-        let long = matches.is_present("long");
-        for issue in issues {
-            let id = issue.id();
-            let mut commit = issue.initial_message().unwrap_or_abort();
-            let time = {
-                let gtime = commit.time();
-                FixedOffset::east(gtime.offset_minutes()*60).timestamp(gtime.seconds(), 0)
-            };
-            if long {
-                write!(stream, "Issue:  {}\nAuthor: {}\nDate:   {}\n\n", id, commit.author(), time.to_rfc3339())
-                    .unwrap_or_abort();
-                stream.consume_lines(commit.message_lines()).unwrap_or_abort();
-                write!(stream, "\n\n").unwrap_or_abort();
-            } else {
-                writeln!(stream, "{0:.1$} ({2}) {3}", id, id_len, time.format("%c"), commit.summary().unwrap_or(""))
-                    .unwrap_or_abort();
-            }
-        }
-    }
+    let lines = issues
+        .into_iter()
+        .map(|issue| issue.initial_message())
+        .abort_on_err()
+        .flat_map(|initial| formatter.iter().formatted_lines(initial))
+        .abort_on_err();
+    pager.stdin.as_mut().unwrap().consume_lines(lines).unwrap_or_abort();
 
     // don't trash the shell by exitting with a child still printing to it
     let result = pager.wait().unwrap_or_abort();
