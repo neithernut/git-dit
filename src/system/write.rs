@@ -10,25 +10,6 @@
 use std::fmt::Display;
 use std::io::{self, Result as RResult, Write};
 
-pub trait WriteExt {
-    fn consume_lines<I, L>(&mut self, lines: I) -> RResult<()>
-        where I: IntoIterator<Item = L>,
-              L: Display;
-}
-
-impl<W> WriteExt for W
-    where W: Write
-{
-    fn consume_lines<I, L>(&mut self, lines: I) -> RResult<()>
-        where I: IntoIterator<Item = L>,
-              L: Display
-    {
-        for line in lines {
-            write!(self, "{}\n", line)?;
-        }
-        Ok(())
-    }
-}
 
 /// Extension trait for convenient writing of lines
 ///
