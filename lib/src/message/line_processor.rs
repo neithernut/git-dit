@@ -249,4 +249,15 @@ mod tests {
         assert_eq!(lines.next().expect("Premature end of input"), "");
         assert!(!lines.next().is_some());
     }
+
+    #[test]
+    fn trailing_blank_trimmer() {
+        let mut lines = TrailingBlankTrimmer::from(vec!["", "foo", "bar", "", "baz", "", ""]);
+        assert_eq!(lines.next().expect("Premature end of input"), "");
+        assert_eq!(lines.next().expect("Premature end of input"), "foo");
+        assert_eq!(lines.next().expect("Premature end of input"), "bar");
+        assert_eq!(lines.next().expect("Premature end of input"), "");
+        assert_eq!(lines.next().expect("Premature end of input"), "baz");
+        assert!(!lines.next().is_some());
+    }
 }
