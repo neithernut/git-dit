@@ -87,9 +87,9 @@ fn check_refname(matches: &clap::ArgMatches) {
 ///
 fn create_message(matches: &clap::ArgMatches) {
     let repo = util::open_dit_repo();
-
     let issue = repo.cli_issue(matches);
-    let sig = repo.signature().unwrap_or_abort();
+    let author = repo.cli_author(matches);
+    let committer = repo.signature().unwrap_or_abort();
 
     // Note: The list of parents must live long enough to back the references we
     //       supply to `libgitdit::repository::RepositoryExt::create_message()`.
@@ -108,10 +108,10 @@ fn create_message(matches: &clap::ArgMatches) {
     let mut message = String::new();
     io::stdin().read_to_string(&mut message).unwrap_or_abort();
     let id = match issue {
-        Some(i) => i.add_message(&sig, &sig, message, &tree, parent_refs)
+        Some(i) => i.add_message(&author, &committer, message, &tree, parent_refs)
                     .unwrap_or_abort()
                     .id(),
-        None => repo.create_issue(&sig, &sig, message, &tree, parent_refs)
+        None => repo.create_issue(&author, &committer, message, &tree, parent_refs)
                     .unwrap_or_abort()
                     .id(),
     };
@@ -436,8 +436,8 @@ fn new_impl(matches: &clap::ArgMatches) {
     use util::message_from_args;
 
     let repo = util::open_dit_repo();
-
-    let sig = repo.signature().unwrap_or_abort();
+    let author = repo.cli_author(matches);
+    let committer = repo.signature().unwrap_or_abort();
 
     // get the message, either from the command line argument or an editor
     let message = if let Some(m) = message_from_args(matches) {
@@ -467,7 +467,7 @@ fn new_impl(matches: &clap::ArgMatches) {
     // commit the message
     let tree = repo.empty_tree().unwrap_or_abort();
     let id = repo
-        .create_issue(&sig, &sig, message.trim(), &tree, Vec::new())
+        .create_issue(&author, &committer, message.trim(), &tree, Vec::new())
         .unwrap_or_abort();
     println!("[dit][new] {}", id);
 }
@@ -514,7 +514,8 @@ fn reply_impl(matches: &clap::ArgMatches) {
     use util::message_from_args;
 
     let repo = util::open_dit_repo();
-    let sig = repo.signature().unwrap_or_abort();
+    let author = repo.cli_author(matches);
+    let committer = repo.signature().unwrap_or_abort();
 
     // NOTE: We want to do a lot of stuff early, because we want to report
     //       errors before a user spent time writing a commit message in her
@@ -581,7 +582,7 @@ fn reply_impl(matches: &clap::ArgMatches) {
     let parent_refs = Some(&parent).into_iter().chain(references.iter());
 
     // finally, create the message
-    issue.add_message(&sig, &sig, message.trim(), &tree, parent_refs)
+    issue.add_message(&author, &committer, message.trim(), &tree, parent_refs)
          .unwrap_or_abort();
 }
 
@@ -684,6 +685,8 @@ fn tag_impl(matches: &clap::ArgMatches) {
     use gitext::ReferrencesExt;
 
     let repo = util::open_dit_repo();
+    let author = repo.cli_author(matches);
+    let committer = repo.signature().unwrap_or_abort();
     let prios = repo.remote_priorization();
 
     // get the head for the issue to tag
@@ -727,7 +730,6 @@ fn tag_impl(matches: &clap::ArgMatches) {
     }
 
     // construct the message
-    let sig = repo.signature().unwrap_or_abort();
     let message = [head_commit.reply_subject().unwrap_or_default(), String::new()]
         .to_vec()
         .into_iter()
@@ -736,7 +738,7 @@ fn tag_impl(matches: &clap::ArgMatches) {
     let tree = repo.empty_tree().unwrap_or_abort();
     let parent_refs : Vec<&Commit> = Some(&head_commit).into_iter().chain(references.iter()).collect();
     let new = repo
-        .commit(None, &sig, &sig, message.trim(), &tree, &parent_refs)
+        .commit(None, &author, &committer, message.trim(), &tree, &parent_refs)
         .unwrap_or_abort();
 
     // update the head reference

@@ -79,6 +79,16 @@ subcommands:
                 help: Hash of parent
                 index: 1
                 multiple: true
+            - author:
+                help: Override the commit author
+                long: author
+                takes_value: true
+                multiple: false
+            - date:
+                help: Override the author date of the commit
+                long: date
+                takes_value: true
+                multiple: false
             - issue:
                 short: i
                 long: issue
@@ -313,6 +323,16 @@ subcommands:
                 help: Add a GPG signature
                 multiple: false
                 takes_value: false
+            - author:
+                help: Override the commit author
+                long: author
+                takes_value: true
+                multiple: false
+            - date:
+                help: Override the author date of the commit
+                long: date
+                takes_value: true
+                multiple: false
             - tempfile:
                 long: tempfile
                 help: Use a temporary file at <path> instead of .git/COMMIT_EDITMSG
@@ -384,6 +404,16 @@ subcommands:
                 help: Add a GPG signature
                 multiple: false
                 takes_value: false
+            - author:
+                help: Override the commit author
+                long: author
+                takes_value: true
+                multiple: false
+            - date:
+                help: Override the author date of the commit
+                long: date
+                takes_value: true
+                multiple: false
             - tempfile:
                 long: tempfile
                 help: Use a temporary file at <path> instead of .git/COMMIT_EDITMSG
@@ -514,6 +544,16 @@ subcommands:
                 takes_value: true
                 value_names:
                     - commithash
+            - author:
+                help: Override the commit author
+                long: author
+                takes_value: true
+                multiple: false
+            - date:
+                help: Override the author date of the commit
+                long: date
+                takes_value: true
+                multiple: false
 settings:
     AllowExternalSubcommands
 
