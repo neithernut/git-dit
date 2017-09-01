@@ -35,7 +35,7 @@ use std::fs::File;
 use std::io::{self, Read, Write};
 
 use util::{RepositoryUtil};
-use system::{Abortable, IteratorExt, WriteExt};
+use system::{Abortable, IteratorExt, LinesExt};
 
 
 // Plumbing subcommand implementations
@@ -157,12 +157,12 @@ fn get_issue_metadata(matches: &clap::ArgMatches) {
         let mut acc = accumulation::SingleAccumulator::new(key.to_owned(), policy);
         acc.process_all(trailers);
         if matches.is_present("values-only") {
-            io::stdout().consume_lines(acc.into_values()).unwrap_or_abort();
+            acc.into_values().print_lines().unwrap_or_abort();
         } else {
-            io::stdout().consume_lines(PairsToTrailers::from(acc)).unwrap_or_abort();
+            PairsToTrailers::from(acc).print_lines().unwrap_or_abort();
         }
     } else {
-        io::stdout().consume_lines(trailers).unwrap_or_abort();
+        trailers.print_lines().unwrap_or_abort();
     }
 }
 
@@ -172,7 +172,7 @@ fn get_issue_metadata(matches: &clap::ArgMatches) {
 fn get_issue_tree_init_hashes(_: &clap::ArgMatches) {
     let repo = util::open_dit_repo();
 
-    io::stdout().consume_lines(repo.issues().unwrap_or_abort()).unwrap_or_abort();
+    repo.issues().unwrap_or_abort().print_lines().unwrap_or_abort();
 }
 
 
@@ -241,12 +241,12 @@ fn gc_impl(matches: &clap::ArgMatches) {
         .unwrap_or_abort();
 
     if matches.is_present("dry-run") {
-        let printable_refs = refs
-            .into_iter()
-            .map(|r| r.name().unwrap_or("Unknown ref").to_owned());
-        io::stdout().consume_lines(printable_refs).unwrap_or_abort();
+        refs.into_iter()
+            .map(|r| r.name().unwrap_or("Unknown ref").to_owned())
+            .print_lines()
+            .unwrap_or_abort();
     } else {
-        io::stderr().consume_lines(ReferenceCollector::from(refs)).unwrap_or_abort();
+        ReferenceCollector::from(refs).print_lines().unwrap_or_abort();
     }
 }
 
@@ -313,13 +313,14 @@ fn list_impl(matches: &clap::ArgMatches) {
     let mut pager = system::programs::pager(repo.config().unwrap_or_abort())
         .unwrap_or_abort();
 
-    let lines = issues
+    issues
         .into_iter()
         .map(|issue| issue.initial_message())
         .abort_on_err()
         .flat_map(|initial| formatter.iter().formatted_lines(initial))
-        .abort_on_err();
-    pager.stdin.as_mut().unwrap().consume_lines(lines).unwrap_or_abort();
+        .abort_on_err()
+        .write_lines(pager.stdin.as_mut().unwrap())
+        .unwrap_or_abort();
 
     // don't trash the shell by exitting with a child still printing to it
     let result = pager.wait().unwrap_or_abort();
@@ -454,7 +455,9 @@ fn new_impl(matches: &clap::ArgMatches) {
 
         { // write
             let mut file = File::create(path.as_path()).unwrap_or_abort();
-            file.consume_lines(repo.prepare_trailers(matches)).unwrap_or_abort();
+            repo.prepare_trailers(matches)
+                .write_lines(&mut file)
+                .unwrap_or_abort();
             file.flush().unwrap_or_abort();
         }
 
@@ -557,12 +560,16 @@ fn reply_impl(matches: &clap::ArgMatches) {
             }
 
             if matches.is_present("quote") {
-                file.consume_lines(parent.body_lines().quoted())
+                parent
+                    .body_lines()
+                    .quoted()
+                    .write_lines(&mut file)
                     .unwrap_or_abort();
                 write!(&mut file, "\n").unwrap_or_abort();
             }
 
-            file.consume_lines(repo.prepare_trailers(matches))
+            repo.prepare_trailers(matches)
+                .write_lines(&mut file)
                 .unwrap_or_abort();
             file.flush().unwrap_or_abort();
         }
@@ -635,9 +642,13 @@ fn show_impl(matches: &clap::ArgMatches) {
         }
     };
 
+    // Spawn a pager
+    let mut pager = system::programs::pager(repo.config().unwrap_or_abort())
+        .unwrap_or_abort();
+
     // Transform the simple graph element line into an iterator over lines to
     // print via multiple steps.
-    let graph = commits
+    commits
         .into_iter()
         // expand the graph element lines for each message
         .map(|commit| {
@@ -653,12 +664,9 @@ fn show_impl(matches: &clap::ArgMatches) {
             .zip(formatter.iter().formatted_lines(commit.1).abort_on_err())
         )
         // combine each line of graph elements and message
-        .map(|line| format!("{} {}", line.0, line.1));
-
-    // spawn a pager and write the graph
-    let mut pager = system::programs::pager(repo.config().unwrap_or_abort())
+        .map(|line| format!("{} {}", line.0, line.1))
+        .write_lines(pager.stdin.as_mut().unwrap())
         .unwrap_or_abort();
-    pager.stdin.as_mut().unwrap().consume_lines(graph).unwrap_or_abort();
 
     // don't trash the shell by exitting with a child still printing to it
     let result = pager.wait().unwrap_or_abort();
@@ -695,10 +703,11 @@ fn tag_impl(matches: &clap::ArgMatches) {
 
     if matches.is_present("list") {
         // we only list the metadata
-        let trailers = repo.issue_messages_iter(head_commit)
+        repo.issue_messages_iter(head_commit)
             .abort_on_err()
-            .flat_map(|c| c.trailers());
-        io::stdout().consume_lines(trailers).unwrap_or_abort();
+            .flat_map(|c| c.trailers())
+            .print_lines()
+            .unwrap_or_abort();
         return;
     }
 
