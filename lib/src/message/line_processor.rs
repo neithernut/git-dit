@@ -21,12 +21,13 @@ pub struct Quoted<I, S>(I)
     where I: Iterator<Item = S>,
           S: AsRef<str>;
 
-impl<I, S> From<I> for Quoted<I, S>
-    where I: Iterator<Item = S>,
+impl<I, J, S> From<I> for Quoted<J, S>
+    where I: IntoIterator<Item = S, IntoIter = J>,
+          J: Iterator<Item = S>,
           S: AsRef<str>
 {
     fn from(lines: I) -> Self {
-        Quoted(lines)
+        Quoted(lines.into_iter())
     }
 }
 
@@ -55,12 +56,13 @@ pub struct StripWhiteSpaceLeftIter<I, S>(I)
     where I: Iterator<Item = S> + Sized,
           S: AsRef<str>;
 
-impl<I, S> From<I> for StripWhiteSpaceLeftIter<I, S>
-    where I: Iterator<Item = S>,
+impl<I, J, S> From<I> for StripWhiteSpaceLeftIter<J, S>
+    where I: IntoIterator<Item = S, IntoIter = J>,
+          J: Iterator<Item = S>,
           S: AsRef<str>
 {
     fn from(lines: I) -> Self {
-        StripWhiteSpaceLeftIter(lines)
+        StripWhiteSpaceLeftIter(lines.into_iter())
     }
 }
 
@@ -83,12 +85,13 @@ pub struct StripWhiteSpaceRightIter<I, S>(I)
     where I: Iterator<Item = S> + Sized,
           S: AsRef<str>;
 
-impl<I, S> From<I> for StripWhiteSpaceRightIter<I, S>
-    where I: Iterator<Item = S>,
+impl<I, J, S> From<I> for StripWhiteSpaceRightIter<J, S>
+    where I: IntoIterator<Item = S, IntoIter = J>,
+          J: Iterator<Item = S>,
           S: AsRef<str>
 {
     fn from(lines: I) -> Self {
-        StripWhiteSpaceRightIter(lines)
+        StripWhiteSpaceRightIter(lines.into_iter())
     }
 }
 
@@ -113,12 +116,13 @@ pub struct WithoutCommentsIter<I, S>(I)
     where I: Iterator<Item = S> + Sized,
           S: AsRef<str>;
 
-impl<I, S> From<I> for WithoutCommentsIter<I, S>
-    where I: Iterator<Item = S>,
+impl<I, J, S> From<I> for WithoutCommentsIter<J, S>
+    where I: IntoIterator<Item = S, IntoIter = J>,
+          J: Iterator<Item = S>,
           S: AsRef<str>
 {
     fn from(lines: I) -> Self {
-        WithoutCommentsIter(lines)
+        WithoutCommentsIter(lines.into_iter())
     }
 }
 
@@ -141,6 +145,83 @@ impl<I, S> Iterator for WithoutCommentsIter<I, S>
 }
 
 
+/// Iterator adapter for removing blank lines from the end of a sequence
+///
+/// This iterator wraps an iterator over lines and forwards all lines from the
+/// wrapped iterator except trailing blank lines.
+///
+pub struct TrailingBlankTrimmer<I, S>
+    where I: Iterator<Item = S> + Sized,
+          S: AsRef<str> + Default
+{
+    inner: ::std::iter::Peekable<I>,
+    // counter for blanks
+    blanks: usize,
+}
+
+impl<I, J, S> From<I> for TrailingBlankTrimmer<J, S>
+    where I: IntoIterator<Item = S, IntoIter = J>,
+          J: Iterator<Item = S>,
+          S: AsRef<str> + Default
+{
+    fn from(lines: I) -> Self {
+        TrailingBlankTrimmer { inner: lines.into_iter().peekable(), blanks: 0 }
+    }
+}
+
+impl<I, S> Iterator for TrailingBlankTrimmer<I, S>
+    where I: Iterator<Item = S>,
+          S: AsRef<str> + Default
+{
+    type Item = S;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.blanks > 0 {
+            // If we recorded any blank lines, we return them.
+            self.blanks = self.blanks - 1;
+            return Some(S::default());
+        }
+
+        // Record and consume blank lines
+        while self
+            .inner
+            .peek()
+            .map(AsRef::as_ref)
+            .map(str::is_empty)
+            .unwrap_or_else(|| {
+                // We reached the end of input and don't want to return any more
+                // lines.
+                self.blanks = 0;
+                false
+            })
+        {
+            self.blanks = self.blanks + 1;
+            self.inner.next();
+        }
+
+        if self.blanks > 0 {
+            // If we recorded any blank lines, we return them.
+            self.blanks = self.blanks - 1;
+            Some(S::default())
+        } else {
+            self.inner.next()
+        }
+    }
+}
+
+
+/// Convenience iterator for stripping things from a message
+///
+/// This iterator strips comments, trailing whitespace in each line and trailing
+/// blank lines.
+///
+pub type StrippingIter<I, S> = TrailingBlankTrimmer<
+    StripWhiteSpaceRightIter<
+        WithoutCommentsIter<I, S>,
+    S>,
+String>;
+
+
 
 
 #[cfg(test)]
@@ -149,7 +230,7 @@ mod tests {
 
     #[test]
     fn quoted_lines() {
-        let mut lines = Quoted::from(vec!["foo", "bar", "", "baz"].into_iter());
+        let mut lines = Quoted::from(vec!["foo", "bar", "", "baz"]);
         assert_eq!(lines.next().expect("Premature end of input"), "> foo");
         assert_eq!(lines.next().expect("Premature end of input"), "> bar");
         assert_eq!(lines.next().expect("Premature end of input"), ">");
@@ -159,7 +240,7 @@ mod tests {
 
     #[test]
     fn left_stripped_lines() {
-        let mut lines = StripWhiteSpaceLeftIter::from(vec!["foo  ", "  bar", "  ", ""].into_iter());
+        let mut lines = StripWhiteSpaceLeftIter::from(vec!["foo  ", "  bar", "  ", ""]);
         assert_eq!(lines.next().expect("Premature end of input"), "foo  ");
         assert_eq!(lines.next().expect("Premature end of input"), "bar");
         assert_eq!(lines.next().expect("Premature end of input"), "");
@@ -169,7 +250,7 @@ mod tests {
 
     #[test]
     fn right_stripped_lines() {
-        let mut lines = StripWhiteSpaceRightIter::from(vec!["foo  ", "  bar", "  ", ""].into_iter());
+        let mut lines = StripWhiteSpaceRightIter::from(vec!["foo  ", "  bar", "  ", ""]);
         assert_eq!(lines.next().expect("Premature end of input"), "foo");
         assert_eq!(lines.next().expect("Premature end of input"), "  bar");
         assert_eq!(lines.next().expect("Premature end of input"), "");
@@ -179,9 +260,20 @@ mod tests {
 
     #[test]
     fn lines_without_comments() {
-        let mut lines = WithoutCommentsIter::from(vec!["foo", "# bar", "#", ""].into_iter());
+        let mut lines = WithoutCommentsIter::from(vec!["foo", "# bar", "#", ""]);
         assert_eq!(lines.next().expect("Premature end of input"), "foo");
         assert_eq!(lines.next().expect("Premature end of input"), "");
+        assert!(!lines.next().is_some());
+    }
+
+    #[test]
+    fn trailing_blank_trimmer() {
+        let mut lines = TrailingBlankTrimmer::from(vec!["", "foo", "bar", "", "baz", "", ""]);
+        assert_eq!(lines.next().expect("Premature end of input"), "");
+        assert_eq!(lines.next().expect("Premature end of input"), "foo");
+        assert_eq!(lines.next().expect("Premature end of input"), "bar");
+        assert_eq!(lines.next().expect("Premature end of input"), "");
+        assert_eq!(lines.next().expect("Premature end of input"), "baz");
         assert!(!lines.next().is_some());
     }
 }
