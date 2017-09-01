@@ -22,6 +22,11 @@ error_chain! {
             display("Malformed filter spec: {}", spec)
         }
 
+        MalformedAuthor(author: String) {
+            description("Malformed author (expected author formatted like 'Foo Bar <foo@bar.net>')")
+            display("Malformed author: {}", author)
+        }
+
         UnknownMetadataKey(key: String) {
             description("Unknown metadata key")
             display("Unknown metadata key: {}", key)
