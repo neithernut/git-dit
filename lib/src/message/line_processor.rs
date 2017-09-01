@@ -210,6 +210,18 @@ impl<I, S> Iterator for TrailingBlankTrimmer<I, S>
 }
 
 
+/// Convenience iterator for stripping things from a message
+///
+/// This iterator strips comments, trailing whitespace in each line and trailing
+/// blank lines.
+///
+pub type StrippingIter<I, S> = TrailingBlankTrimmer<
+    StripWhiteSpaceRightIter<
+        WithoutCommentsIter<I, S>,
+    S>,
+String>;
+
+
 
 
 #[cfg(test)]
