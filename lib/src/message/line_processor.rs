@@ -21,12 +21,13 @@ pub struct Quoted<I, S>(I)
     where I: Iterator<Item = S>,
           S: AsRef<str>;
 
-impl<I, S> From<I> for Quoted<I, S>
-    where I: Iterator<Item = S>,
+impl<I, J, S> From<I> for Quoted<J, S>
+    where I: IntoIterator<Item = S, IntoIter = J>,
+          J: Iterator<Item = S>,
           S: AsRef<str>
 {
     fn from(lines: I) -> Self {
-        Quoted(lines)
+        Quoted(lines.into_iter())
     }
 }
 
@@ -55,12 +56,13 @@ pub struct StripWhiteSpaceLeftIter<I, S>(I)
     where I: Iterator<Item = S> + Sized,
           S: AsRef<str>;
 
-impl<I, S> From<I> for StripWhiteSpaceLeftIter<I, S>
-    where I: Iterator<Item = S>,
+impl<I, J, S> From<I> for StripWhiteSpaceLeftIter<J, S>
+    where I: IntoIterator<Item = S, IntoIter = J>,
+          J: Iterator<Item = S>,
           S: AsRef<str>
 {
     fn from(lines: I) -> Self {
-        StripWhiteSpaceLeftIter(lines)
+        StripWhiteSpaceLeftIter(lines.into_iter())
     }
 }
 
@@ -83,12 +85,13 @@ pub struct StripWhiteSpaceRightIter<I, S>(I)
     where I: Iterator<Item = S> + Sized,
           S: AsRef<str>;
 
-impl<I, S> From<I> for StripWhiteSpaceRightIter<I, S>
-    where I: Iterator<Item = S>,
+impl<I, J, S> From<I> for StripWhiteSpaceRightIter<J, S>
+    where I: IntoIterator<Item = S, IntoIter = J>,
+          J: Iterator<Item = S>,
           S: AsRef<str>
 {
     fn from(lines: I) -> Self {
-        StripWhiteSpaceRightIter(lines)
+        StripWhiteSpaceRightIter(lines.into_iter())
     }
 }
 
@@ -113,12 +116,13 @@ pub struct WithoutCommentsIter<I, S>(I)
     where I: Iterator<Item = S> + Sized,
           S: AsRef<str>;
 
-impl<I, S> From<I> for WithoutCommentsIter<I, S>
-    where I: Iterator<Item = S>,
+impl<I, J, S> From<I> for WithoutCommentsIter<J, S>
+    where I: IntoIterator<Item = S, IntoIter = J>,
+          J: Iterator<Item = S>,
           S: AsRef<str>
 {
     fn from(lines: I) -> Self {
-        WithoutCommentsIter(lines)
+        WithoutCommentsIter(lines.into_iter())
     }
 }
 
