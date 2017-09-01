@@ -9,6 +9,7 @@
 
 use clap::{ArgMatches, Values};
 use git2::{self, Commit, Repository};
+use regex::{Regex, Match};
 use std::fs::File;
 use std::io;
 use std::path::PathBuf;
@@ -84,6 +85,10 @@ pub trait RepositoryUtil<'r> {
     /// Retrieve metadata from command line arguments
     ///
     fn prepare_trailers(&self, matches: &ArgMatches) -> Vec<Trailer>;
+
+    /// Retrieve the author to use for messages
+    ///
+    fn cli_author(&self, matches: &ArgMatches) -> git2::Signature;
 
     /// Get the abbreviation length for oids
     ///
@@ -177,6 +182,57 @@ impl<'r> RepositoryUtil<'r> for Repository {
         }
 
         trailers
+    }
+
+    fn cli_author(&self, matches: &ArgMatches) -> git2::Signature {
+        use chrono::DateTime;
+
+        // First, get a signature appropriate for the author
+        let author = matches
+            .value_of("author")
+            .map(|a| {
+                // NOTE: this function will be called only once per run anyway
+                let parts = Regex::new(r"^([^<>]+)[[:space:]]+<([^[:space:]@]+@[^[:space:]@]+)>$")
+                    .unwrap()
+                    .captures(a)
+                    .ok_or_else(|| Error::from_kind(EK::MalformedAuthor(a.to_owned())))
+                    .unwrap_or_abort();
+
+                let name = parts
+                    .get(1)
+                    .as_ref()
+                    .map(Match::as_str)
+                    .ok_or_else(|| Error::from_kind(EK::MalformedAuthor(a.to_owned())))
+                    .unwrap_or_abort();
+                let email = parts
+                    .get(2)
+                    .as_ref()
+                    .map(Match::as_str)
+                    .ok_or_else(|| Error::from_kind(EK::MalformedAuthor(a.to_owned())))
+                    .unwrap_or_abort();
+
+                git2::Signature::now(name, email)
+            })
+            .unwrap_or_else(|| self.signature())
+            .unwrap_or_abort();
+
+        // If an explicit date and time was specified, change the signature
+        if let Some(d) = matches.value_of("date") {
+            let date = DateTime::parse_from_rfc3339(d)
+                .chain_err(|| EK::MalformedDate(d.to_owned()))
+                .unwrap_or_abort();
+            // `chrono` processes offset in seconds, git2 in minutes.
+            let time = git2::Time::new(date.timestamp(), date.offset().local_minus_utc()/60);
+
+            git2::Signature::new(
+                author.name().unwrap(),
+                author.email().unwrap(),
+                &time
+            )
+            .unwrap_or_abort()
+        } else {
+            author
+        }
     }
 
     fn abbreviation_length(&self, matches: &ArgMatches) -> usize {
