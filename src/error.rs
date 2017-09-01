@@ -27,6 +27,11 @@ error_chain! {
             display("Malformed author: {}", author)
         }
 
+        MalformedDate(date: String) {
+            description("Malformed date (expected rfc3339/iso8601)")
+            display("Malformed date: {}", date)
+        }
+
         UnknownMetadataKey(key: String) {
             description("Unknown metadata key")
             display("Unknown metadata key: {}", key)
