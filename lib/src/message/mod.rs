@@ -27,7 +27,7 @@ use std;
 pub mod block;
 pub mod line_processor;
 
-use self::line_processor::{Quoted, StripWhiteSpaceRightIter, WithoutCommentsIter};
+use self::line_processor::{Quoted, StrippingIter};
 
 
 /// Special iterator extension for messages
@@ -56,9 +56,9 @@ pub trait LineIteratorExt<S>
     /// whitespace.
     ///
     /// Note that the iterator does not (yet) strip blank lines at the beginning
-    /// or end of a message.
+    /// of a message.
     ///
-    fn stripped(self) -> StripWhiteSpaceRightIter<WithoutCommentsIter<Self::Iter, S>, S>;
+    fn stripped(self) -> StrippingIter<Self::Iter, S>;
 
     /// Create an iterator for quoting lines
     ///
@@ -105,8 +105,12 @@ impl<L, S> LineIteratorExt<S> for L
         Ok(())
     }
 
-    fn stripped(self) -> StripWhiteSpaceRightIter<WithoutCommentsIter<Self::Iter, S>, S> {
-        StripWhiteSpaceRightIter::from(WithoutCommentsIter::from(self))
+    fn stripped(self) -> StrippingIter<Self::Iter, S> {
+        line_processor::TrailingBlankTrimmer::from(
+            line_processor::StripWhiteSpaceRightIter::from(
+                line_processor::WithoutCommentsIter::from(self)
+            )
+        )
     }
 
     fn quoted(self) -> Quoted<Self::Iter, S> {
