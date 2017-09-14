@@ -593,10 +593,14 @@ fn show_impl(matches: &clap::ArgMatches) {
 
     use display::{FormattingToken as FT, MessageFmtToken as MFT, LineFormatter};
     use display::{IntoTreeGraph, TreeGraphElem, TreeGraphElemLine};
+    use gitext::ReferrencesExt;
 
     let repo = util::open_dit_repo();
-
     let id_len = repo.abbreviation_length(matches);
+    let prios = repo.remote_priorization();
+
+    // NOTE: the issue is a required parameter
+    let issue = repo.cli_issue(matches).unwrap();
 
     // translate commit to lines representing the commit
     let formatter : Vec<FT<_,_>> = if matches.is_present("msgtree") {
@@ -604,8 +608,16 @@ fn show_impl(matches: &clap::ArgMatches) {
         // format
         tokenvec![MFT::Id(id_len), " ", MFT::Author, " ", MFT::Subject]
     } else {
+        let head = issue
+            .heads()
+            .abort_on_err()
+            .select_ref(&prios)
+            .unwrap() // TODO: abort gracefully
+            .target()
+            .unwrap(); // TODO: abort gracefully
+
         tokenvec![
-            MFT::Id(id_len), FT::LineEnd,
+            MFT::Id(id_len), MFT::IfId(head, tokenvec![" (head)"]), FT::LineEnd,
             "Author: ", MFT::Author, FT::LineEnd,
             "Date: ", MFT::Date(StrftimeItems::new("%+")), FT::LineEnd,
             FT::LineEnd,
@@ -617,9 +629,6 @@ fn show_impl(matches: &clap::ArgMatches) {
     };
 
     // first, get us an iterator over all the commits
-
-    // NOTE: the issue is a required parameter
-    let issue = repo.cli_issue(matches).unwrap();
     let mut commits : Vec<(TreeGraphElemLine, Commit)> =
         if matches.is_present("initial") {
             vec![(
