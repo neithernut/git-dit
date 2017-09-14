@@ -35,7 +35,7 @@ macro_rules! tokenvec {
 /// `Text` and `LineEnd` tokens. The latter two will be coposed to lines.
 ///
 pub enum FormattingToken<T, I>
-    where T: TokenExpander<Item = I> + Sized
+    where T: TokenExpander<Item = I>
 {
     Expandable(T, PhantomData<I>),
     Text(String),
@@ -46,7 +46,7 @@ pub enum FormattingToken<T, I>
 //       e.g. `Display` or `ToString`, but the compiler won't let us because of
 //       the implementation for `From<T>`.
 impl<T, I> From<String> for FormattingToken<T, I>
-    where T: TokenExpander<Item = I> + Sized
+    where T: TokenExpander<Item = I>
 {
     fn from(text: String) -> Self {
         FormattingToken::Text(text)
@@ -54,7 +54,7 @@ impl<T, I> From<String> for FormattingToken<T, I>
 }
 
 impl<'a, T, I> From<&'a str> for FormattingToken<T, I>
-    where T: TokenExpander<Item = I> + Sized
+    where T: TokenExpander<Item = I>
 {
     fn from(text: &str) -> Self {
         FormattingToken::Text(text.to_string())
@@ -62,10 +62,25 @@ impl<'a, T, I> From<&'a str> for FormattingToken<T, I>
 }
 
 impl<T, I> From<T> for FormattingToken<T, I>
-    where T: TokenExpander<Item = I> + Sized
+    where T: TokenExpander<Item = I>
 {
     fn from(expander: T) -> Self {
         FormattingToken::Expandable(expander, PhantomData)
+    }
+}
+
+impl<T, I> Clone for FormattingToken<T, I>
+    where T: TokenExpander<Item = I>
+{
+    fn clone(&self) -> Self {
+        match self {
+            &FormattingToken::Expandable(ref token, _) => FormattingToken::Expandable(
+                token.clone(),
+                PhantomData
+            ),
+            &FormattingToken::Text(ref s) => FormattingToken::Text(s.clone()),
+            &FormattingToken::LineEnd => FormattingToken::LineEnd,
+        }
     }
 }
 
@@ -88,7 +103,7 @@ pub struct LinesToTokens<I, J, T, K>
 impl<I, J, T, K> From<I> for LinesToTokens<I, J, T, K>
     where I: Iterator<Item = J>,
           J: ToString,
-          T: TokenExpander<Item = K> + Sized
+          T: TokenExpander<Item = K>
 {
     fn from(iter: I) -> Self {
         Self {
@@ -103,7 +118,7 @@ impl<I, J, T, K> From<I> for LinesToTokens<I, J, T, K>
 impl<I, J, T, K> Iterator for LinesToTokens<I, J, T, K>
     where I: Iterator<Item = J>,
           J: ToString,
-          T: TokenExpander<Item = K> + Sized
+          T: TokenExpander<Item = K>
 {
     type Item = FormattingToken<T, K>;
 
@@ -134,7 +149,7 @@ pub trait LineTokens<I, J>
 {
     /// Create a LinesToTokens from this iterator
     fn line_tokens<T, K>(self) -> LinesToTokens<I, J, T, K>
-        where T: TokenExpander<Item = K> + Sized;
+        where T: TokenExpander<Item = K>;
 }
 
 impl<A, I, J> LineTokens<I, J> for A
@@ -144,7 +159,7 @@ impl<A, I, J> LineTokens<I, J> for A
 {
     /// Create a LinesToTokens from this iterator
     fn line_tokens<T, K>(self) -> LinesToTokens<I, J, T, K>
-        where T: TokenExpander<Item = K> + Sized
+        where T: TokenExpander<Item = K>
     {
         self.into_iter().into()
     }
@@ -157,7 +172,7 @@ impl<A, I, J> LineTokens<I, J> for A
 /// Implementors of concrete formatting facilities will implement this trait for
 /// the type of items to be formatted.
 ///
-pub trait TokenExpander: Sized {
+pub trait TokenExpander: Sized + Clone {
     type Item;
     type Error;
 
