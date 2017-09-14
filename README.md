@@ -28,7 +28,9 @@ The following crates are used:
 * error-chain 0.10
 * git2 0.6
 * is-match 0.1
+* lazy_static 0.2
 * log 0.3
+* regex 0.2
 
 Additionally, for building the man page, `pandoc` is required.
 
