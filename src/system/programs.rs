@@ -49,8 +49,18 @@ impl<'a> Var<'a> {
 ///
 fn command(name: &str, prefs: &[Var], config: &Config) -> Result<Command> {
     prefs.into_iter()
-         .filter_map(|var| var.value(config))
-         .map(Command::new)
+         .filter_map(|var| {
+             var.value(config)
+                 .and_then(|s| {
+                    let mut strs = s.split_whitespace();
+                     if let Some(mut command) = strs.next().map(Command::new) {
+                         command.args(strs);
+                         Some(command)
+                    } else {
+                        None
+                    }
+                 })
+         })
          .next()
          .ok_or_else(|| Error::from(EK::ProgramError(name.to_owned())))
 }
