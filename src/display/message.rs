@@ -11,7 +11,7 @@
 //!
 
 use chrono::format::strftime::StrftimeItems;
-use git2::Commit;
+use git2::{Commit, Oid};
 use libgitdit::Message;
 use libgitdit::message::block::Block;
 use libgitdit::trailer::spec::TrailerSpec;
@@ -33,6 +33,7 @@ pub enum MessageFmtToken<'a> {
     BodyText,
     Trailers,
     Trailer(TrailerSpec<'a>),
+    IfId(Oid, Vec<FormattingToken<MessageFmtToken<'a>, Commit<'a>>>),
 }
 
 impl<'a,> TokenExpander for MessageFmtToken<'a> {
@@ -94,6 +95,11 @@ impl<'a,> TokenExpander for MessageFmtToken<'a> {
                 .filter(|trailer| trailer.key.as_ref() == spec.key)
                 .line_tokens()
                 .collect(),
+            &MessageFmtToken::IfId(ref id, ref tokens) => if *id == message.id() {
+                tokens.clone()
+            } else {
+                Vec::new()
+            },
         })
     }
 }
