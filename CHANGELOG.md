@@ -1,5 +1,67 @@
 # git-dit ChangeLog
 
+## v0.4.0 (2017-09-15)
+
+### Binary
+
+Changes:
+ * The message formatting for the "show" subcommand was improved.
+ * In filter-specs for the "list" subcommand, a '=' is used for separating key
+   and value when filtering for an exact value, rather than a ':'.
+
+Added features:
+ * The "create-message", "new", "reply" and "tag" now accept the "--author" and
+   "--date" options. Analogue to the options of "git commit" with the same name,
+   the new options alter the author and authoring date of the resulting message.
+ * New "reporter-name" and "reporter-email" filter keys for issue filtering
+   using the "list" subcommand. As the name suggests, the keys may be used for
+   filtering issues based on the reporter's name or email.
+ * Filter specs for the "list" subcommand can now be used for filtering by
+   substring or presence of a piece of issue metadata.
+ * Filter specs for the "list" subcommand can now be inverted.
+
+Bug-fixes:
+ * Git-dit did not handle pager and editor flags correctly. For example,
+   configuring `less -R` as the pager (contrary to `less`) would cause git-dit
+   search for a binary named "less -R", resulting in an error.
+
+### Library
+
+Changes:
+ * `LineIteratorExt::stripped()` now returns an iterator which also strips
+   trailing blank lines.
+ * `Issue::new()` now returns a `Result`.
+ * Multi-line trailers parsed by the `Blocks` iterator are represented as String
+   `TrailerValue` with newlines separating the individual lines from the input.
+ * `trailer` was promoted to a top-level module.
+ * `message::accumulation` was moved to `trailer`
+ * `message::metadata` was moved to `trailer` and renamed to `spec`.
+ * `MetadataSpecification` was renames to `TrailerSpec`.
+ * `PairsToTrailers` and `DitTrailers` iterator was moved to new
+   `trailers::iter` module.
+ * `Trailers` iterator was moved to `message::block` module.
+ * `DitTrailers` is now a generic iterator adapter on top of an iterator over
+   `Trailer`s.
+
+Added features:
+ * New `TrailingBlankTrimmer` for removing trailing blank lines from sequences
+   of lines.
+ * New `StrippingIter` for stripping messages of comments and unnecessary white
+   space.
+ * New `TrailerFilter` type for filtering based on trailers.
+ * New `ValueMatcher` type for matching `TrailerValue`s.
+ * New `MessagesExt` convenience trait for iterators over messages. The trait
+   provides accumulation functionality.
+ * New `MultiAccumulator` trait for map-based accumulation of multiple trailers.
+ * Implemented `Default` for `TrailerValue`.
+ * Implemented `Clone` for `ValueAccumulator`.
+ * Implemented `From<Blocks>` for `Trailers`
+
+### Documentation
+ * Add documentation of internals as a `README.md` to the sources of both the
+   binary and the library.
+
+
 ## v0.3.0 (2017-08-13)
 
 ### Binary

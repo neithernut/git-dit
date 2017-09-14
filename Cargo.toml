@@ -1,6 +1,6 @@
 [package]
 name = "git-dit"
-version = "0.3.0"
+version = "0.4.0"
 description = "A CLI frontend for libgitdit - a distributed issue tracker"
 authors = ["Matthias Beyer <mail@beyermatthias.de>",
            "Julian Ganz <neither@nut.email>"]
