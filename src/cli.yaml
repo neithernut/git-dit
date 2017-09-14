@@ -1,5 +1,5 @@
 name: git-dit
-version: 0.3.0
+version: 0.4.0
 authors:
     - Julian Ganz <neither@nut.email>
     - Matthias Beyer <mail@beyermatthias>
@@ -23,7 +23,7 @@ subcommands:
     # Plumbing subcommands
     - check-message:
         about: This command checks the message in file for validity
-        version: 0.3.0
+        version: 0.4.0
         authors:
             - Matthias Beyer <mail@beyermatthias.de>
             - Julian Ganz <neither@nut.email>
@@ -36,7 +36,7 @@ subcommands:
 
     - check-refname:
         about: Checks whether a reference is a dit reference of a known type, by name
-        version: 0.3.0
+        version: 0.4.0
         authors:
             - Matthias Beyer <mail@beyermatthias.de>
             - Julian Ganz <neither@nut.email>
@@ -70,7 +70,7 @@ subcommands:
                  Supplying an issue hash but no parent is considered an error.
                  Returns (prints) the hash of the new commit.
 
-        version: 0.3.0
+        version: 0.4.0
         authors:
             - Matthias Beyer <mail@beyermatthias.de>
             - Julian Ganz <neither@nut.email>
@@ -98,7 +98,7 @@ subcommands:
 
     - find-tree-init-hash:
         about: This command prints the init hash of the issue commit belongs to.
-        version: 0.3.0
+        version: 0.4.0
         authors:
             - Matthias Beyer <mail@beyermatthias.de>
             - Julian Ganz <neither@nut.email>
@@ -113,7 +113,7 @@ subcommands:
         about: >
                  Prints a log of commit tags, from the supplied issue head to
                  the initial issue message.
-        version: 0.3.0
+        version: 0.4.0
         authors:
             - Matthias Beyer <mail@beyermatthias.de>
             - Julian Ganz <neither@nut.email>
@@ -150,7 +150,7 @@ subcommands:
 
     - get-issue-tree-init-hashes:
         about: Lists all SHA1 hashes of all issues (introducing commit)
-        version: 0.3.0
+        version: 0.4.0
         authors:
             - Matthias Beyer <mail@beyermatthias.de>
             - Julian Ganz <neither@nut.email>
@@ -159,7 +159,7 @@ subcommands:
     # Porcelain subcommands
     - fetch:
         about: Fetch issues
-        version: 0.3.0
+        version: 0.4.0
         authors:
             - Matthias Beyer <mail@beyermatthias.de>
             - Julian Ganz <neither@nut.email>
@@ -189,7 +189,7 @@ subcommands:
                  Perform garbage collection:
                  delete references which are no longer required
 
-        version: 0.3.0
+        version: 0.4.0
         authors:
             - Matthias Beyer <mail@beyermatthias.de>
             - Julian Ganz <neither@nut.email>
@@ -218,7 +218,7 @@ subcommands:
                      <hash> (<date when the issue was added, human readable>) <header line>
                  More functionality may come and the output format may change.
 
-        version: 0.3.0
+        version: 0.4.0
         authors:
             - Matthias Beyer <mail@beyermatthias.de>
             - Julian Ganz <neither@nut.email>
@@ -248,7 +248,7 @@ subcommands:
 
     - mirror:
         about: Clone issue references from remotes
-        version: 0.3.0
+        version: 0.4.0
         authors:
             - Matthias Beyer <mail@beyermatthias.de>
             - Julian Ganz <neither@nut.email>
@@ -297,7 +297,7 @@ subcommands:
 
     - new:
         about: Create a new bug report
-        version: 0.3.0
+        version: 0.4.0
         authors:
             - Matthias Beyer <mail@beyermatthias.de>
             - Julian Ganz <neither@nut.email>
@@ -363,7 +363,7 @@ subcommands:
         about: >
                  Push all refs associated with issues.
                  If no issue were supplied, all issues will be pushed.
-        version: 0.3.0
+        version: 0.4.0
         authors:
             - Matthias Beyer <mail@beyermatthias.de>
             - Julian Ganz <neither@nut.email>
@@ -380,7 +380,7 @@ subcommands:
 
     - reply:
         about: Reply to a specific message in an issue.
-        version: 0.3.0
+        version: 0.4.0
         authors:
             - Matthias Beyer <mail@beyermatthias.de>
             - Julian Ganz <neither@nut.email>
@@ -444,7 +444,7 @@ subcommands:
 
     - show:
         about: This uses 'git log' to print the issues.
-        version: 0.3.0
+        version: 0.4.0
         authors:
             - Matthias Beyer <mail@beyermatthias.de>
             - Julian Ganz <neither@nut.email>
@@ -510,7 +510,7 @@ subcommands:
                  <value> part can be in quotes to permit spaces.
                  Multiple -s are permitted, later specified values will override
                  former. Alter tags of an issue.
-        version: 0.3.0
+        version: 0.4.0
         authors:
             - Matthias Beyer <mail@beyermatthias.de>
             - Julian Ganz <neither@nut.email>
