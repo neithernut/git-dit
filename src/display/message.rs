@@ -21,6 +21,7 @@ use super::formatter::{TokenExpander, FormattingToken, LineTokens};
 
 /// Tokens for formatting messages
 ///
+#[derive(Clone)]
 pub enum MessageFmtToken<'a> {
     Id(usize),
     Subject,

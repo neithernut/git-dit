@@ -69,6 +69,21 @@ impl<T, I> From<T> for FormattingToken<T, I>
     }
 }
 
+impl<T, I> Clone for FormattingToken<T, I>
+    where T: TokenExpander<Item = I>
+{
+    fn clone(&self) -> Self {
+        match self {
+            &FormattingToken::Expandable(ref token, _) => FormattingToken::Expandable(
+                token.clone(),
+                PhantomData
+            ),
+            &FormattingToken::Text(ref s) => FormattingToken::Text(s.clone()),
+            &FormattingToken::LineEnd => FormattingToken::LineEnd,
+        }
+    }
+}
+
 
 /// Adaption iterator for transforming lines to tokens
 ///
@@ -157,7 +172,7 @@ impl<A, I, J> LineTokens<I, J> for A
 /// Implementors of concrete formatting facilities will implement this trait for
 /// the type of items to be formatted.
 ///
-pub trait TokenExpander: Sized {
+pub trait TokenExpander: Sized + Clone {
     type Item;
     type Error;
 
