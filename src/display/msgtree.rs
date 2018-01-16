@@ -188,7 +188,7 @@ impl<'r, I> Iterator for TreeGraphElemLineIterator<'r, I>
             let mut parent_update = commit.parent(0).as_ref().map(Commit::id).ok();
 
             // generate graph elements for the parents currently tracked
-            let mut elems : TreeGraphElemLine = self.parents.iter_mut().map(|mut parent| {
+            let mut elems : TreeGraphElemLine = self.parents.iter_mut().map(|parent| {
                 match *parent {
                     Some(id) => if commit.id() == id {
                             // the current commit is a parent we were awaiting
