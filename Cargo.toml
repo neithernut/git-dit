@@ -25,7 +25,7 @@ log = "0.4"
 regex = "0.2"
 
 [dependencies.clap]
-version = "2.23"
+version = ">=2.23"
 default-features = false
 features = [ "suggestions", "color", "yaml" ]
 
