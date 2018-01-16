@@ -30,7 +30,7 @@ use git2::Commit;
 use libgitdit::issue::IssueRefType;
 use libgitdit::message::LineIteratorExt;
 use libgitdit::{Message, RepositoryExt};
-use log::LogLevel;
+use log::Level;
 use std::fs::File;
 use std::io::{self, Read, Write};
 
@@ -785,7 +785,7 @@ fn main() {
     let yaml    = load_yaml!("cli.yaml");
     let matches = App::from_yaml(yaml).get_matches();
 
-    if let Err(err) = system::Logger::init(LogLevel::Warn) {
+    if let Err(err) = system::Logger::init(Level::Warn) {
         writeln!(io::stderr(), "Could not initialize logger: {}", err).ok();
     }
 

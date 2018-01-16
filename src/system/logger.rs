@@ -16,32 +16,33 @@ use std::result::Result as RResult;
 ///
 /// This logger will log to stderr
 ///
-pub struct Logger {
-    level: log::LogLevel,
-}
+pub struct Logger;
 
 impl Logger {
     /// Initialize the basic logger
     ///
     /// Instantiate a basic logger and make it the main logger.
     ///
-    pub fn init(level: log::LogLevel) -> RResult<(), log::SetLoggerError> {
-        log::set_logger(|max_level| {
-            max_level.set(level.to_log_level_filter());
-            Box::from(Logger { level: level })
-        })
+    pub fn init(level: log::Level) -> RResult<(), log::SetLoggerError> {
+        log::set_logger(&Logger)?;
+        log::set_max_level(level.to_level_filter());
+        Ok(())
     }
 }
 
 impl log::Log for Logger {
-    fn enabled(&self, metadata: &log::LogMetadata) -> bool {
-        metadata.level() <= self.level
+    fn enabled(&self, metadata: &log::Metadata) -> bool {
+        metadata.level() <= ::log::max_level()
     }
 
-    fn log(&self, record: &log::LogRecord) {
+    fn log(&self, record: &log::Record) {
         if self.enabled(record.metadata()) {
             writeln!(stderr(), "{}", record.args()).ok();
         }
+    }
+
+    fn flush(&self) {
+        /* implementation not needed as we do not cache */
     }
 }
 
