@@ -16,6 +16,7 @@ extern crate chrono;
 extern crate git2;
 extern crate libgitdit;
 extern crate regex;
+extern crate colored;
 
 #[macro_use] mod display;
 

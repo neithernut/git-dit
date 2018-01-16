@@ -15,6 +15,7 @@ use git2::{Commit, Oid};
 use libgitdit::Message;
 use libgitdit::message::block::Block;
 use libgitdit::trailer::spec::TrailerSpec;
+use colored::{ColoredString, Colorize};
 
 use error::*;
 use super::formatter::{TokenExpander, FormattingToken, LineTokens};
@@ -42,25 +43,33 @@ impl<'a,> TokenExpander for MessageFmtToken<'a> {
 
     fn expand_token(&self, message: &Self::Item) -> Result<Vec<FormattingToken<Self, Self::Item>>> {
         Ok(match self {
-            &MessageFmtToken::Id(ref len) => tokenvec![format!("{0:.1$}", message.id(), len)],
+            &MessageFmtToken::Id(ref len) => tokenvec![format!("{0:.1$}", message.id(), len).red().to_string()],
             &MessageFmtToken::Subject => tokenvec![message
                 .as_object()
                 .clone()
                 .into_commit()
                 .ok()
-                .and_then(|mut m| m.summary().map(String::from))
+                .and_then(|mut m| {
+                    m.summary().map(Colorize::yellow).map(|cs| cs.to_string())
+                })
                 .unwrap_or_default()],
             &MessageFmtToken::Author => tokenvec![message
                 .author()
+                .to_string()
+                .green()
                 .to_string()],
             &MessageFmtToken::AuthorName => tokenvec![message
                 .author()
                 .name()
-                .unwrap_or_default()],
+                .unwrap_or_default()
+                .green()
+                .to_string()],
             &MessageFmtToken::AuthorEMail => tokenvec![message
                 .author()
                 .email()
-                .unwrap_or_default()],
+                .unwrap_or_default()
+                .green()
+                .to_string()],
             &MessageFmtToken::Date(ref format) => {
                 use chrono::{FixedOffset, TimeZone};
 
@@ -68,6 +77,8 @@ impl<'a,> TokenExpander for MessageFmtToken<'a> {
                 tokenvec![FixedOffset::east(gtime.offset_minutes()*60)
                     .timestamp(gtime.seconds(), 0)
                     .format_with_items(format.clone())
+                    .to_string()
+                    .green()
                     .to_string()]
             }
             &MessageFmtToken::Body => message
