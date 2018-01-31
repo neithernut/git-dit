@@ -309,23 +309,27 @@ fn list_impl(matches: &clap::ArgMatches) {
         issues.truncate(str::parse(number).unwrap_or_abort());
     }
 
-    // spawn a pager
-    let mut pager = system::programs::pager(repo.config().unwrap_or_abort())
-        .unwrap_or_abort();
-
-    issues
+    let issues = issues
         .into_iter()
         .map(|issue| issue.initial_message())
         .abort_on_err()
         .flat_map(|initial| formatter.iter().formatted_lines(initial))
-        .abort_on_err()
-        .write_lines(pager.stdin.as_mut().unwrap())
-        .unwrap_or_abort();
+        .abort_on_err();
 
-    // don't trash the shell by exitting with a child still printing to it
-    let result = pager.wait().unwrap_or_abort();
-    if !result.success() {
-        std::process::exit(result.code().unwrap_or(1));
+    if matches.is_present("no-pager") {
+        let _ = issues.print_lines().unwrap_or_abort();
+    } else {
+        // spawn a pager
+        let mut pager = system::programs::pager(repo.config().unwrap_or_abort())
+            .unwrap_or_abort();
+
+        let _ = issues.write_lines(pager.stdin.as_mut().unwrap()).unwrap_or_abort();
+
+        // don't trash the shell by exitting with a child still printing to it
+        let result = pager.wait().unwrap_or_abort();
+        if !result.success() {
+            std::process::exit(result.code().unwrap_or(1));
+        }
     }
 }
 
@@ -652,13 +656,9 @@ fn show_impl(matches: &clap::ArgMatches) {
         }
     };
 
-    // Spawn a pager
-    let mut pager = system::programs::pager(repo.config().unwrap_or_abort())
-        .unwrap_or_abort();
-
     // Transform the simple graph element line into an iterator over lines to
     // print via multiple steps.
-    commits
+    let commits = commits
         .into_iter()
         // expand the graph element lines for each message
         .map(|commit| {
@@ -674,14 +674,22 @@ fn show_impl(matches: &clap::ArgMatches) {
             .zip(formatter.iter().formatted_lines(commit.1).abort_on_err())
         )
         // combine each line of graph elements and message
-        .map(|line| format!("{} {}", line.0, line.1))
-        .write_lines(pager.stdin.as_mut().unwrap())
-        .unwrap_or_abort();
+        .map(|line| format!("{} {}", line.0, line.1));
 
-    // don't trash the shell by exitting with a child still printing to it
-    let result = pager.wait().unwrap_or_abort();
-    if !result.success() {
-        std::process::exit(result.code().unwrap_or(1));
+    if matches.is_present("no-pager") {
+        let _ = commits.print_lines().unwrap_or_abort();
+    } else {
+        // Spawn a pager
+        let mut pager = system::programs::pager(repo.config().unwrap_or_abort())
+            .unwrap_or_abort();
+
+        let _ = commits.write_lines(pager.stdin.as_mut().unwrap()).unwrap_or_abort();
+
+        // don't trash the shell by exitting with a child still printing to it
+        let result = pager.wait().unwrap_or_abort();
+        if !result.success() {
+            std::process::exit(result.code().unwrap_or(1));
+        }
     }
 }
 
