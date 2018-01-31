@@ -296,7 +296,7 @@ subcommands:
                 multiple: true
 
     - new:
-        about: Create a new bug report
+        about: Create a new issue
         version: 0.4.0
         authors:
             - Matthias Beyer <mail@beyermatthias.de>
