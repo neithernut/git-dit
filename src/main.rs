@@ -16,6 +16,7 @@ extern crate chrono;
 extern crate git2;
 extern crate libgitdit;
 extern crate regex;
+extern crate atty;
 
 #[macro_use] mod display;
 
@@ -309,23 +310,28 @@ fn list_impl(matches: &clap::ArgMatches) {
         issues.truncate(str::parse(number).unwrap_or_abort());
     }
 
-    // spawn a pager
-    let mut pager = system::programs::pager(repo.config().unwrap_or_abort())
-        .unwrap_or_abort();
-
-    issues
+    let lines = issues
         .into_iter()
         .map(|issue| issue.initial_message())
         .abort_on_err()
         .flat_map(|initial| formatter.iter().formatted_lines(initial))
-        .abort_on_err()
-        .write_lines(pager.stdin.as_mut().unwrap())
-        .unwrap_or_abort();
+        .abort_on_err();
 
-    // don't trash the shell by exitting with a child still printing to it
-    let result = pager.wait().unwrap_or_abort();
-    if !result.success() {
-        std::process::exit(result.code().unwrap_or(1));
+    if atty::is(atty::Stream::Stdout) {
+        // spawn a pager
+        let mut pager = system::programs::pager(repo.config().unwrap_or_abort())
+            .unwrap_or_abort();
+
+        lines.write_lines(pager.stdin.as_mut().unwrap())
+            .unwrap_or_abort();
+
+        // don't trash the shell by exitting with a child still printing to it
+        let result = pager.wait().unwrap_or_abort();
+        if !result.success() {
+            std::process::exit(result.code().unwrap_or(1));
+        }
+    } else {
+        let _ = lines.print_lines().unwrap_or_abort();
     }
 }
 
