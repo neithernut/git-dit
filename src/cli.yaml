@@ -245,6 +245,9 @@ subcommands:
                 index: 1
                 multiple: true
                 required: false
+            - no-pager:
+                long: no-pager
+                help: Do not spawn a pager, ever
 
     - mirror:
         about: Clone issue references from remotes
@@ -503,6 +506,9 @@ subcommands:
                 takes_value: true
                 value_names:
                     - format
+            - no-pager:
+                long: no-pager
+                help: Do not spawn a pager, ever
 
     - tag:
         about: >
