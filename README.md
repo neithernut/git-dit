@@ -24,12 +24,12 @@ are bugs, missing things and rough edges.
 # Dependencies
 
 The following crates are used:
-* chrono 0.3
-* error-chain 0.10
+* chrono 0.4
+* error-chain 0.11
 * git2 0.6
 * is-match 0.1
-* lazy_static 0.2
-* log 0.3
+* lazy_static 1.0
+* log 0.4
 * regex 0.2
 
 Additionally, for building the man page, `pandoc` is required.
