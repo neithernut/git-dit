@@ -62,19 +62,20 @@ pub const ISSUE_STATUS_SPEC: TrailerSpec = TrailerSpec {
 /// specifications in a convenient way.
 ///
 pub trait ToMap {
+    type Output: FromIterator<(String, ValueAccumulator)>;
+
     /// Construct an accumulation map
     ///
-    fn into_map<M>(self) -> M
-        where M: FromIterator<(String, ValueAccumulator)>;
+    fn into_map(self) -> Self::Output;
 }
 
 impl<'s, I, J> ToMap for I
     where I: IntoIterator<Item = J>,
           J: Borrow<TrailerSpec<'s>>
 {
-    fn into_map<M>(self) -> M
-        where M: FromIterator<(String, ValueAccumulator)>
-    {
+    type Output = ::std::collections::HashMap<String, ValueAccumulator>;
+
+    fn into_map(self) -> Self::Output {
         self.into_iter()
             .map(|spec| {
                 let s = spec.borrow();

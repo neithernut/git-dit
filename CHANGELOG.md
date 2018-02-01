@@ -1,5 +1,11 @@
 # git-dit ChangeLog
 
+## Next
+
+Changes:
+  * Some traits in the library were refactored to not be generic over their
+    functions return types, but rather use associated types for that.
+
 ## v0.4.0 (2017-09-15)
 
 ### Binary

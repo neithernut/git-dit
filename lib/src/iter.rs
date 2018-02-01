@@ -123,30 +123,34 @@ impl<'r> Iterator for Messages<'r> {
 /// `Message`s which does not need to be part of `Messages` or another iterator.
 ///
 pub trait MessagesExt {
+    type Output:
+        accumulation::MultiAccumulator +
+        FromIterator<(String, accumulation::ValueAccumulator)>;
+
     /// Accumulate trailers according to the specification provided
     ///
     /// This function accumulates all specified trailers from the messages
     /// returned by the iterator.
     ///
-    fn accumulate_trailers<'a, A, I, J>(self, specs: I) -> A
-        where A: accumulation::MultiAccumulator + FromIterator<(String, accumulation::ValueAccumulator)>,
-              I: IntoIterator<Item = J>,
+    fn accumulate_trailers<'a, I, J>(self, specs: I) -> Self::Output
+        where I: IntoIterator<Item = J>,
               J: Borrow<spec::TrailerSpec<'a>>;
 }
 
 impl<'a, I> MessagesExt for I
     where I: Iterator<Item = git2::Commit<'a>>
 {
-    fn accumulate_trailers<'b, A, J, K>(self, specs: J) -> A
-        where A: accumulation::MultiAccumulator + FromIterator<(String, accumulation::ValueAccumulator)>,
-              J: IntoIterator<Item = K>,
+    type Output = HashMap<String, accumulation::ValueAccumulator>;
+
+    fn accumulate_trailers<'b, J, K>(self, specs: J) -> Self::Output
+        where J: IntoIterator<Item = K>,
               K: Borrow<spec::TrailerSpec<'b>>
     {
         use message::Message;
         use trailer::accumulation::Accumulator;
         use trailer::spec::ToMap;
 
-        let mut accumulator : A = specs.into_map();
+        let mut accumulator = specs.into_map();
         accumulator.process_all(self.flat_map(|message| message.trailers()));
         accumulator
     }
