@@ -346,13 +346,16 @@ subcommands:
                 help: >
                         Add metadata. Can be passed multiple times.
                         Metadata is added and removed via key-value pairs.
-                        Available Keys are:
+                        Suggested keys are:
                             status=<value>
                             priority=<value>
                             severity=<value>
                             assignee=<value>
                         where <value> is the desired new value to set.
                         Passing an empty value leaves the metadata empty.
+
+                        The metadata is added to a commit as trailer
+                        (see git-interpret-trailers(1)).
                 multiple: true
                 number_of_values: 1
                 takes_value: true
