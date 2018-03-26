@@ -50,6 +50,8 @@ instead.
 We do not provide any installation scripts. If you intent using or testing
 `git-dit`, make sure to have the binary in your `PATH`.
 
+If you use Nixpkgs, it is also available as the attribute `gitAndTools.git-dit`, so you can try it out with simply `nix-shell -p gitAndTools.git-dit`.
+
 # Documentation
 
 For a system overview and conceptual information, refer to the
