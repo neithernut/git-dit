@@ -20,7 +20,7 @@ use error::LoggableError;
 #[allow(unused)]
 fn get_creds(url: &str, username: Option<&str>, types: git2::CredentialType) -> RResult<Cred, git2::Error> {
     // TODO: implement other authentication methods
-    if types.contains(git2::SSH_KEY) {
+    if types.contains(git2::CredentialType::SSH_KEY) {
         if let Some(user) = username {
             return Cred::ssh_key_from_agent(user);
         }
