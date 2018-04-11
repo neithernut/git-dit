@@ -245,7 +245,7 @@ impl<'r> Issue<'r> {
 
                 // configure the revwalk
                 messages.revwalk.simplify_first_parent();
-                messages.revwalk.set_sorting(git2::SORT_TOPOLOGICAL);
+                messages.revwalk.set_sorting(git2::Sort::TOPOLOGICAL);
 
                 Ok(messages)
             })
