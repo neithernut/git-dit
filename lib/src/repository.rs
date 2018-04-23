@@ -199,7 +199,7 @@ impl RepositoryExt for git2::Repository {
             .and_then(|mut messages| {
                 messages.revwalk.push(id)?;
                 messages.revwalk.simplify_first_parent();
-                messages.revwalk.set_sorting(git2::SORT_TOPOLOGICAL);
+                messages.revwalk.set_sorting(git2::Sort::TOPOLOGICAL);
                 Ok(messages)
             })
             .chain_err(|| EK::CannotGetCommitForRev(id.to_string()))

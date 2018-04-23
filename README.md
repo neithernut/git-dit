@@ -21,19 +21,6 @@ However, we try to avoid breaking changes.
 When playing with this, please keep in mind that this is alpha quality - there
 are bugs, missing things and rough edges.
 
-# Dependencies
-
-The following crates are used:
-* chrono 0.3
-* error-chain 0.10
-* git2 0.6
-* is-match 0.1
-* lazy_static 0.2
-* log 0.3
-* regex 0.2
-
-Additionally, for building the man page, `pandoc` is required.
-
 # Installing
 
 Cargo is used for building git-dit. Run
@@ -50,7 +37,11 @@ instead.
 We do not provide any installation scripts. If you intent using or testing
 `git-dit`, make sure to have the binary in your `PATH`.
 
-If you use Nixpkgs, it is also available as the attribute `gitAndTools.git-dit`, so you can try it out with simply `nix-shell -p gitAndTools.git-dit`.
+Additionally, for building the man page, `pandoc` is required.
+
+If you use Nixpkgs, it is also available as the attribute
+`gitAndTools.git-dit`, so you can try it out with simply
+`nix-shell -p gitAndTools.git-dit`.
 
 # Documentation
 
