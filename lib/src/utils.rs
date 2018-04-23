@@ -26,14 +26,14 @@ pub trait ResultIterExt<I, E> : Sized {
     }
 
     fn collect_result_into<T>(self, target: &mut T) -> RResult<(), E>
-        where T: Extend<I> + Default;
+        where T: Extend<I>;
 }
 
 impl<I, E, J> ResultIterExt<I, E> for J
     where J: Iterator<Item = RResult<I, E>>
 {
     fn collect_result_into<T>(self, target: &mut T) -> RResult<(), E>
-        where T: Extend<I> + Default
+        where T: Extend<I>
     {
         for item in self {
             target.extend(Some(item?));
