@@ -193,8 +193,17 @@ impl<'r> CollectableRefs<'r>
         Ok(retval)
     }
 
-    /// Transform directly into a reference collection iterator
+    /// Produce a reference collection iterator for multiple issues
     ///
+    /// This is a convenience function.
+    ///
+    /// # Note
+    ///
+    /// Internally, this function collects the references during the call.
+    /// Consider using the `for_issues` function in conjunction with
+    /// `flat_map()` on an issue iterator instead.
+    ///
+    #[deprecated]
     pub fn into_collector<I, J, K>(self, issues: I) -> Result<ReferenceCollector<'r>>
     where I: IntoIterator<Item = K, IntoIter = J>,
           J: Iterator<Item = K>,
