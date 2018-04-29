@@ -16,7 +16,7 @@ use git2::{self, Reference};
 use std::borrow::Borrow;
 
 use issue::{Issue, IssueRefType};
-use iter;
+use iter::{self, RefsReferringTo};
 use utils::ResultIterExt;
 
 use error::*;
@@ -98,92 +98,92 @@ impl<'r, I, J> CollectableRefs<'r, I, J>
         self
     }
 
-    /// Perform the computation of references to collect.
+    /// Find collectable references for an issue
     ///
-    pub fn into_refs(self) -> Result<Vec<Reference<'r>>> {
-        // in this function, we assemble a list of references to collect
-        let mut retval = Vec::new();
+    /// Construct an iterator yielding all collectable references for a given
+    /// issue, according to the configuration.
+    ///
+    pub fn for_issue(&self, issue: &Issue<'r>) -> Result<RefsReferringTo<'r>> {
+        let mut retval = {
+            let mut messages = self
+                .repo
+                .revwalk()
+                .chain_err(|| EK::CannotConstructRevwalk)?;
+            RefsReferringTo::new(messages)
+        };
 
-        // A part of those references is collected through a central
-        // `RefsReferringTo` iterator, which is constructed from information
-        // gathered from issues.
-        // We use one for all issues because some computational resources can
-        // and probably will be shared through the revwalk.
-        let mut messages = self
-            .repo
-            .revwalk()
-            .chain_err(|| EK::CannotConstructRevwalk)?;
-        let mut refs_to_assess = Vec::new();
+        // local head
+        if let Some(local_head) = issue.local_head().ok() {
+            // Its ok to ignore failures to retrieve the local head. It will
+            // not be present in user's repositories anyway.
+            retval.push(
+                local_head
+                    .peel(git2::ObjectType::Commit)
+                    .chain_err(|| EK::CannotGetCommit)?
+                    .id()
+            )?;
 
-        for item in self.issues {
-            let issue = item.borrow();
+            // Whether the local head should be collected or not is computed
+            // here, in the exact same way it is for leaves. We do that
+            // because can't mix the computation with those of the leaves.
+            // It would cause head references to be removed if any message
+            // was posted as a reply to the current head.
+            let mut head_history = self
+                .repo
+                .revwalk()
+                .chain_err(|| EK::CannotConstructRevwalk)?;
+            match self.collect_heads {
+                ReferenceCollectionSpec::Never => {},
+                ReferenceCollectionSpec::BackedByRemoteHead => {
+                    for item in issue.remote_refs(IssueRefType::Head)? {
+                        head_history.push(
+                            item?
+                                .peel(git2::ObjectType::Commit)
+                                .chain_err(|| EK::CannotGetCommit)?
+                                .id()
+                        )?;
+                    }
+                },
+            };
+            let mut referring_refs = iter::RefsReferringTo::new(head_history);
+            referring_refs.watch_ref(local_head)?;
+            referring_refs.collect_result_into(&mut retval)?;
+        }
 
-            // handle the different kinds of refs for the issue
+        // local leaves
+        for item in issue.local_refs(IssueRefType::Leaf)? {
+            let leaf = item?;
+            // NOTE: We push the parents of the references rather than the
+            //       references themselves since that would cause the
+            //       `RefsReferringTo` report that exact same reference.
+            Self::push_ref_parents(&mut retval, &leaf)?;
+            retval.watch_ref(leaf)?;
+        }
 
-            // local head
-            if let Some(local_head) = issue.local_head().ok() {
-                // Its ok to ignore failures to retrieve the local head. It will
-                // not be present in user's repositories anyway.
-                messages.push(
-                    local_head
-                        .peel(git2::ObjectType::Commit)
-                        .chain_err(|| EK::CannotGetCommit)?
-                        .id()
+        // remote refs
+        if self.consider_remote_refs {
+            for item in issue.remote_refs(IssueRefType::Any)? {
+                retval.push(item?
+                    .peel(git2::ObjectType::Commit)
+                    .chain_err(|| EK::CannotGetCommit)?
+                    .id()
                 )?;
-
-                // Whether the local head should be collected or not is computed
-                // here, in the exact same way it is for leaves. We do that
-                // because can't mix the computation with those of the leaves.
-                // It would cause head references to be removed if any message
-                // was posted as a reply to the current head.
-                let mut head_history = self
-                    .repo
-                    .revwalk()
-                    .chain_err(|| EK::CannotConstructRevwalk)?;
-                match self.collect_heads {
-                    ReferenceCollectionSpec::Never => {},
-                    ReferenceCollectionSpec::BackedByRemoteHead => {
-                        for item in issue.remote_refs(IssueRefType::Head)? {
-                            head_history.push(
-                                item?
-                                    .peel(git2::ObjectType::Commit)
-                                    .chain_err(|| EK::CannotGetCommit)?
-                                    .id()
-                            )?;
-                        }
-                    },
-                };
-                let mut referring_refs = iter::RefsReferringTo::new(head_history);
-                referring_refs.watch_ref(local_head)?;
-                referring_refs.collect_result_into(&mut retval)?;
-            }
-
-            // local leaves
-            for item in issue.local_refs(IssueRefType::Leaf)? {
-                let leaf = item?;
-                // NOTE: We push the parents of the references rather than the
-                //       references themselves since that would cause the
-                //       `RefsReferringTo` report that exact same reference.
-                Self::push_ref_parents(&mut messages, &leaf)?;
-                refs_to_assess.push(leaf);
-            }
-
-            // remote refs
-            if self.consider_remote_refs {
-                for item in issue.remote_refs(IssueRefType::Any)? {
-                    messages.push(item?
-                        .peel(git2::ObjectType::Commit)
-                        .chain_err(|| EK::CannotGetCommit)?
-                        .id()
-                    )?;
-                }
             }
         }
 
-        // collect refs referring to part of DAG to clean
-        let mut referring_refs = iter::RefsReferringTo::new(messages);
-        referring_refs.watch_refs(refs_to_assess)?;
-        referring_refs.collect_result_into(&mut retval)?;
+        Ok(retval)
+    }
+
+    /// Perform the computation of references to collect.
+    ///
+    pub fn into_refs(mut self) -> Result<Vec<Reference<'r>>> {
+        // in this function, we assemble a list of references to collect
+        let mut retval = Vec::new();
+
+        let issues: Vec<_> = self.issues.by_ref().collect();
+        for item in issues {
+            self.for_issue(item.borrow())?.collect_result_into(&mut retval)?;
+        }
 
         Ok(retval)
     }
@@ -197,7 +197,7 @@ impl<'r, I, J> CollectableRefs<'r, I, J>
 
     /// Push the parents of a referred commit to a revwalk
     ///
-    fn push_ref_parents<'a>(target: &mut git2::Revwalk, reference: &'a Reference<'a>) -> Result<()>
+    fn push_ref_parents<'a>(target: &mut RefsReferringTo, reference: &'a Reference<'a>) -> Result<()>
     {
         let referred_commit = reference
             .peel(git2::ObjectType::Commit)
