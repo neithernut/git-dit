@@ -29,10 +29,6 @@ use error::ErrorKind as EK;
 ///
 pub type UniqueIssues<'a> = HashSet<Issue<'a>>;
 
-/// Convenience alias for easier use of the CollectableRefs type
-///
-type CollectableRefs<'a> = gc::CollectableRefs<'a, <UniqueIssues<'a> as IntoIterator>::IntoIter>;
-
 
 /// Extension trait for Repositories
 ///
@@ -102,7 +98,7 @@ pub trait RepositoryExt {
 
     /// Produce a CollectableRefs for all issues known to the repository
     ///
-    fn collectable_refs<'a>(&'a self) -> Result<CollectableRefs<'a>>;
+    fn collectable_refs<'a>(&'a self) -> gc::CollectableRefs<'a>;
 
     /// Get an empty tree
     ///
@@ -205,9 +201,8 @@ impl RepositoryExt for git2::Repository {
             .chain_err(|| EK::CannotGetCommitForRev(id.to_string()))
     }
 
-    fn collectable_refs<'a>(&'a self) -> Result<CollectableRefs<'a>> {
-        self.issues()
-            .map(|issues| gc::CollectableRefs::new(self, issues))
+    fn collectable_refs<'a>(&'a self) -> gc::CollectableRefs<'a> {
+        gc::CollectableRefs::new(self)
     }
 
     fn issue_messages_iter<'a>(&'a self, commit: Commit<'a>) -> Result<iter::IssueMessagesIter<'a>> {

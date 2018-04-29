@@ -234,10 +234,9 @@ fn gc_impl(matches: &clap::ArgMatches) {
 
     let refs = repo
         .collectable_refs()
-        .unwrap_or_abort()
         .consider_remote_refs(matches.is_present("consider-remote"))
         .collect_heads(collect_heads)
-        .into_refs()
+        .into_refs(repo.issues().unwrap_or_abort())
         .unwrap_or_abort();
 
     if matches.is_present("dry-run") {

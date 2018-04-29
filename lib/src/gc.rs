@@ -45,33 +45,26 @@ pub enum ReferenceCollectionSpec {
 /// Use this type in order to compute dit-references which are no longer
 /// required and thus may be collected.
 ///
-pub struct CollectableRefs<'r, I, J = Issue<'r>>
-    where I: Iterator<Item = J>,
-          J: Borrow<Issue<'r>>
+pub struct CollectableRefs<'r>
 {
     repo: &'r git2::Repository,
-    issues: I,
     /// Should remote references be considered during collection?
     consider_remote_refs: bool,
     /// Under what circumstances should local heads be collected?
     collect_heads: ReferenceCollectionSpec,
 }
 
-impl<'r, I, J> CollectableRefs<'r, I, J>
-    where I: Iterator<Item = J>,
-          J: Borrow<Issue<'r>>
+impl<'r> CollectableRefs<'r>
 {
     /// Create a new CollectableRefs object
     ///
     /// By default only local references are considered, e.g. references which
     /// are unnecessary due to remote references are not reported.
     ///
-    pub fn new<K>(repo: &'r git2::Repository, issues: K) -> Self
-        where K: IntoIterator<Item = J, IntoIter = I>
+    pub fn new(repo: &'r git2::Repository) -> Self
     {
         CollectableRefs {
             repo: repo,
-            issues: issues.into_iter(),
             consider_remote_refs: false,
             collect_heads: ReferenceCollectionSpec::Never,
         }
@@ -176,11 +169,14 @@ impl<'r, I, J> CollectableRefs<'r, I, J>
 
     /// Perform the computation of references to collect.
     ///
-    pub fn into_refs(mut self) -> Result<Vec<Reference<'r>>> {
+    pub fn into_refs<I, J, K>(self, issues: I) -> Result<Vec<Reference<'r>>>
+    where I: IntoIterator<Item = K, IntoIter = J>,
+          J: Iterator<Item = K>,
+          K: Borrow<Issue<'r>>
+    {
         // in this function, we assemble a list of references to collect
         let mut retval = Vec::new();
 
-        let issues: Vec<_> = self.issues.by_ref().collect();
         for item in issues {
             self.for_issue(item.borrow())?.collect_result_into(&mut retval)?;
         }
@@ -190,9 +186,12 @@ impl<'r, I, J> CollectableRefs<'r, I, J>
 
     /// Transform directly into a reference collection iterator
     ///
-    pub fn into_collector(self) -> Result<ReferenceCollector<'r>> {
-        self.into_refs()
-            .map(ReferenceCollector::from)
+    pub fn into_collector<I, J, K>(self, issues: I) -> Result<ReferenceCollector<'r>>
+    where I: IntoIterator<Item = K, IntoIter = J>,
+          J: Iterator<Item = K>,
+          K: Borrow<Issue<'r>>
+    {
+        self.into_refs(issues).map(ReferenceCollector::from)
     }
 
     /// Push the parents of a referred commit to a revwalk
@@ -283,9 +282,9 @@ mod tests {
 
         refs_to_collect.sort();
 
-        let mut collected: Vec<_> = CollectableRefs::new(repo, issues)
+        let mut collected: Vec<_> = CollectableRefs::new(repo)
             .collect_heads(ReferenceCollectionSpec::BackedByRemoteHead)
-            .into_refs()
+            .into_refs(issues)
             .expect("Error during collection")
             .into_iter()
             .map(|r| r.peel(git2::ObjectType::Commit).expect("Could not peel ref").id())
