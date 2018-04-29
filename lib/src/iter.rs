@@ -220,6 +220,15 @@ impl<'r> RefsReferringTo<'r> {
         Self { refs: HashMap::new(), inner: messages, current_refs: Vec::new() }
     }
 
+    /// Push a starting point for the iteration
+    ///
+    /// The message will be pushed onto the underlying `Revwalk` used for
+    /// iterating over messages.
+    ///
+    pub fn push(&mut self, message: git2::Oid) -> Result<()> {
+        self.inner.push(message).chain_err(|| EK::CannotConstructRevwalk)
+    }
+
     /// Start watching a reference
     ///
     /// A watched reference may be returned by the iterator.
