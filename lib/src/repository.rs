@@ -96,7 +96,7 @@ pub trait RepositoryExt {
     ///
     fn issue_messages_iter<'a>(&'a self, commit: Commit<'a>) -> Result<iter::IssueMessagesIter<'a>>;
 
-    /// Produce a CollectableRefs for all issues known to the repository
+    /// Produce a CollectableRefs
     ///
     fn collectable_refs<'a>(&'a self) -> gc::CollectableRefs<'a>;
 
