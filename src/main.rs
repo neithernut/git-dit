@@ -239,8 +239,8 @@ fn gc_impl(matches: &clap::ArgMatches) {
     };
 
     let refs = repo
-        .issues()
-        .unwrap_or_abort()
+        .cli_issues(matches)
+        .unwrap_or_else(|| repo.issues().unwrap_or_abort())
         .into_iter()
         .map(|issue| collect.for_issue(&issue))
         .abort_on_err()
