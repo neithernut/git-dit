@@ -222,22 +222,30 @@ fn fetch_impl(matches: &clap::ArgMatches) {
 /// gc subcommand implementation
 ///
 fn gc_impl(matches: &clap::ArgMatches) {
-    use libgitdit::gc::{ReferenceCollectionSpec, ReferenceCollector};
+    use libgitdit::gc::ReferenceCollectionSpec;
+    use libgitdit::iter::ReferenceDeletingIter;
 
     let repo = util::open_dit_repo();
 
-    let collect_heads = if matches.is_present("collect-heads") {
-        ReferenceCollectionSpec::BackedByRemoteHead
-    } else {
-        ReferenceCollectionSpec::Never
+    let collect = {
+        let collect_heads = if matches.is_present("collect-heads") {
+            ReferenceCollectionSpec::BackedByRemoteHead
+        } else {
+            ReferenceCollectionSpec::Never
+        };
+        repo.collectable_refs()
+            .consider_remote_refs(matches.is_present("consider-remote"))
+            .collect_heads(collect_heads)
     };
 
     let refs = repo
-        .collectable_refs()
-        .consider_remote_refs(matches.is_present("consider-remote"))
-        .collect_heads(collect_heads)
-        .into_refs(repo.issues().unwrap_or_abort())
-        .unwrap_or_abort();
+        .issues()
+        .unwrap_or_abort()
+        .into_iter()
+        .map(|issue| collect.for_issue(&issue))
+        .abort_on_err()
+        .flat_map(|collector| collector)
+        .abort_on_err();
 
     if matches.is_present("dry-run") {
         refs.into_iter()
@@ -245,7 +253,7 @@ fn gc_impl(matches: &clap::ArgMatches) {
             .print_lines()
             .unwrap_or_abort();
     } else {
-        ReferenceCollector::from(refs).print_lines().unwrap_or_abort();
+        ReferenceDeletingIter::from(refs).print_lines().unwrap_or_abort();
     }
 }
 
