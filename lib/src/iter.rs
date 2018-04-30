@@ -290,6 +290,20 @@ impl<'r> Iterator for RefsReferringTo<'r> {
 }
 
 
+/// Implementation of Extend for RefsReferringTo
+///
+/// The references supplied will be returned by the extended `RefsReferringTo`
+/// iterator.
+///
+impl<'r> Extend<git2::Reference<'r>> for RefsReferringTo<'r> {
+    fn extend<I>(&mut self, references: I)
+        where I: IntoIterator<Item = git2::Reference<'r>>
+    {
+        self.current_refs.extend(references);
+    }
+}
+
+
 /// Iterator for deleting references
 ///
 /// This iterator wraps an iterator over references. All of the references
