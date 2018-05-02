@@ -210,6 +210,13 @@ subcommands:
                 help: Also collect local heads
                 multiple: false
                 takes_value: false # This may change in the future
+            - issue:
+                help: >
+                        Issue for which to collect references (collects for all
+                        issues if not specified)
+                index: 1
+                required: false
+                multiple: true
 
     - list:
         about: >
