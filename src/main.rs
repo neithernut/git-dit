@@ -12,6 +12,7 @@
 #[macro_use] extern crate is_match;
 #[macro_use] extern crate lazy_static;
 #[macro_use] extern crate log;
+extern crate atty;
 extern crate chrono;
 extern crate git2;
 extern crate libgitdit;
