@@ -13,6 +13,7 @@ use regex::{Regex, Match};
 use std::fs::File;
 use std::io;
 use std::path::PathBuf;
+use std::process::Child;
 use std::str::FromStr;
 
 use libgitdit::message::LineIteratorExt;
@@ -23,7 +24,7 @@ use libgitdit::{Issue, RepositoryExt};
 use error::*;
 use error::ErrorKind as EK;
 use gitext::RemotePriorization;
-use system::{Abortable, IteratorExt};
+use system::{Abortable, IteratorExt, programs};
 
 /// Open the DIT repo
 ///
@@ -96,6 +97,12 @@ pub trait RepositoryUtil<'r> {
 
     /// Get remote priorization from the config
     fn remote_priorization(&self) -> RemotePriorization;
+
+    /// Get a pager
+    ///
+    /// Get a pager suitable for paging output
+    ///
+    fn pager(&self) -> Child;
 }
 
 impl<'r> RepositoryUtil<'r> for Repository {
@@ -266,6 +273,10 @@ impl<'r> RepositoryUtil<'r> for Repository {
             .get_str("dit.remote-prios")
             .unwrap_or("*")
             .into()
+    }
+
+    fn pager(&self) -> Child {
+        programs::pager(self.config().unwrap_or_abort()).unwrap_or_abort()
     }
 }
 
