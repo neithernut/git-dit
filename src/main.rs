@@ -12,6 +12,7 @@
 #[macro_use] extern crate is_match;
 #[macro_use] extern crate lazy_static;
 #[macro_use] extern crate log;
+extern crate atty;
 extern crate chrono;
 extern crate git2;
 extern crate libgitdit;
@@ -316,24 +317,16 @@ fn list_impl(matches: &clap::ArgMatches) {
         issues.truncate(str::parse(number).unwrap_or_abort());
     }
 
-    // spawn a pager
-    let mut pager = system::programs::pager(repo.config().unwrap_or_abort())
-        .unwrap_or_abort();
-
-    issues
+    // present the list to the user
+    let result = issues
         .into_iter()
         .map(|issue| issue.initial_message())
         .abort_on_err()
         .flat_map(|initial| formatter.iter().formatted_lines(initial))
         .abort_on_err()
-        .write_lines(pager.stdin.as_mut().unwrap())
+        .pipe_lines(repo.pager())
         .unwrap_or_abort();
-
-    // don't trash the shell by exitting with a child still printing to it
-    let result = pager.wait().unwrap_or_abort();
-    if !result.success() {
-        std::process::exit(result.code().unwrap_or(1));
-    }
+    std::process::exit(result);
 }
 
 
@@ -659,13 +652,9 @@ fn show_impl(matches: &clap::ArgMatches) {
         }
     };
 
-    // Spawn a pager
-    let mut pager = system::programs::pager(repo.config().unwrap_or_abort())
-        .unwrap_or_abort();
-
     // Transform the simple graph element line into an iterator over lines to
     // print via multiple steps.
-    commits
+    let result = commits
         .into_iter()
         // expand the graph element lines for each message
         .map(|commit| {
@@ -682,14 +671,10 @@ fn show_impl(matches: &clap::ArgMatches) {
         )
         // combine each line of graph elements and message
         .map(|line| format!("{} {}", line.0, line.1))
-        .write_lines(pager.stdin.as_mut().unwrap())
+        .pipe_lines(repo.pager())
         .unwrap_or_abort();
 
-    // don't trash the shell by exitting with a child still printing to it
-    let result = pager.wait().unwrap_or_abort();
-    if !result.success() {
-        std::process::exit(result.code().unwrap_or(1));
-    }
+    std::process::exit(result);
 }
 
 /// tag subcommand implementation
