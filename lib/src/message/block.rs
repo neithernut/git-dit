@@ -65,7 +65,7 @@ impl<I, S> Iterator for Blocks<I, S>
 
         // get us the next block
         for line in &mut self.0 {
-            let trimmed = line.as_ref().trim_right();
+            let trimmed = line.as_ref().trim_end();
 
             // If we encounter an empty line, we are done. However, we should
             // refrain from reporting empty blocks.
