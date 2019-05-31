@@ -70,7 +70,7 @@ impl<E> LoggableError for E
         let mut current = Some(self as &EError);
         while let Some(err) = current {
             error!("{}", err);
-            current = err.cause();
+            current = err.source();
         }
     }
 }
