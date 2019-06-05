@@ -4,7 +4,6 @@ fn main() {
     if cfg!(feature = "manpage") {
         assert!(Command::new("pandoc")
             .arg("-s")
-            .arg("-S")
             .arg("-f").arg("markdown")
             .arg("-t").arg("man")
             .arg("git-dit.1.md")

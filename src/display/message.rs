@@ -49,7 +49,7 @@ impl<'a,> TokenExpander for MessageFmtToken<'a> {
                 .clone()
                 .into_commit()
                 .ok()
-                .and_then(|mut m| m.summary().map(String::from))
+                .and_then(|m| m.summary().map(String::from))
                 .unwrap_or_default()],
             &MessageFmtToken::Author => tokenvec![message
                 .author()

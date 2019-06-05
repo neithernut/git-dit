@@ -73,7 +73,7 @@ impl<'a, I, S> Iterator for StripWhiteSpaceLeftIter<I, S>
     type Item = String;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.0.next().map(|s| String::from(s.as_ref().trim_left()))
+        self.0.next().map(|s| String::from(s.as_ref().trim_start()))
     }
 }
 
@@ -102,7 +102,7 @@ impl<'a, I, S> Iterator for StripWhiteSpaceRightIter<I, S>
     type Item = String;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.0.next().map(|s| String::from(s.as_ref().trim_right()))
+        self.0.next().map(|s| String::from(s.as_ref().trim_end()))
     }
 }
 
