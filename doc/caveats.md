@@ -11,14 +11,14 @@ equivalent to creating a new commit with the edited content and discarding the
 old one. Hence, if a reply already exists on the old commit, it will not be
 removed and the reply will still refer to the old commit. However, we do not
 consider this restriction sever, especially when compared to mailing-lists,
-which inhibit the same restriction. Note that we currently still lack an tool
+which inhibit the same restriction. Note that we currently still lack a tool
 for convenient amending of messages.
 
 
 ## Issue notification/access control
 
 Issues and related messages have to be pulled by the maintainer from public
-repositories. Otherwise issue reporters would require push access to the bug
+repositories. Otherwise, issue reporters would require push access to the bug
 repository. Originally, we planned (and still do plan) to provide a tool for
 automated imports of issues and patches from mailing lists. A bug repository
 may also be accessed via a web front-end at some point.
@@ -28,7 +28,7 @@ cross-platform notification of events in git repositories (e.g. pushes).
 Using such a mechanism, contributors could notify a project maintainer about
 changes in their public repositories, including issues or messages, via a public
 API. A maintainer could set up automated fetches of new issues, importing new
-issues and messages. This is, however unrelated and still work in progress.
+issues and messages. However, this is unrelated and still work in progress.
 Additionally, it would still require reporters of issues to expose them via a
 public repository.
 
