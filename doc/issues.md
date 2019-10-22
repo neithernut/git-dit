@@ -12,5 +12,5 @@ concerning a project's source code, covering:
  * patch sets
 
 As in other issue trackers, an issue in git-dit has a status, an author and a
-creation time. Is may also have additional metadata.
+creation time. It may also have additional metadata.
 
