@@ -66,7 +66,7 @@ impl From<AccumulationPolicy> for ValueAccumulator {
 
 impl IntoIterator for ValueAccumulator {
     type Item = TrailerValue;
-    type IntoIter = Box<Iterator<Item = Self::Item>>;
+    type IntoIter = Box<dyn Iterator<Item = Self::Item>>;
 
     fn into_iter(self) -> Self::IntoIter {
         match self {
