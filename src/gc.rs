@@ -13,7 +13,6 @@
 //!
 
 use git2::{self, Reference};
-use std::borrow::Borrow;
 
 use issue::{Issue, IssueRefType};
 use iter::{self, RefsReferringTo};
@@ -167,51 +166,6 @@ impl<'r> CollectableRefs<'r>
         Ok(retval)
     }
 
-    /// Find collectable references for multiple issues
-    ///
-    /// This is a convenience function.
-    ///
-    /// # Note
-    ///
-    /// Internally, this function collects the references during the call.
-    /// Consider using the `for_issues` function in conjunction with
-    /// `flat_map()` on an issue iterator instead.
-    ///
-    #[deprecated]
-    pub fn into_refs<I, J, K>(self, issues: I) -> Result<Vec<Reference<'r>>>
-    where I: IntoIterator<Item = K, IntoIter = J>,
-          J: Iterator<Item = K>,
-          K: Borrow<Issue<'r>>
-    {
-        // in this function, we assemble a list of references to collect
-        let mut retval = Vec::new();
-
-        for item in issues {
-            self.for_issue(item.borrow())?.collect_result_into(&mut retval)?;
-        }
-
-        Ok(retval)
-    }
-
-    /// Produce a reference collection iterator for multiple issues
-    ///
-    /// This is a convenience function.
-    ///
-    /// # Note
-    ///
-    /// Internally, this function collects the references during the call.
-    /// Consider using the `for_issues` function in conjunction with
-    /// `flat_map()` on an issue iterator instead.
-    ///
-    #[deprecated]
-    pub fn into_collector<I, J, K>(self, issues: I) -> Result<ReferenceCollector<'r>>
-    where I: IntoIterator<Item = K, IntoIter = J>,
-          J: Iterator<Item = K>,
-          K: Borrow<Issue<'r>>
-    {
-        self.into_refs(issues).map(ReferenceCollector::from)
-    }
-
     /// Push the parents of a referred commit to a revwalk
     ///
     fn push_ref_parents<'a>(target: &mut RefsReferringTo, reference: &'a Reference<'a>) -> Result<()>
@@ -300,9 +254,11 @@ mod tests {
 
         refs_to_collect.sort();
 
-        let mut collected: Vec<_> = CollectableRefs::new(repo)
-            .collect_heads(ReferenceCollectionSpec::BackedByRemoteHead)
-            .into_refs(issues)
+        let collectable = CollectableRefs::new(repo).collect_heads(ReferenceCollectionSpec::BackedByRemoteHead);
+        let mut collected: Vec<_> = issues
+            .iter()
+            .flat_map(|i| collectable.for_issue(i).expect("Error during discovery of collectable refs"))
+            .collect::<Result<Vec<_>>>()
             .expect("Error during collection")
             .into_iter()
             .map(|r| r.peel(git2::ObjectType::Commit).expect("Could not peel ref").id())
