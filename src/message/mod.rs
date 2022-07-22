@@ -94,7 +94,7 @@ impl<L, S> LineIteratorExt<S> for L
     type Iter = L;
 
     fn check_message_format(mut self) -> Result<()> {
-        if try!(self.next().ok_or(Error::from_kind(EK::EmptyMessage))).as_ref().is_empty() {
+        if self.next().ok_or(Error::from_kind(EK::EmptyMessage))?.as_ref().is_empty() {
             return Err(Error::from_kind(EK::EmptySubject))
         }
 
