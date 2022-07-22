@@ -271,7 +271,7 @@ impl<'r> Iterator for RefsReferringTo<'r> {
             }
 
             // refill the stash of references for the next commit
-            'refill: for item in &mut self.inner {
+            for item in &mut self.inner {
                 match item.chain_err(|| EK::CannotGetCommit) {
                     Ok(id) => if let Some(new_refs) = self.refs.remove(&id) {
                         // NOTE: should new_refs be empty, we just loop once
