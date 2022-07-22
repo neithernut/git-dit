@@ -6,7 +6,6 @@ authors = ["Matthias Beyer <mail@beyermatthias.de>",
            "Julian Ganz <neither@nut.email>"]
 
 [dependencies]
-log = "0.4"
 git2 = "0.9"
 error-chain = "0.12"
 regex = "1"
