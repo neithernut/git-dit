@@ -98,7 +98,7 @@ impl<'r> CollectableRefs<'r>
     ///
     pub fn for_issue(&self, issue: &Issue<'r>) -> Result<RefsReferringTo<'r>> {
         let mut retval = {
-            let mut messages = self
+            let messages = self
                 .repo
                 .revwalk()
                 .chain_err(|| EK::CannotConstructRevwalk)?;
