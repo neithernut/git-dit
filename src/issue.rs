@@ -205,10 +205,15 @@ impl<'r> Issue<'r> {
     pub fn messages(&self) -> Result<Messages<'r>> {
         self.terminated_messages()
             .and_then(|mut messages| {
-                let glob = format!("**/dit/{}/**", self.ref_part());
-
                 // The iterator will iterate over all the messages in the tree
                 // spanned but it will halt at the initial message.
+                let glob = format!("refs/dit/{}/**", self.ref_part());
+                messages
+                    .revwalk
+                    .push_glob(glob.as_ref())
+                    .chain_err(|| EK::CannotGetReferences(glob))?;
+
+                let glob = format!("refs/remotes/*/dit/{}/**", self.ref_part());
                 messages
                     .revwalk
                     .push_glob(glob.as_ref())
