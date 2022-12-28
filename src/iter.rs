@@ -64,7 +64,7 @@ impl<'r> Iterator for HeadRefsToIssuesIter<'r>
 /// via a `Revwalk`.
 ///
 pub struct Messages<'r> {
-    pub revwalk: git2::Revwalk<'r>,
+    pub(crate) revwalk: git2::Revwalk<'r>,
     repo: &'r Repository,
 }
 
