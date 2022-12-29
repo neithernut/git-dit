@@ -124,3 +124,8 @@ pub trait InnerError: std::error::Error {
     type Reference: fmt::Debug + fmt::Display;
 }
 
+impl InnerError for git2::Error {
+    type Oid = git2::Oid;
+    type Reference = String;
+}
+
