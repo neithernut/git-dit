@@ -9,103 +9,64 @@
 
 use std::fmt;
 
-use git2::Oid;
 
-error_chain! {
-    foreign_links {
-        GitError(::git2::Error);
+/// Alias for wrapping git library specific [Error](std::error::Error)s
+pub type Result<T, I> = std::result::Result<T, Error<I>>;
+
+
+/// Extension trait for convenience functionality
+pub trait ResultExt<T, I: InnerError> {
+    /// Wrap a git library specific error with a specific [Kind]
+    fn chain_err<F: FnOnce() -> Kind<I>>(self, kind: F) -> Result<T, I>;
+}
+
+impl<T, I: InnerError> ResultExt<T, I> for std::result::Result<T, I> {
+    fn chain_err<F: FnOnce() -> Kind<I>>(self, kind: F) -> Result<T, I> {
+        self.map_err(|e| Error::from(kind()).with_inner(e))
+    }
+}
+
+
+/// Custom [Error](std::error::Error) type for this library
+#[derive(Clone, Debug)]
+pub struct Error<I: InnerError> {
+    inner: Option<I>,
+    kind: Kind<I>,
+}
+
+impl<I: InnerError> Error<I> {
+    /// Create an error from the given error [Kind]
+    pub fn from_kind(kind: Kind<I>) -> Self {
+        Self::from(kind)
     }
 
-    errors {
-        CannotCreateMessage {
-            description("Cannot create message")
-            display("Cannot create a message")
-        }
+    /// Set an inner error
+    pub fn with_inner(self, inner: I) -> Self {
+        Self {inner: Some(inner), ..self}
+    }
+}
 
-        CannotConstructRevwalk {
-            description("Cannot construct revwalk")
-            display("Cannot construct a revwalk for iterating over commits")
-        }
+impl<I: InnerError> From<Kind<I>> for Error<I> {
+    fn from(kind: Kind<I>) -> Self {
+        Self {inner: None, kind}
+    }
+}
 
-        CannotGetCommit {
-            description("Cannot get a commit from the repository")
-            display("Cannot get a specific commit from repository")
-        }
+impl<I: InnerError> From<I> for Error<I> {
+    fn from(inner: I) -> Self {
+        Self {inner: Some(inner), kind: Kind::Other}
+    }
+}
 
-        CannotGetCommitForRev(rev: String) {
-            description("Cannot get commit from rev")
-            display("Cannot get commit from rev '{}'", rev)
-        }
+impl<I: InnerError + 'static> std::error::Error for Error<I> {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        self.inner.as_ref().map(|x| x as &(dyn std::error::Error + 'static))
+    }
+}
 
-        ReferenceNameError {
-            description("Error getting reference name")
-            display("Error getting reference name")
-        }
-
-        CannotGetReferences(glob: String) {
-            description("Cannot get references from repository")
-            display("Cannot get references '{}' from repository", glob)
-        }
-
-        CannotGetReference {
-            description("Cannot get a reference from repository")
-            display("Cannot get a specific reference from repository")
-        }
-
-        CannotDeleteReference(reference: String) {
-            description("Cannot delete a specific reference")
-            display("Cannot delete the reference '{}'", reference)
-        }
-
-        CannotBuildTree {
-            description("Cannot build Tree")
-            display("Cannot build Tree")
-        }
-
-        CannotFindIssueHead(id: Oid) {
-            description("Cannot find issue HEAD")
-            display("Cannot find issue HEAD for {}", id)
-        }
-
-        CannotSetReference(refname: String) {
-            description("Cannot set some reference")
-            display("Cannot update or create reference '{}'", refname)
-        }
-
-        NoTreeInitFound(id: Oid) {
-            description("Cannot find any tree init")
-            display("Cannot find any tree init for {}", id)
-        }
-
-        OidFormatError(name: String) {
-            description("Malformed HEAD OID")
-            display("Malformed OID: {}", name)
-        }
-
-        MalFormedHeadReference(name: String) {
-            description("Found malformed HEAD reference")
-            display("Malformed head refernece: {}", name)
-        }
-
-        TrailerFormatError(trailer: String) {
-            description("Found malformed trailer")
-            display("Malformed trailer: {}", trailer)
-        }
-
-        EmptyMessage {
-            description("An empty message was supplied")
-            display("The message is empty")
-        }
-
-        EmptySubject {
-            description("The subject line of the message is empty")
-            display("Empty subject line")
-        }
-
-        MalformedMessage {
-            description("The message supplied is malformed")
-            display("The message supplied is malformed")
-        }
+impl<I: InnerError> fmt::Display for Error<I> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.kind.fmt(f)
     }
 }
 

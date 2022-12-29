@@ -18,7 +18,7 @@ use std::hash;
 use std::result::Result as RResult;
 
 use error::*;
-use error::ErrorKind as EK;
+use error::Kind as EK;
 use iter::Messages;
 
 
@@ -117,7 +117,7 @@ pub struct Issue<'r> {
 impl<'r> Issue<'r> {
     /// Create a new handle for an issue with a given id
     ///
-    pub fn new(repo: &'r git2::Repository, id: Oid) -> Result<Self> {
+    pub fn new(repo: &'r git2::Repository, id: Oid) -> Result<Self, git2::Error> {
         repo.find_object(id, Some(git2::ObjectType::Commit))
             .chain_err(|| EK::CannotGetCommitForRev(id.to_string()))
             .map(|obj| Issue { repo: repo, obj: obj })
@@ -131,7 +131,7 @@ impl<'r> Issue<'r> {
 
     /// Get the issue's initial message
     ///
-    pub fn initial_message(&self) -> Result<git2::Commit<'r>> {
+    pub fn initial_message(&self) -> Result<git2::Commit<'r>, git2::Error> {
         self.obj
             .clone()
             .into_commit()
@@ -143,7 +143,7 @@ impl<'r> Issue<'r> {
     /// Returns the head references from both the local repository and remotes
     /// for this issue.
     ///
-    pub fn heads(&self) -> Result<References<'r>> {
+    pub fn heads(&self) -> Result<References<'r>, git2::Error> {
         let glob = format!("**/dit/{}/head", self.ref_part());
         self.repo
             .references_glob(&glob)
@@ -155,7 +155,7 @@ impl<'r> Issue<'r> {
     /// Returns the head reference of the issue from the local repository, if
     /// present.
     ///
-    pub fn local_head(&self) -> Result<Reference<'r>> {
+    pub fn local_head(&self) -> Result<Reference<'r>, git2::Error> {
         let refname = format!("refs/dit/{}/head", self.ref_part());
         self.repo
             .find_reference(&refname)
@@ -167,7 +167,7 @@ impl<'r> Issue<'r> {
     /// Return all references of a specific type associated with the issue from
     /// the local repository.
     ///
-    pub fn local_refs(&self, ref_type: IssueRefType) -> Result<References<'r>> {
+    pub fn local_refs(&self, ref_type: IssueRefType) -> Result<References<'r>, git2::Error> {
         let glob = format!("refs/dit/{}/{}", self.ref_part(), ref_type.glob_part());
         self.repo
             .references_glob(&glob)
@@ -179,7 +179,7 @@ impl<'r> Issue<'r> {
     /// Return all references of a specific type associated with the issue from
     /// all remote repositories.
     ///
-    pub fn remote_refs(&self, ref_type: IssueRefType) -> Result<References<'r>> {
+    pub fn remote_refs(&self, ref_type: IssueRefType) -> Result<References<'r>, git2::Error> {
         let glob = format!("refs/remotes/*/dit/{}/{}", self.ref_part(), ref_type.glob_part());
         self.repo
             .references_glob(&glob)
@@ -191,7 +191,7 @@ impl<'r> Issue<'r> {
     /// Return all references of a specific type associated with the issue from
     /// both the local and remote repositories.
     ///
-    pub fn all_refs(&self, ref_type: IssueRefType) -> Result<References<'r>> {
+    pub fn all_refs(&self, ref_type: IssueRefType) -> Result<References<'r>, git2::Error> {
         let glob = format!("**/dit/{}/{}", self.ref_part(), ref_type.glob_part());
         self.repo
             .references_glob(&glob)
@@ -202,7 +202,7 @@ impl<'r> Issue<'r> {
     ///
     /// The sorting of the underlying revwalk will be set to "topological".
     ///
-    pub fn messages(&self) -> Result<Messages<'r>> {
+    pub fn messages(&self) -> Result<Messages<'r>, git2::Error> {
         self.terminated_messages()
             .and_then(|mut messages| {
                 // The iterator will iterate over all the messages in the tree
@@ -228,7 +228,7 @@ impl<'r> Issue<'r> {
     /// The Messages iterator returned will return all first parents up to and
     /// includingthe initial message of the issue.
     ///
-    pub fn messages_from(&self, message: Oid) -> Result<Messages<'r>> {
+    pub fn messages_from(&self, message: Oid) -> Result<Messages<'r>, git2::Error> {
         self.terminated_messages()
             .and_then(|mut messages| {
                 messages
@@ -242,7 +242,7 @@ impl<'r> Issue<'r> {
 
     /// Prepare a Messages iterator which will terminate at the initial message
     ///
-    pub fn terminated_messages(&self) -> Result<Messages<'r>> {
+    pub fn terminated_messages(&self) -> Result<Messages<'r>, git2::Error> {
         Messages::empty(self.repo)
             .and_then(|mut messages| {
                 // terminate at this issue's initial message
@@ -267,7 +267,7 @@ impl<'r> Issue<'r> {
                                     message: A,
                                     tree: &git2::Tree,
                                     parents: I
-    ) -> Result<Commit<'r>>
+    ) -> Result<Commit<'r>, git2::Error>
         where A: AsRef<str>,
               I: IntoIterator<Item = &'a Commit<'a>, IntoIter = J>,
               J: Iterator<Item = &'a Commit<'a>>
@@ -290,7 +290,7 @@ impl<'r> Issue<'r> {
     /// The function will update the reference even if it would not be an
     /// fast-forward update.
     ///
-    pub fn update_head(&self, message: Oid, replace: bool) -> Result<Reference<'r>> {
+    pub fn update_head(&self, message: Oid, replace: bool) -> Result<Reference<'r>, git2::Error> {
         let refname = format!("refs/dit/{}/head", self.ref_part());
         let reflogmsg = format!("git-dit: set head reference of {} to {}", self, message);
         self.repo
@@ -302,7 +302,7 @@ impl<'r> Issue<'r> {
     ///
     /// Creates a new leaf reference for the message provided in the issue.
     ///
-    pub fn add_leaf(&self, message: Oid) -> Result<Reference<'r>> {
+    pub fn add_leaf(&self, message: Oid) -> Result<Reference<'r>, git2::Error> {
         let refname = format!("refs/dit/{}/leaves/{}", self.ref_part(), message);
         let reflogmsg = format!("git-dit: new leaf for {}: {}", self, message);
         self.repo

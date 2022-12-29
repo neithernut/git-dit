@@ -20,7 +20,7 @@
 //!
 
 use error::*;
-use error::ErrorKind as EK;
+use error::Kind as EK;
 use git2::Commit;
 use std;
 
@@ -47,7 +47,7 @@ pub trait LineIteratorExt<S>
     /// that subject line is followed by an empty line. The message should
     /// already be stripped of comments and trailing whitespace.
     ///
-    fn check_message_format(self) -> Result<()>;
+    fn check_message_format(self) -> Result<(), git2::Error>;
 
     /// Create a whitespace and comment stripping iterator
     ///
@@ -93,7 +93,7 @@ impl<L, S> LineIteratorExt<S> for L
 {
     type Iter = L;
 
-    fn check_message_format(mut self) -> Result<()> {
+    fn check_message_format(mut self) -> Result<(), git2::Error> {
         if self.next().map(|line| line.as_ref().is_empty()).unwrap_or(true) {
             return Err(Error::from_kind(EK::MalformedMessage))
         }

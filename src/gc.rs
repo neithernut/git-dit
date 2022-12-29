@@ -19,7 +19,7 @@ use iter::{self, RefsReferringTo};
 use utils::ResultIterExt;
 
 use error::*;
-use error::ErrorKind as EK;
+use error::Kind as EK;
 
 
 /// Reference collecting iterator
@@ -95,7 +95,7 @@ impl<'r> CollectableRefs<'r>
     /// Construct an iterator yielding all collectable references for a given
     /// issue, according to the configuration.
     ///
-    pub fn for_issue(&self, issue: &Issue<'r>) -> Result<RefsReferringTo<'r>> {
+    pub fn for_issue(&self, issue: &Issue<'r>) -> Result<RefsReferringTo<'r>, git2::Error> {
         let mut retval = {
             let messages = self
                 .repo
@@ -168,8 +168,10 @@ impl<'r> CollectableRefs<'r>
 
     /// Push the parents of a referred commit to a revwalk
     ///
-    fn push_ref_parents<'a>(target: &mut RefsReferringTo, reference: &'a Reference<'a>) -> Result<()>
-    {
+    fn push_ref_parents<'a>(
+        target: &mut RefsReferringTo,
+        reference: &'a Reference<'a>,
+    ) -> Result<(), git2::Error> {
         let referred_commit = reference
             .peel(git2::ObjectType::Commit)
             .chain_err(|| EK::CannotGetCommit)?
@@ -258,7 +260,7 @@ mod tests {
         let mut collected: Vec<_> = issues
             .iter()
             .flat_map(|i| collectable.for_issue(i).expect("Error during discovery of collectable refs"))
-            .collect::<Result<Vec<_>>>()
+            .collect::<Result<Vec<_>, git2::Error>>()
             .expect("Error during collection")
             .into_iter()
             .map(|r| r.peel(git2::ObjectType::Commit).expect("Could not peel ref").id())
