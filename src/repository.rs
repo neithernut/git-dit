@@ -198,7 +198,6 @@ impl RepositoryExt for git2::Repository {
                 messages.revwalk.set_sorting(git2::Sort::TOPOLOGICAL);
                 Ok(messages)
             })
-            .chain_err(|| EK::CannotGetCommitForRev(id.to_string()))
     }
 
     fn collectable_refs<'a>(&'a self) -> gc::CollectableRefs<'a> {
