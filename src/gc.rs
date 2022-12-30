@@ -176,7 +176,7 @@ impl<'r> CollectableRefs<'r>
             .peel(git2::ObjectType::Commit)
             .chain_err(|| EK::CannotGetCommit)?
             .into_commit()
-            .map_err(|o| Error::from_kind(EK::CannotGetCommitForRev(o.id().to_string())))?;
+            .map_err(|o| EK::CannotGetCommitForRev(o.id().to_string()))?;
         for parent in referred_commit.parent_ids() {
             target.push(parent)?;
         }

@@ -160,7 +160,7 @@ impl FromStr for Trailer {
 
         match RE.captures(s).map(|c| (c.get(1), c.get(2))) {
             Some((Some(key), Some(value))) => Ok(Trailer::new(key.as_str(), value.as_str().trim())),
-            _ => Err(Error::from_kind(EK::TrailerFormatError(s.to_owned())))
+            _ => Err(EK::TrailerFormatError(s.to_owned()).into())
         }
     }
 }

@@ -35,11 +35,6 @@ pub struct Error<I: InnerError> {
 }
 
 impl<I: InnerError> Error<I> {
-    /// Create an error from the given error [Kind]
-    pub fn from_kind(kind: Kind<I>) -> Self {
-        Self::from(kind)
-    }
-
     /// Set an inner error
     pub fn with_inner(self, inner: I) -> Self {
         Self {inner: Some(inner), ..self}

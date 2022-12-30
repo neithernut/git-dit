@@ -95,11 +95,11 @@ impl<L, S> LineIteratorExt<S> for L
 
     fn check_message_format(mut self) -> Result<(), git2::Error> {
         if self.next().map(|line| line.as_ref().is_empty()).unwrap_or(true) {
-            return Err(Error::from_kind(EK::MalformedMessage))
+            return Err(EK::MalformedMessage.into())
         }
 
         if !self.next().map(|line| line.as_ref().is_empty()).unwrap_or(true) {
-            return Err(Error::from_kind(EK::MalformedMessage));
+            return Err(EK::MalformedMessage.into())
         }
 
         Ok(())

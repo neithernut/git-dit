@@ -119,7 +119,7 @@ impl RepositoryExt for git2::Repository {
         if retval.heads()?.next().is_some() {
             Ok(retval)
         } else {
-            Err(Error::from_kind(EK::CannotFindIssueHead(id)))
+            Err(EK::CannotFindIssueHead(id).into())
         }
     }
 
@@ -133,7 +133,7 @@ impl RepositoryExt for git2::Repository {
             .and_then(|name| name.rsplitn(3, "/").nth(1))
             .ok_or_else(|| {
                 let n = name.unwrap_or_default().to_owned();
-                Error::from_kind(EK::MalFormedHeadReference(n))
+                EK::MalFormedHeadReference(n).into()
             })
             .and_then(|hash| {
                Oid::from_str(hash)
@@ -152,7 +152,7 @@ impl RepositoryExt for git2::Repository {
             }
         }
 
-        Err(Error::from_kind(EK::NoTreeInitFound(message.id())))
+        Err(EK::NoTreeInitFound(message.id()).into())
     }
 
     fn issues_with_prefix(&self, prefix: &str) -> Result<UniqueIssues, git2::Error> {

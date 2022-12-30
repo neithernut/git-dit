@@ -135,7 +135,7 @@ impl<'r> Issue<'r> {
         self.obj
             .clone()
             .into_commit()
-            .map_err(|obj| Error::from_kind(EK::CannotGetCommitForRev(obj.id().to_string())))
+            .map_err(|obj| EK::CannotGetCommitForRev(obj.id().to_string()).into())
     }
 
     /// Get possible heads of the issue
