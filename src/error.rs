@@ -110,6 +110,53 @@ error_chain! {
 }
 
 
+/// Kinds of errors which may be emitted by this library
+#[derive(Clone, Debug)]
+pub enum Kind<I: InnerError> {
+    CannotCreateMessage,
+    CannotConstructRevwalk,
+    CannotGetCommit,
+    CannotGetCommitForRev(String),
+    ReferenceNameError,
+    CannotGetReferences(String),
+    CannotGetReference,
+    CannotDeleteReference(I::Reference),
+    CannotBuildTree,
+    CannotFindIssueHead(I::Oid),
+    CannotSetReference(I::Reference),
+    NoTreeInitFound(I::Oid),
+    OidFormatError(String),
+    MalFormedHeadReference(I::Reference),
+    TrailerFormatError(String),
+    MalformedMessage,
+    Other,
+}
+
+impl<I: InnerError> fmt::Display for Kind<I> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::CannotCreateMessage       => write!(f, "cannot create a message"),
+            Self::CannotConstructRevwalk    => write!(f, "cannot construct a revision walk"),
+            Self::CannotGetCommit           => write!(f, "cannot get a specific commit from repository"),
+            Self::CannotGetCommitForRev(r)  => write!(f, "cannot get commit from rev '{}'", r),
+            Self::ReferenceNameError        => write!(f, "error getting reference name"),
+            Self::CannotGetReferences(g)    => write!(f, "cannot get references '{}' from repository", g),
+            Self::CannotGetReference        => write!(f, "cannot get a specific reference from repository"),
+            Self::CannotDeleteReference(r)  => write!(f, "cannot delete the reference '{}'", r),
+            Self::CannotBuildTree           => write!(f, "cannot build Tree"),
+            Self::CannotFindIssueHead(i)    => write!(f, "cannot find issue HEAD for {}", i),
+            Self::CannotSetReference(r)     => write!(f, "cannot update or create reference '{}'", r),
+            Self::NoTreeInitFound(i)        => write!(f, "cannot find any tree init for {}", i),
+            Self::OidFormatError(n)         => write!(f, "malformed OID: {}", n),
+            Self::MalFormedHeadReference(n) => write!(f, "malformed head refernece: {}", n),
+            Self::TrailerFormatError(t)     => write!(f, "malformed trailer: {}", t),
+            Self::MalformedMessage          => write!(f, "malformed message"),
+            Self::Other                     => write!(f, "other"),
+        }
+    }
+}
+
+
 /// [Error](std::error::Error) type specific to a git implementation
 ///
 /// This trait is implemented for [Error](std::error::Error)s we wrap in our own
