@@ -48,6 +48,11 @@ impl<I: InnerError> Error<I> {
     pub fn with_inner(self, inner: I) -> Self {
         Self {inner: Some(inner), ..self}
     }
+
+    /// Retrieve the [Kind] of error
+    pub fn kind(&self) -> &Kind<I> {
+        &self.kind
+    }
 }
 
 impl<I: InnerError> From<Kind<I>> for Error<I> {
