@@ -118,10 +118,10 @@ error_chain! {
 /// of error reporting.
 pub trait InnerError: std::error::Error {
     /// Type used for representing Object IDs
-    type Oid: fmt::Debug + fmt::Display;
+    type Oid: Clone + fmt::Debug + fmt::Display;
 
     /// Type used for representing refs
-    type Reference: fmt::Debug + fmt::Display;
+    type Reference: Clone + fmt::Debug + fmt::Display;
 }
 
 impl InnerError for git2::Error {
