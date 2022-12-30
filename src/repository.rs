@@ -137,7 +137,7 @@ impl RepositoryExt for git2::Repository {
             })
             .and_then(|hash| {
                Oid::from_str(hash)
-                   .chain_err(|| EK::OidFormatError(hash.to_string()))
+                   .wrap_with(|| EK::OidFormatError(hash.to_string()))
             })
             .and_then(|id| Issue::new(self, id))
     }
@@ -158,7 +158,7 @@ impl RepositoryExt for git2::Repository {
     fn issues_with_prefix(&self, prefix: &str) -> Result<UniqueIssues, git2::Error> {
         let glob = format!("{}/dit/**/head", prefix);
         self.references_glob(&glob)
-            .chain_err(|| EK::CannotGetReferences(glob))
+            .wrap_with_kind(EK::CannotGetReferences(glob))
             .map(|refs| iter::HeadRefsToIssuesIter::new(self, refs))?
             .collect_result()
     }
@@ -166,7 +166,7 @@ impl RepositoryExt for git2::Repository {
     fn issues(&self) -> Result<UniqueIssues, git2::Error> {
         let glob = "**/dit/**/head";
         self.references_glob(glob)
-            .chain_err(|| EK::CannotGetReferences(glob.to_owned()))
+            .wrap_with(|| EK::CannotGetReferences(glob.to_owned()))
             .map(|refs| iter::HeadRefsToIssuesIter::new(self, refs))?
             .collect_result()
     }
@@ -185,7 +185,7 @@ impl RepositoryExt for git2::Repository {
         let parent_vec : Vec<&Commit> = parents.into_iter().collect();
 
         self.commit(None, author, committer, message.as_ref(), tree, &parent_vec)
-            .chain_err(|| EK::CannotCreateMessage)
+            .wrap_with_kind(EK::CannotCreateMessage)
             .and_then(|id| Issue::new(self, id))
             .and_then(|issue| {
                 issue.update_head(issue.id(), true)?;
@@ -218,7 +218,7 @@ impl RepositoryExt for git2::Repository {
         self.treebuilder(None)
             .and_then(|treebuilder| treebuilder.write())
             .and_then(|oid| self.find_tree(oid))
-            .chain_err(|| EK::CannotBuildTree)
+            .wrap_with_kind(EK::CannotBuildTree)
     }
 }
 

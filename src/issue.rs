@@ -119,7 +119,7 @@ impl<'r> Issue<'r> {
     ///
     pub fn new(repo: &'r git2::Repository, id: Oid) -> Result<Self, git2::Error> {
         repo.find_object(id, Some(git2::ObjectType::Commit))
-            .chain_err(|| EK::CannotGetCommitForRev(id.to_string()))
+            .wrap_with(|| EK::CannotGetCommitForRev(id.to_string()))
             .map(|obj| Issue { repo: repo, obj: obj })
     }
 
@@ -147,7 +147,7 @@ impl<'r> Issue<'r> {
         let glob = format!("**/dit/{}/head", self.ref_part());
         self.repo
             .references_glob(&glob)
-            .chain_err(|| EK::CannotFindIssueHead(self.id()))
+            .wrap_with(|| EK::CannotFindIssueHead(self.id()))
     }
 
     /// Get the local issue head for the issue
@@ -159,7 +159,7 @@ impl<'r> Issue<'r> {
         let refname = format!("refs/dit/{}/head", self.ref_part());
         self.repo
             .find_reference(&refname)
-            .chain_err(|| EK::CannotFindIssueHead(self.id()))
+            .wrap_with(|| EK::CannotFindIssueHead(self.id()))
     }
 
     /// Get local references for the issue
@@ -171,7 +171,7 @@ impl<'r> Issue<'r> {
         let glob = format!("refs/dit/{}/{}", self.ref_part(), ref_type.glob_part());
         self.repo
             .references_glob(&glob)
-            .chain_err(|| EK::CannotGetReferences(glob))
+            .wrap_with_kind(EK::CannotGetReferences(glob))
     }
 
     /// Get remote references for the issue
@@ -183,7 +183,7 @@ impl<'r> Issue<'r> {
         let glob = format!("refs/remotes/*/dit/{}/{}", self.ref_part(), ref_type.glob_part());
         self.repo
             .references_glob(&glob)
-            .chain_err(|| EK::CannotGetReferences(glob))
+            .wrap_with_kind(EK::CannotGetReferences(glob))
     }
 
     /// Get references for the issue
@@ -195,7 +195,7 @@ impl<'r> Issue<'r> {
         let glob = format!("**/dit/{}/{}", self.ref_part(), ref_type.glob_part());
         self.repo
             .references_glob(&glob)
-            .chain_err(|| EK::CannotGetReferences(glob))
+            .wrap_with_kind(EK::CannotGetReferences(glob))
     }
 
     /// Get all Messages of the issue
@@ -211,13 +211,13 @@ impl<'r> Issue<'r> {
                 messages
                     .revwalk
                     .push_glob(glob.as_ref())
-                    .chain_err(|| EK::CannotGetReferences(glob))?;
+                    .wrap_with_kind(EK::CannotGetReferences(glob))?;
 
                 let glob = format!("refs/remotes/*/dit/{}/**", self.ref_part());
                 messages
                     .revwalk
                     .push_glob(glob.as_ref())
-                    .chain_err(|| EK::CannotGetReferences(glob))?;
+                    .wrap_with_kind(EK::CannotGetReferences(glob))?;
 
                 Ok(messages)
             })
@@ -234,7 +234,7 @@ impl<'r> Issue<'r> {
                 messages
                     .revwalk
                     .push(message)
-                    .chain_err(|| EK::CannotConstructRevwalk)?;
+                    .wrap_with_kind(EK::CannotConstructRevwalk)?;
 
                 Ok(messages)
             })
@@ -277,7 +277,7 @@ impl<'r> Issue<'r> {
         self.repo
             .commit(None, author, committer, message.as_ref(), tree, &parent_vec)
             .and_then(|id| self.repo.find_commit(id))
-            .chain_err(|| EK::CannotCreateMessage)
+            .wrap_with_kind(EK::CannotCreateMessage)
             .and_then(|message| self.add_leaf(message.id()).map(|_| message))
     }
 
@@ -295,7 +295,7 @@ impl<'r> Issue<'r> {
         let reflogmsg = format!("git-dit: set head reference of {} to {}", self, message);
         self.repo
             .reference(&refname, message, replace, &reflogmsg)
-            .chain_err(|| EK::CannotSetReference(refname))
+            .wrap_with_kind(EK::CannotSetReference(refname))
     }
 
     /// Add a new leaf reference associated with the issue
@@ -307,7 +307,7 @@ impl<'r> Issue<'r> {
         let reflogmsg = format!("git-dit: new leaf for {}: {}", self, message);
         self.repo
             .reference(&refname, message, false, &reflogmsg)
-            .chain_err(|| EK::CannotSetReference(refname))
+            .wrap_with_kind(EK::CannotSetReference(refname))
     }
 
     /// Get reference part for this issue

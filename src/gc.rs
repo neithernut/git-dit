@@ -100,7 +100,7 @@ impl<'r> CollectableRefs<'r>
             let messages = self
                 .repo
                 .revwalk()
-                .chain_err(|| EK::CannotConstructRevwalk)?;
+                .wrap_with_kind(EK::CannotConstructRevwalk)?;
             RefsReferringTo::new(messages)
         };
 
@@ -111,7 +111,7 @@ impl<'r> CollectableRefs<'r>
             retval.push(
                 local_head
                     .peel(git2::ObjectType::Commit)
-                    .chain_err(|| EK::CannotGetCommit)?
+                    .wrap_with_kind(EK::CannotGetCommit)?
                     .id()
             )?;
 
@@ -123,7 +123,7 @@ impl<'r> CollectableRefs<'r>
             let mut head_history = self
                 .repo
                 .revwalk()
-                .chain_err(|| EK::CannotConstructRevwalk)?;
+                .wrap_with_kind(EK::CannotConstructRevwalk)?;
             match self.collect_heads {
                 ReferenceCollectionSpec::Never => {},
                 ReferenceCollectionSpec::BackedByRemoteHead => {
@@ -131,7 +131,7 @@ impl<'r> CollectableRefs<'r>
                         head_history.push(
                             item?
                                 .peel(git2::ObjectType::Commit)
-                                .chain_err(|| EK::CannotGetCommit)?
+                                .wrap_with_kind(EK::CannotGetCommit)?
                                 .id()
                         )?;
                     }
@@ -157,7 +157,7 @@ impl<'r> CollectableRefs<'r>
             for item in issue.remote_refs(IssueRefType::Any)? {
                 retval.push(item?
                     .peel(git2::ObjectType::Commit)
-                    .chain_err(|| EK::CannotGetCommit)?
+                    .wrap_with_kind(EK::CannotGetCommit)?
                     .id()
                 )?;
             }
@@ -174,7 +174,7 @@ impl<'r> CollectableRefs<'r>
     ) -> Result<(), git2::Error> {
         let referred_commit = reference
             .peel(git2::ObjectType::Commit)
-            .chain_err(|| EK::CannotGetCommit)?
+            .wrap_with_kind(EK::CannotGetCommit)?
             .into_commit()
             .map_err(|o| EK::CannotGetCommitForRev(o.id().to_string()))?;
         for parent in referred_commit.parent_ids() {

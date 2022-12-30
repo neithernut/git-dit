@@ -51,7 +51,7 @@ impl<'r> Iterator for HeadRefsToIssuesIter<'r>
             .next()
             .map(|reference| {
                 reference
-                    .chain_err(|| EK::CannotGetReference)
+                    .wrap_with_kind(EK::CannotGetReference)
                     .and_then(|r| self.repo.issue_by_head_ref(&r))
             })
     }
@@ -80,7 +80,7 @@ impl<'r> Messages<'r> {
     pub fn empty<'a>(repo: &'a Repository) -> Result<Messages<'a>, git2::Error> {
         repo.revwalk()
             .map(|revwalk| Self::new(repo, revwalk))
-            .chain_err(|| EK::CannotConstructRevwalk)
+            .wrap_with_kind(EK::CannotConstructRevwalk)
     }
 
     /// Create an IssueMessagesIter from this instance
@@ -111,7 +111,7 @@ impl<'r> Iterator for Messages<'r> {
             .next()
             .map(|item| item
                 .and_then(|id| self.repo.find_commit(id))
-                .chain_err(|| EK::CannotGetCommit)
+                .wrap_with_kind(EK::CannotGetCommit)
             )
     }
 }
@@ -226,7 +226,7 @@ impl<'r> RefsReferringTo<'r> {
     /// iterating over messages.
     ///
     pub fn push(&mut self, message: git2::Oid) -> Result<(), git2::Error> {
-        self.inner.push(message).chain_err(|| EK::CannotConstructRevwalk)
+        self.inner.push(message).wrap_with_kind(EK::CannotConstructRevwalk)
     }
 
     /// Start watching a reference
@@ -236,7 +236,7 @@ impl<'r> RefsReferringTo<'r> {
     pub fn watch_ref(&mut self, reference: git2::Reference<'r>) -> Result<(), git2::Error> {
         let id = reference
             .peel(git2::ObjectType::Any)
-            .chain_err(|| EK::CannotGetCommitForRev(reference.name().unwrap_or_default().to_string()))?
+            .wrap_with(|| EK::CannotGetCommitForRev(reference.name().unwrap_or_default().to_string()))?
             .id();
         self.refs.entry(id).or_insert_with(Vec::new).push(reference);
         Ok(())
@@ -272,7 +272,7 @@ impl<'r> Iterator for RefsReferringTo<'r> {
 
             // refill the stash of references for the next commit
             for item in &mut self.inner {
-                match item.chain_err(|| EK::CannotGetCommit) {
+                match item.wrap_with_kind(EK::CannotGetCommit) {
                     Ok(id) => if let Some(new_refs) = self.refs.remove(&id) {
                         // NOTE: should new_refs be empty, we just loop once
                         //       more through the 'outer loop
@@ -352,7 +352,7 @@ impl<'r, I> Iterator for ReferenceDeletingIter<'r, I>
             .by_ref()
             .filter_map(|mut r| r
                 .delete()
-                .chain_err(|| EK::CannotDeleteReference(r.name().unwrap_or_default().to_string()))
+                .wrap_with(|| EK::CannotDeleteReference(r.name().unwrap_or_default().to_string()))
                 .err()
             )
             .next()
