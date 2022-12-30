@@ -7,6 +7,8 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
 
+use std::fmt;
+
 use git2::Oid;
 
 error_chain! {
@@ -106,3 +108,19 @@ error_chain! {
         }
     }
 }
+
+
+/// [Error](std::error::Error) type specific to a git implementation
+///
+/// This trait is implemented for [Error](std::error::Error)s we wrap in our own
+/// custom [Error]. The trait links that source error type to types we use for
+/// representing certain entities with the specific git library in the context
+/// of error reporting.
+pub trait InnerError: std::error::Error {
+    /// Type used for representing Object IDs
+    type Oid: fmt::Debug + fmt::Display;
+
+    /// Type used for representing refs
+    type Reference: fmt::Debug + fmt::Display;
+}
+
