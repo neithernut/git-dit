@@ -1,10 +1,25 @@
-git-dit library
+git-dit library - the distributed issue tracker for git library
 
-This tree contains the git-dit functionality as library.
+**WARNING: This is pre-1.0! Expect bugs and incompatibilities!**
 
----
+# git-dit features
 
-It is licensed under terms of MPL-2.0.
+* Distributed issue tracking, without checking files into the repository
+* No structured data 
+  * An issue/comment is a commit
+  * "Tags" are supported (see `man git-interpret-trailers`)
+* No additional software needed on the server-side.
 
-For more information, see [the LICENSE file](./LICENSE).
+When playing with this, please keep in mind that this is alpha quality - there
+are bugs, missing things and rough edges.
+
+# Documentation
+
+For a system overview and conceptual information, refer to the
+[documentation](doc/README.md).
+
+# License
+
+This library is licensed under terms of [MPL-2.0](./LICENSE).
+
 (c) Julian Ganz, Matthias Beyer
