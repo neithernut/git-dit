@@ -1,8 +1,11 @@
 # git-dit ChangeLog
 
-## Next
+## v0.5.0 (2023-07-08)
 
 Changes:
+  * The library was split off the binary's tree. This is the new library tree.
+  * The library was made buildable with newer versions of rust (1.69) and
+    dependencies were upgraded.
   * Some traits in the library were refactored to not be generic over their
     functions return types, but rather use associated types for that.
 
