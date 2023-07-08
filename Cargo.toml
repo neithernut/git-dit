@@ -6,7 +6,7 @@ authors = ["Matthias Beyer <mail@beyermatthias.de>",
            "Julian Ganz <neither@nut.email>"]
 
 [dependencies]
-git2 = "0.9"
+git2 = "0.17"
 error-chain = "0.12"
 regex = "1"
 lazy_static = "1"
