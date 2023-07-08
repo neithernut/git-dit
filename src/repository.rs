@@ -197,8 +197,11 @@ impl RepositoryExt for git2::Repository {
         iter::Messages::empty(self)
             .and_then(|mut messages| {
                 messages.revwalk.push(id)?;
-                messages.revwalk.simplify_first_parent();
-                messages.revwalk.set_sorting(git2::Sort::TOPOLOGICAL);
+                messages.revwalk.simplify_first_parent().wrap_with_kind(EK::CannotConstructRevwalk)?;
+                messages
+                    .revwalk
+                    .set_sorting(git2::Sort::TOPOLOGICAL)
+                    .wrap_with_kind(EK::CannotConstructRevwalk)?;
                 Ok(messages)
             })
     }
