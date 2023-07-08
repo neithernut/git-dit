@@ -22,7 +22,7 @@ use repository::RepositoryExt;
 use trailer::{accumulation, spec};
 
 use error::*;
-use error::ErrorKind as EK;
+use error::Kind as EK;
 
 /// Iterator for transforming the names of head references to issues
 ///
@@ -44,14 +44,14 @@ impl<'r> HeadRefsToIssuesIter<'r>
 
 impl<'r> Iterator for HeadRefsToIssuesIter<'r>
 {
-    type Item = Result<issue::Issue<'r>>;
+    type Item = Result<issue::Issue<'r>, git2::Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.inner
             .next()
             .map(|reference| {
                 reference
-                    .chain_err(|| EK::CannotGetReference)
+                    .wrap_with_kind(EK::CannotGetReference)
                     .and_then(|r| self.repo.issue_by_head_ref(&r))
             })
     }
@@ -77,10 +77,10 @@ impl<'r> Messages<'r> {
 
     /// Create a new messages iter from an unconfigured revwalk
     ///
-    pub fn empty<'a>(repo: &'a Repository) -> Result<Messages<'a>> {
+    pub fn empty<'a>(repo: &'a Repository) -> Result<Messages<'a>, git2::Error> {
         repo.revwalk()
             .map(|revwalk| Self::new(repo, revwalk))
-            .chain_err(|| EK::CannotConstructRevwalk)
+            .wrap_with_kind(EK::CannotConstructRevwalk)
     }
 
     /// Create an IssueMessagesIter from this instance
@@ -95,7 +95,7 @@ impl<'r> Messages<'r> {
     /// performant than creating an `IssueMessagesIter`. However, the issue has
     /// to be known in advance.
     ///
-    pub fn terminate_at_initial(&mut self, issue: &issue::Issue) -> Result<()> {
+    pub fn terminate_at_initial(&mut self, issue: &issue::Issue) -> Result<(), git2::Error> {
         for parent in issue.initial_message()?.parent_ids() {
             self.revwalk.hide(parent)?;
         }
@@ -104,14 +104,14 @@ impl<'r> Messages<'r> {
 }
 
 impl<'r> Iterator for Messages<'r> {
-    type Item = Result<git2::Commit<'r>>;
+    type Item = Result<git2::Commit<'r>, git2::Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.revwalk
             .next()
             .map(|item| item
                 .and_then(|id| self.repo.find_commit(id))
-                .chain_err(|| EK::CannotGetCommit)
+                .wrap_with_kind(EK::CannotGetCommit)
             )
     }
 }
@@ -181,7 +181,7 @@ impl<'r> From<Messages<'r>> for IssueMessagesIter<'r> {
 }
 
 impl<'r> Iterator for IssueMessagesIter<'r> {
-    type Item = Result<git2::Commit<'r>>;
+    type Item = Result<git2::Commit<'r>, git2::Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.0
@@ -225,18 +225,18 @@ impl<'r> RefsReferringTo<'r> {
     /// The message will be pushed onto the underlying `Revwalk` used for
     /// iterating over messages.
     ///
-    pub fn push(&mut self, message: git2::Oid) -> Result<()> {
-        self.inner.push(message).chain_err(|| EK::CannotConstructRevwalk)
+    pub fn push(&mut self, message: git2::Oid) -> Result<(), git2::Error> {
+        self.inner.push(message).wrap_with_kind(EK::CannotConstructRevwalk)
     }
 
     /// Start watching a reference
     ///
     /// A watched reference may be returned by the iterator.
     ///
-    pub fn watch_ref(&mut self, reference: git2::Reference<'r>) -> Result<()> {
+    pub fn watch_ref(&mut self, reference: git2::Reference<'r>) -> Result<(), git2::Error> {
         let id = reference
             .peel(git2::ObjectType::Any)
-            .chain_err(|| EK::CannotGetCommitForRev(reference.name().unwrap_or_default().to_string()))?
+            .wrap_with(|| EK::CannotGetCommitForRev(reference.name().unwrap_or_default().to_string()))?
             .id();
         self.refs.entry(id).or_insert_with(Vec::new).push(reference);
         Ok(())
@@ -244,7 +244,7 @@ impl<'r> RefsReferringTo<'r> {
 
     /// Start watching a number of references
     ///
-    pub fn watch_refs<I>(&mut self, references: I) -> Result<()>
+    pub fn watch_refs<I>(&mut self, references: I) -> Result<(), git2::Error>
         where I: IntoIterator<Item = git2::Reference<'r>>
     {
         for reference in references.into_iter() {
@@ -255,7 +255,7 @@ impl<'r> RefsReferringTo<'r> {
 }
 
 impl<'r> Iterator for RefsReferringTo<'r> {
-    type Item = Result<git2::Reference<'r>>;
+    type Item = Result<git2::Reference<'r>, git2::Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         'outer: loop {
@@ -272,7 +272,7 @@ impl<'r> Iterator for RefsReferringTo<'r> {
 
             // refill the stash of references for the next commit
             for item in &mut self.inner {
-                match item.chain_err(|| EK::CannotGetCommit) {
+                match item.wrap_with_kind(EK::CannotGetCommit) {
                     Ok(id) => if let Some(new_refs) = self.refs.remove(&id) {
                         // NOTE: should new_refs be empty, we just loop once
                         //       more through the 'outer loop
@@ -345,14 +345,14 @@ impl<'r, I, J> From<J> for ReferenceDeletingIter<'r, I>
 impl<'r, I> Iterator for ReferenceDeletingIter<'r, I>
     where I: Iterator<Item = git2::Reference<'r>>
 {
-    type Item = Error;
+    type Item = Error<git2::Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.inner
             .by_ref()
             .filter_map(|mut r| r
                 .delete()
-                .chain_err(|| EK::CannotDeleteReference(r.name().unwrap_or_default().to_string()))
+                .wrap_with(|| EK::CannotDeleteReference(r.name().unwrap_or_default().to_string()))
                 .err()
             )
             .next()

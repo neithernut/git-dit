@@ -22,7 +22,7 @@ use iter;
 use utils::ResultIterExt;
 
 use error::*;
-use error::ErrorKind as EK;
+use error::Kind as EK;
 
 
 /// Set of unique issues
@@ -41,19 +41,19 @@ pub trait RepositoryExt {
     ///
     /// Returns the issue with a given id.
     ///
-    fn find_issue(&self, id: Oid) -> Result<Issue>;
+    fn find_issue(&self, id: Oid) -> Result<Issue, git2::Error>;
 
     /// Retrieve an issue by its head ref
     ///
     /// Returns the issue associated with a head reference.
     ///
-    fn issue_by_head_ref(&self, head_ref: &git2::Reference) -> Result<Issue>;
+    fn issue_by_head_ref(&self, head_ref: &git2::Reference) -> Result<Issue, git2::Error>;
 
     /// Find the issue with a given message in it
     ///
     /// Returns the issue containing the message provided
     ///
-    fn issue_with_message<'a>(&'a self, message: &Commit<'a>) -> Result<Issue>;
+    fn issue_with_message<'a>(&'a self, message: &Commit<'a>) -> Result<Issue, git2::Error>;
 
     /// Get issue hashes for a prefix
     ///
@@ -61,13 +61,13 @@ pub trait RepositoryExt {
     /// prefix provided (e.g. all issues for which refs exist under
     /// `<prefix>/dit/`). Provide "refs" as the prefix to get only local issues.
     ///
-    fn issues_with_prefix(&self, prefix: &str) -> Result<UniqueIssues>;
+    fn issues_with_prefix(&self, prefix: &str) -> Result<UniqueIssues, git2::Error>;
 
     /// Get all issue hashes
     ///
     /// This function returns all known issues known to the DIT repo.
     ///
-    fn issues(&self) -> Result<UniqueIssues>;
+    fn issues(&self) -> Result<UniqueIssues, git2::Error>;
 
     /// Create a new issue with an initial message
     ///
@@ -77,7 +77,7 @@ pub trait RepositoryExt {
              message: A,
              tree: &Tree,
              parents: I
-    ) -> Result<Issue>
+    ) -> Result<Issue, git2::Error>
         where A: AsRef<str>,
               I: IntoIterator<Item = &'a Commit<'a>, IntoIter = J>,
               J: Iterator<Item = &'a Commit<'a>>;
@@ -87,14 +87,17 @@ pub trait RepositoryExt {
     /// This is a convenience function. It returns an iterator over messages in
     /// reverse order, only following first parents.
     ///
-    fn first_parent_messages(&self, id: Oid) -> Result<iter::Messages>;
+    fn first_parent_messages(&self, id: Oid) -> Result<iter::Messages, git2::Error>;
 
     /// Get an IssueMessagesIter starting at a given commit
     ///
     /// The iterator returned will return messages in reverse order, following
     /// the first parent, starting with the commit supplied.
     ///
-    fn issue_messages_iter<'a>(&'a self, commit: Commit<'a>) -> Result<iter::IssueMessagesIter<'a>>;
+    fn issue_messages_iter<'a>(
+        &'a self,
+        commit: Commit<'a>,
+    ) -> Result<iter::IssueMessagesIter<'a>, git2::Error>;
 
     /// Produce a CollectableRefs
     ///
@@ -104,11 +107,11 @@ pub trait RepositoryExt {
     ///
     /// This function returns an empty tree.
     ///
-    fn empty_tree(&self) -> Result<Tree>;
+    fn empty_tree(&self) -> Result<Tree, git2::Error>;
 }
 
 impl RepositoryExt for git2::Repository {
-    fn find_issue(&self, id: Oid) -> Result<Issue> {
+    fn find_issue(&self, id: Oid) -> Result<Issue, git2::Error> {
         let retval = Issue::new(self, id)?;
 
         // make sure the id refers to an issue by checking whether an associated
@@ -116,11 +119,11 @@ impl RepositoryExt for git2::Repository {
         if retval.heads()?.next().is_some() {
             Ok(retval)
         } else {
-            Err(Error::from_kind(EK::CannotFindIssueHead(id)))
+            Err(EK::CannotFindIssueHead(id).into())
         }
     }
 
-    fn issue_by_head_ref(&self, head_ref: &git2::Reference) -> Result<Issue> {
+    fn issue_by_head_ref(&self, head_ref: &git2::Reference) -> Result<Issue, git2::Error> {
         let name = head_ref.name();
         name.and_then(|name| if name.ends_with("/head") {
                 Some(name)
@@ -130,16 +133,16 @@ impl RepositoryExt for git2::Repository {
             .and_then(|name| name.rsplitn(3, "/").nth(1))
             .ok_or_else(|| {
                 let n = name.unwrap_or_default().to_owned();
-                Error::from_kind(EK::MalFormedHeadReference(n))
+                EK::MalFormedHeadReference(n).into()
             })
             .and_then(|hash| {
                Oid::from_str(hash)
-                   .chain_err(|| EK::OidFormatError(hash.to_string()))
+                   .wrap_with(|| EK::OidFormatError(hash.to_string()))
             })
             .and_then(|id| Issue::new(self, id))
     }
 
-    fn issue_with_message<'a>(&'a self, message: &Commit<'a>) -> Result<Issue> {
+    fn issue_with_message<'a>(&'a self, message: &Commit<'a>) -> Result<Issue, git2::Error> {
         // follow the chain of first parents towards an initial message for
         // which a head exists
         for id in self.first_parent_messages(message.id())?.revwalk {
@@ -149,21 +152,21 @@ impl RepositoryExt for git2::Repository {
             }
         }
 
-        Err(Error::from_kind(EK::NoTreeInitFound(message.id())))
+        Err(EK::NoTreeInitFound(message.id()).into())
     }
 
-    fn issues_with_prefix(&self, prefix: &str) -> Result<UniqueIssues> {
+    fn issues_with_prefix(&self, prefix: &str) -> Result<UniqueIssues, git2::Error> {
         let glob = format!("{}/dit/**/head", prefix);
         self.references_glob(&glob)
-            .chain_err(|| EK::CannotGetReferences(glob))
+            .wrap_with_kind(EK::CannotGetReferences(glob))
             .map(|refs| iter::HeadRefsToIssuesIter::new(self, refs))?
             .collect_result()
     }
 
-    fn issues(&self) -> Result<UniqueIssues> {
+    fn issues(&self) -> Result<UniqueIssues, git2::Error> {
         let glob = "**/dit/**/head";
         self.references_glob(glob)
-            .chain_err(|| EK::CannotGetReferences(glob.to_owned()))
+            .wrap_with(|| EK::CannotGetReferences(glob.to_owned()))
             .map(|refs| iter::HeadRefsToIssuesIter::new(self, refs))?
             .collect_result()
     }
@@ -174,7 +177,7 @@ impl RepositoryExt for git2::Repository {
              message: A,
              tree: &Tree,
              parents: I
-    ) -> Result<Issue>
+    ) -> Result<Issue, git2::Error>
         where A: AsRef<str>,
               I: IntoIterator<Item = &'a Commit<'a>, IntoIter = J>,
               J: Iterator<Item = &'a Commit<'a>>
@@ -182,7 +185,7 @@ impl RepositoryExt for git2::Repository {
         let parent_vec : Vec<&Commit> = parents.into_iter().collect();
 
         self.commit(None, author, committer, message.as_ref(), tree, &parent_vec)
-            .chain_err(|| EK::CannotCreateMessage)
+            .wrap_with_kind(EK::CannotCreateMessage)
             .and_then(|id| Issue::new(self, id))
             .and_then(|issue| {
                 issue.update_head(issue.id(), true)?;
@@ -190,7 +193,7 @@ impl RepositoryExt for git2::Repository {
             })
     }
 
-    fn first_parent_messages(&self, id: Oid) -> Result<iter::Messages> {
+    fn first_parent_messages(&self, id: Oid) -> Result<iter::Messages, git2::Error> {
         iter::Messages::empty(self)
             .and_then(|mut messages| {
                 messages.revwalk.push(id)?;
@@ -198,22 +201,24 @@ impl RepositoryExt for git2::Repository {
                 messages.revwalk.set_sorting(git2::Sort::TOPOLOGICAL);
                 Ok(messages)
             })
-            .chain_err(|| EK::CannotGetCommitForRev(id.to_string()))
     }
 
     fn collectable_refs<'a>(&'a self) -> gc::CollectableRefs<'a> {
         gc::CollectableRefs::new(self)
     }
 
-    fn issue_messages_iter<'a>(&'a self, commit: Commit<'a>) -> Result<iter::IssueMessagesIter<'a>> {
+    fn issue_messages_iter<'a>(
+        &'a self,
+        commit: Commit<'a>,
+    ) -> Result<iter::IssueMessagesIter<'a>, git2::Error> {
         self.first_parent_messages(commit.id()).map(iter::Messages::until_any_initial)
     }
 
-    fn empty_tree(&self) -> Result<Tree> {
+    fn empty_tree(&self) -> Result<Tree, git2::Error> {
         self.treebuilder(None)
             .and_then(|treebuilder| treebuilder.write())
             .and_then(|oid| self.find_tree(oid))
-            .chain_err(|| EK::CannotBuildTree)
+            .wrap_with_kind(EK::CannotBuildTree)
     }
 }
 

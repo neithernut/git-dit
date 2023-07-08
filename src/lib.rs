@@ -34,7 +34,6 @@
 //! contain arbitrary metadata in the form of git trailers.
 //!
 
-#[macro_use] extern crate error_chain;
 #[macro_use] extern crate lazy_static;
 extern crate git2;
 extern crate regex;

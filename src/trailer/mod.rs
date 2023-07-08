@@ -25,7 +25,7 @@ use std::result::Result as RResult;
 use std::str::FromStr;
 
 use error::*;
-use error::ErrorKind as EK;
+use error::Kind as EK;
 
 /// The Key of a Trailer:
 ///
@@ -150,9 +150,9 @@ impl fmt::Display for Trailer {
 }
 
 impl FromStr for Trailer {
-    type Err = Error;
+    type Err = Error<git2::Error>;
 
-    fn from_str(s: &str) -> Result<Self> {
+    fn from_str(s: &str) -> RResult<Self, Self::Err> {
         lazy_static! {
             // regex to match the beginning of a trailer
             static ref RE: Regex = Regex::new(r"^([[:alnum:]-]+)[:=](.*)$").unwrap();
@@ -160,7 +160,7 @@ impl FromStr for Trailer {
 
         match RE.captures(s).map(|c| (c.get(1), c.get(2))) {
             Some((Some(key), Some(value))) => Ok(Trailer::new(key.as_str(), value.as_str().trim())),
-            _ => Err(Error::from_kind(EK::TrailerFormatError(s.to_owned())))
+            _ => Err(EK::TrailerFormatError(s.to_owned()).into())
         }
     }
 }
