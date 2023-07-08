@@ -167,9 +167,11 @@ pub struct IssueMessagesIter<'r>(Messages<'r>);
 impl<'r> IssueMessagesIter<'r> {
     /// Fuse the iterator is the id refers to an issue
     ///
-    fn fuse_if_initial(&mut self, id: git2::Oid) {
+    fn fuse_if_initial(&mut self, id: git2::Oid) -> Result<(), git2::Error> {
         if self.0.repo.find_issue(id).is_ok() {
-            self.0.revwalk.reset();
+            self.0.revwalk.reset().wrap_with_kind(EK::CannotConstructRevwalk)
+        } else {
+            Ok(())
         }
     }
 }
@@ -188,7 +190,7 @@ impl<'r> Iterator for IssueMessagesIter<'r> {
             .next()
             .map(|item| {
                 if let Ok(ref commit) = item {
-                    self.fuse_if_initial(commit.id());
+                    self.fuse_if_initial(commit.id())?;
                 }
                 item
             })
