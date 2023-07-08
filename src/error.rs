@@ -15,7 +15,7 @@ pub type Result<T, I> = std::result::Result<T, Error<I>>;
 
 
 /// Extension trait for convenience functionality
-pub trait ResultExt<T, I: InnerError> {
+pub(crate) trait ResultExt<T, I: InnerError> {
     /// Wrap a git library specific error with a specific [Kind]
     fn wrap_with_kind(self, kind: Kind<I>) -> Result<T, I>;
 
